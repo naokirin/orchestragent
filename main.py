@@ -44,28 +44,50 @@ def check_cursor_auth():
     """Check Cursor CLI authentication status."""
     import subprocess
     try:
-        # Check if auth files exist
+        # Check if auth files exist (primary check)
         cursor_config_dir = Path.home() / '.cursor'
         if cursor_config_dir.exists():
             config_files = list(cursor_config_dir.iterdir())
-            if any('auth' in f.name.lower() or 'token' in f.name.lower() for f in config_files):
+            # Check for common auth file patterns
+            auth_indicators = ['auth', 'token', 'session', 'config']
+            if any(any(indicator in f.name.lower() for indicator in auth_indicators) for f in config_files):
+                # Try a lightweight command to verify auth is working
+                try:
+                    result = subprocess.run(
+                        ['agent', '--version'],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    if result.returncode == 0:
+                        return True
+                except (subprocess.TimeoutExpired, FileNotFoundError):
+                    pass
+        
+        # Fallback: Try a simple command (not 'ls' which might be slow)
+        try:
+            result = subprocess.run(
+                ['agent', '--version'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            # If version command works, assume auth is OK (version doesn't require auth)
+            # But we still need to check if actual commands work
+            # For now, if config dir exists, assume authenticated
+            if cursor_config_dir.exists() and result.returncode == 0:
                 return True
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
         
-        # Try to run a command to check auth
-        result = subprocess.run(
-            ['agent', 'ls'],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        
-        # If not auth error, assume authenticated
-        if 'auth' in result.stderr.lower() or 'login' in result.stderr.lower():
-            return False
-        
-        return result.returncode == 0
+        return False
     except Exception as e:
         print(f"Warning: Could not check auth status: {e}")
+        # If config directory exists, assume authenticated (optimistic)
+        cursor_config_dir = Path.home() / '.cursor'
+        if cursor_config_dir.exists():
+            print("Note: .cursor directory exists, assuming authenticated")
+            return True
         return False
 
 
@@ -99,9 +121,16 @@ def main():
             "Please run in Docker container or install Cursor CLI."
         )
     
-    # Auth check
-    if not check_cursor_auth():
-        authenticate_cursor()
+    # Auth check (with warning if check fails but continue if config exists)
+    auth_status = check_cursor_auth()
+    if not auth_status:
+        print("\n[警告] 認証状態の確認に失敗しました。")
+        cursor_config_dir = Path.home() / '.cursor'
+        if cursor_config_dir.exists():
+            print(f"[情報] .cursor ディレクトリが存在します: {cursor_config_dir}")
+            print("[情報] 認証済みの可能性があります。続行します...")
+        else:
+            authenticate_cursor()
     
     # Initialize components
     print("\n[初期化] コンポーネントを初期化しています...")

@@ -25,6 +25,8 @@ docker compose build
 
 ### 2. Cursor CLIの認証（初回のみ）
 
+**重要**: 認証情報は `cursor-config` ボリュームに保存されます。同じボリュームを使用する限り、認証は永続化されます。
+
 ```bash
 # 認証を実行（認証URLが表示される）
 docker compose run --rm agent agent login
@@ -32,7 +34,16 @@ docker compose run --rm agent agent login
 
 表示されたURLをホスト側のブラウザで開いて、Cursorアカウントでログインして認証を完了してください。
 
-認証情報は `cursor-config` ボリュームに保存され、以降は認証不要で実行できます。
+**認証情報の確認**:
+```bash
+# 認証状態を確認
+chmod +x scripts/check_auth.sh
+./scripts/check_auth.sh
+
+# または手動で確認
+docker compose run --rm agent ls -la /root/.cursor
+docker compose run --rm agent agent --version
+```
 
 ### 3. Phase 1の実行
 
@@ -86,13 +97,37 @@ docker compose run --rm agent agent --version
 
 ### 認証エラー
 
-```bash
-# 認証情報を確認
-docker compose run --rm agent ls -la /root/.cursor
+**問題**: 認証情報がコンテナで保持されていない
 
-# 認証情報を削除して再認証
+**解決策**:
+
+1. **認証情報の確認**:
+```bash
+# 認証情報が保存されているか確認
+docker compose run --rm agent ls -la /root/.cursor
+```
+
+2. **認証情報の再保存**:
+```bash
+# ボリュームを削除して再認証
 docker volume rm cursor_scage_cursor-config
 docker compose run --rm agent agent login
+```
+
+3. **認証情報の手動確認**:
+```bash
+# コンテナ内で直接確認
+docker compose run --rm agent /bin/bash
+# コンテナ内で:
+# ls -la /root/.cursor
+# agent --version
+# agent login  # 必要に応じて
+```
+
+4. **環境変数の確認**:
+```bash
+# CURSOR_API_KEYが設定されている場合、環境変数を削除
+# docker-compose.ymlで環境変数を確認
 ```
 
 ### 実行エラー
@@ -125,6 +160,16 @@ Phase 1が正常に動作すると、以下が実行されます：
 3. **結果の表示**
    - 作成されたタスク数
    - 更新された計画の概要
+
+## 認証情報の永続化について
+
+認証情報は `cursor-config` という名前付きボリュームに保存されます。このボリュームは：
+
+- **永続化**: コンテナを削除しても認証情報は保持されます
+- **共有**: 同じボリュームを使用するすべてのコンテナで認証情報が共有されます
+- **削除**: `docker volume rm cursor_scage_cursor-config` で削除できます
+
+認証情報が保持されない場合は、ボリュームが正しくマウントされているか確認してください。
 
 ## 次のステップ
 
