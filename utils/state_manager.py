@@ -3,7 +3,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional, Callable, List
 from datetime import datetime
 
 
@@ -190,3 +190,56 @@ class StateManager:
     def save_plan(self, plan: str) -> None:
         """Save plan."""
         self.save_text("plan.md", plan)
+    
+    def get_pending_tasks(self) -> List[Dict[str, Any]]:
+        """Get all pending tasks."""
+        tasks = self.get_tasks()
+        return [t for t in tasks.get("tasks", []) if t.get("status") == "pending"]
+    
+    def get_task_by_id(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """Get task by ID."""
+        tasks = self.get_tasks()
+        for task in tasks.get("tasks", []):
+            if task.get("id") == task_id:
+                return task
+        return None
+    
+    def update_task(self, task_id: str, updates: Dict[str, Any]) -> None:
+        """Update task with given fields."""
+        def update(data: Dict[str, Any]) -> Dict[str, Any]:
+            for task in data.get("tasks", []):
+                if task.get("id") == task_id:
+                    task.update(updates)
+                    if "status" in updates:
+                        task["updated_at"] = datetime.now().isoformat()
+                    break
+            return data
+        
+        self.update_json("tasks.json", update)
+    
+    def assign_task(self, task_id: str, worker_id: str = "worker") -> None:
+        """Assign task to worker."""
+        self.update_task(task_id, {
+            "status": "in_progress",
+            "assigned_to": worker_id,
+            "started_at": datetime.now().isoformat()
+        })
+    
+    def complete_task(self, task_id: str, result: Dict[str, Any]) -> None:
+        """Mark task as completed with result."""
+        result_file = f"results/{task_id}.md"
+        self.save_text(result_file, result.get("report", ""))
+        
+        self.update_task(task_id, {
+            "status": "completed",
+            "completed_at": datetime.now().isoformat(),
+            "result_file": result_file
+        })
+    
+    def fail_task(self, task_id: str, error: str) -> None:
+        """Mark task as failed."""
+        self.update_task(task_id, {
+            "status": "failed",
+            "failed_at": datetime.now().isoformat(),
+            "error": error
+        })

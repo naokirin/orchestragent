@@ -4,10 +4,13 @@ import os
 import sys
 import time
 from pathlib import Path
+import time
 from utils.llm_client_factory import LLMClientFactory
 from utils.state_manager import StateManager
 from utils.logger import AgentLogger
 from agents.planner import PlannerAgent
+from agents.worker import WorkerAgent
+from agents.judge import JudgeAgent
 import config
 
 
@@ -160,44 +163,154 @@ def main():
     state_manager = StateManager(state_dir=config.STATE_DIR)
     logger = AgentLogger(log_dir=config.LOG_DIR, log_level=config.LOG_LEVEL)
     
-    # Initialize planner
+    # Initialize agents
+    planner_config = config.AGENT_CONFIG.copy()
+    planner_config["mode"] = "plan"
+    
     planner = PlannerAgent(
         name="Planner",
         llm_client=llm_client,
         state_manager=state_manager,
         logger=logger,
-        config=config.AGENT_CONFIG
+        config=planner_config
+    )
+    
+    worker_config = config.AGENT_CONFIG.copy()
+    worker_config["mode"] = "agent"
+    worker_config["prompt_template"] = "prompts/worker.md"
+    
+    worker = WorkerAgent(
+        name="Worker",
+        llm_client=llm_client,
+        state_manager=state_manager,
+        logger=logger,
+        config=worker_config
+    )
+    
+    judge_config = config.AGENT_CONFIG.copy()
+    judge_config["mode"] = "ask"
+    judge_config["prompt_template"] = "prompts/judge.md"
+    
+    judge = JudgeAgent(
+        name="Judge",
+        llm_client=llm_client,
+        state_manager=state_manager,
+        logger=logger,
+        config=judge_config
     )
     
     print("[初期化] 完了")
     
-    # Phase 1: Test planner
-    print("\n[Phase 1] Plannerエージェントをテストします...")
+    # Phase 2: Main loop
+    print("\n[Phase 2] メインループを開始します...")
     print(f"プロジェクト目標: {config.AGENT_CONFIG['project_goal']}")
+    print(f"待機時間: {config.WAIT_TIME_MINUTES}分")
+    print(f"最大イテレーション: {config.MAX_ITERATIONS}")
+    
+    iteration = 0
     
     try:
-        result = planner.run(iteration=0)
-        print("\n[Phase 1] Planner実行完了")
-        print(f"結果: {result.get('reasoning', 'N/A')}")
+        while iteration < config.MAX_ITERATIONS:
+            iteration += 1
+            print(f"\n{'=' * 60}")
+            print(f"イテレーション {iteration}")
+            print(f"{'=' * 60}")
+            
+            # 1. Planner実行
+            print("\n[1/3] Planner実行中...")
+            try:
+                planner.run(iteration=iteration)
+                print("[Planner] 完了")
+            except Exception as e:
+                logger.error(f"[Planner] Error: {e}")
+                print(f"[Planner] エラー: {e}")
+            
+            # 待機
+            wait_seconds = config.WAIT_TIME_MINUTES * 60
+            print(f"\n[待機] {config.WAIT_TIME_MINUTES}分待機中...")
+            time.sleep(wait_seconds)
+            
+            # 2. Worker実行（保留中のタスクがある限り）
+            print("\n[2/3] Worker実行中...")
+            pending_tasks = state_manager.get_pending_tasks()
+            
+            if not pending_tasks:
+                print("[Worker] 保留中のタスクがありません")
+            else:
+                # 最初の保留タスクを実行
+                task = pending_tasks[0]
+                task_id = task.get("id")
+                print(f"[Worker] タスク {task_id} を実行: {task.get('title', 'No title')}")
+                
+                if worker.assign_task(task_id):
+                    try:
+                        # Load task into state for worker
+                        state = worker.load_state()
+                        state["current_task"] = task
+                        worker_result = worker.run(iteration=iteration)
+                        print(f"[Worker] タスク {task_id} 完了")
+                    except Exception as e:
+                        logger.error(f"[Worker] Error: {e}")
+                        state_manager.fail_task(task_id, str(e))
+                        print(f"[Worker] エラー: {e}")
+                else:
+                    print(f"[Worker] タスク {task_id} の割り当てに失敗")
+                
+                # 待機
+                print(f"\n[待機] {config.WAIT_TIME_MINUTES}分待機中...")
+                time.sleep(wait_seconds)
+            
+            # 3. Judge実行
+            print("\n[3/3] Judge実行中...")
+            try:
+                judge.run(iteration=iteration)
+                print("[Judge] 完了")
+            except Exception as e:
+                logger.error(f"[Judge] Error: {e}")
+                print(f"[Judge] エラー: {e}")
+            
+            # 継続判定
+            status = state_manager.get_status()
+            should_continue = status.get("should_continue", True)
+            
+            print(f"\n[判定] 継続判定: {should_continue}")
+            print(f"理由: {status.get('reason', 'N/A')}")
+            
+            if not should_continue:
+                print("\n[完了] Judgeが停止を判定しました")
+                break
+            
+            # 次のイテレーション前に待機
+            if iteration < config.MAX_ITERATIONS:
+                print(f"\n[待機] 次のイテレーションまで {config.WAIT_TIME_MINUTES}分待機中...")
+                time.sleep(wait_seconds)
         
-        # Show created tasks
+        if iteration >= config.MAX_ITERATIONS:
+            print(f"\n[完了] 最大イテレーション数 ({config.MAX_ITERATIONS}) に達しました")
+        
+        # 最終状態を表示
+        print("\n" + "=" * 60)
+        print("最終状態")
+        print("=" * 60)
+        
         tasks = state_manager.get_tasks()
         task_list = tasks.get("tasks", [])
-        if task_list:
-            print(f"\n作成されたタスク数: {len(task_list)}")
-            for task in task_list[-5:]:  # Show last 5 tasks
-                print(f"  - {task.get('id', 'unknown')}: {task.get('title', 'No title')}")
+        status = state_manager.get_status()
         
-        # Show plan
-        plan = state_manager.get_plan()
-        if plan:
-            print(f"\n計画が更新されました（{len(plan)}文字）")
+        print(f"総イテレーション: {iteration}")
+        print(f"総タスク数: {len(task_list)}")
+        print(f"完了タスク: {status.get('completed_tasks', 0)}")
+        print(f"失敗タスク: {status.get('failed_tasks', 0)}")
+        print(f"保留中タスク: {len([t for t in task_list if t.get('status') == 'pending'])}")
         
+    except KeyboardInterrupt:
+        print("\n\n[中断] ユーザーによって中断されました")
+        logger.info("Main loop interrupted by user")
     except Exception as e:
-        logger.error(f"Error in planner execution: {e}")
+        logger.error(f"Error in main loop: {e}")
         raise
     
-    print("\n[Phase 1] テスト完了")
+    print("\n[Phase 2] メインループ完了")
 
 
 if __name__ == "__main__":
