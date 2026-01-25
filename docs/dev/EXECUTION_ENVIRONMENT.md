@@ -94,20 +94,20 @@ volumes:
 
 ```bash
 # ビルド
-docker-compose build
+docker compose build
 
 # 初回実行（OAuth認証が必要）
-docker-compose run --rm agent agent --help
+docker compose run --rm agent agent login
 # → 認証URLが表示されるので、ホスト側のブラウザで開いて認証
 
 # 認証後、通常実行
-docker-compose up
+docker compose up
 
 # バックグラウンド実行
-docker-compose up -d
+docker compose up -d
 
 # ログ確認
-docker-compose logs -f
+docker compose logs -f
 ```
 
 **初回認証の手順:**
@@ -226,12 +226,11 @@ docker run -it --rm \
 
 1. **コンテナを起動して認証を実行**
    ```bash
-   docker-compose run --rm agent agent --help
+   docker compose run --rm agent agent login
    ```
 
 2. **認証URLを取得**
    - コマンド実行時に認証URLが表示される
-   - 例: `Please visit https://cursor.com/auth?code=ABC123 to authenticate`
 
 3. **ホスト側のブラウザで認証**
    - 表示されたURLをホスト側のブラウザで開く
@@ -247,7 +246,7 @@ docker run -it --rm \
 
 ```bash
 # 認証情報が保存されているか確認
-docker-compose run --rm agent ls -la /root/.cursor
+docker compose run --rm agent ls -la /root/.cursor
 ```
 
 #### 環境変数（API Keyは不要）
@@ -334,7 +333,7 @@ def authenticate_cursor():
     print("Cursor CLI認証が必要です")
     print("=" * 60)
     print("\n以下のコマンドを実行して認証してください:")
-    print("  docker-compose run --rm agent agent --help")
+    print("  docker compose run --rm agent agent login")
     print("\n表示されたURLをホスト側のブラウザで開いて認証を完了してください。")
     print("認証後、このスクリプトを再実行してください。")
     print("=" * 60)
@@ -413,19 +412,19 @@ venv/
 
 ```bash
 # コンテナ内で確認
-docker-compose exec agent which agent
-docker-compose exec agent agent --version
+docker compose exec agent which agent
+docker compose exec agent agent --version
 ```
 
 ### 認証エラー
 
 ```bash
 # 認証情報を確認
-docker-compose run --rm agent ls -la /root/.cursor
+docker compose run --rm agent ls -la /root/.cursor
 
 # 認証情報を削除して再認証
-docker-compose run --rm agent rm -rf /root/.cursor
-docker-compose run --rm agent agent --help
+docker compose run --rm agent rm -rf /root/.cursor
+docker compose run --rm agent agent login
 # → 認証URLをホスト側のブラウザで開く
 ```
 
@@ -433,30 +432,30 @@ docker-compose run --rm agent agent --help
 
 ```bash
 # インタラクティブモードで実行
-docker-compose run --rm -it agent agent --help
+docker compose run --rm -it agent agent login
 
 # または、ログを確認
-docker-compose logs agent | grep -i auth
+docker compose logs agent | grep -i auth
 ```
 
 ### 権限エラー
 
 ```bash
 # ファイルの権限を確認
-docker-compose exec agent ls -la /workspace
+docker compose exec agent ls -la /workspace
 
 # 必要に応じて権限を修正
-docker-compose exec agent chmod -R 755 /workspace
+docker compose exec agent chmod -R 755 /workspace
 ```
 
 ### ネットワークエラー
 
 ```bash
 # ネットワーク接続を確認
-docker-compose exec agent curl -I https://cursor.com
+docker compose exec agent curl -I https://cursor.com
 
 # DNS設定を確認
-docker-compose exec agent cat /etc/resolv.conf
+docker compose exec agent cat /etc/resolv.conf
 ```
 
 ## Cursor CLIの設定

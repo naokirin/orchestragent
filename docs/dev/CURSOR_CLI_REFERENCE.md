@@ -181,7 +181,7 @@ Cursor CLIは**API Keyではなく、OAuth認証**を使用します。
 
 1. **初回実行時に認証が必要**
    ```bash
-   agent --help
+   agent login
    # → 認証URLが表示される
    ```
 
@@ -200,7 +200,7 @@ Cursor CLIは**API Keyではなく、OAuth認証**を使用します。
 
 1. **コンテナを起動して認証**
    ```bash
-   docker-compose run --rm agent agent --help
+   docker compose run --rm agent agent login
    ```
 
 2. **認証URLをホスト側のブラウザで開く**

@@ -20,14 +20,14 @@ python3 test_phase1.py
 
 ```bash
 # Dockerイメージをビルド
-docker-compose build
+docker compose build
 ```
 
 ### 2. Cursor CLIの認証（初回のみ）
 
 ```bash
 # 認証を実行（認証URLが表示される）
-docker-compose run --rm agent agent --help
+docker compose run --rm agent agent login
 ```
 
 表示されたURLをホスト側のブラウザで開いて、Cursorアカウントでログインして認証を完了してください。
@@ -38,7 +38,7 @@ docker-compose run --rm agent agent --help
 
 ```bash
 # プロジェクト目標を設定して実行
-PROJECT_GOAL="このプロジェクトのPhase 1動作確認" docker-compose run --rm agent python main.py
+PROJECT_GOAL="このプロジェクトのPhase 1動作確認" docker compose run --rm agent python main.py
 ```
 
 または、`.env`ファイルを作成して設定：
@@ -51,7 +51,7 @@ LOG_LEVEL=INFO
 EOF
 
 # 実行
-docker-compose run --rm agent python main.py
+docker compose run --rm agent python main.py
 ```
 
 ### 4. 結果の確認
@@ -80,29 +80,29 @@ tail -20 logs/execution_*.log
 
 ```bash
 # コンテナ内で確認
-docker-compose run --rm agent which agent
-docker-compose run --rm agent agent --version
+docker compose run --rm agent which agent
+docker compose run --rm agent agent --version
 ```
 
 ### 認証エラー
 
 ```bash
 # 認証情報を確認
-docker-compose run --rm agent ls -la /root/.cursor
+docker compose run --rm agent ls -la /root/.cursor
 
 # 認証情報を削除して再認証
 docker volume rm cursor_scage_cursor-config
-docker-compose run --rm agent agent --help
+docker compose run --rm agent agent login
 ```
 
 ### 実行エラー
 
 ```bash
 # ログを確認
-docker-compose logs agent
+docker compose logs agent
 
 # コンテナ内で直接実行してデバッグ
-docker-compose run --rm agent /bin/bash
+docker compose run --rm agent /bin/bash
 # コンテナ内で:
 # python main.py
 ```

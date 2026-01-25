@@ -75,7 +75,7 @@ def authenticate_cursor():
     print("Cursor CLI認証が必要です")
     print("=" * 60)
     print("\n以下のコマンドを実行して認証してください:")
-    print("  docker-compose run --rm agent agent --help")
+    print("  docker compose run --rm agent agent login")
     print("\n表示されたURLをホスト側のブラウザで開いて認証を完了してください。")
     print("認証後、このスクリプトを再実行してください。")
     print("=" * 60)

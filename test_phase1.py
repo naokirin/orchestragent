@@ -135,9 +135,9 @@ def main():
         print("=" * 60)
         print("\nNext steps:")
         print("1. Set up Docker environment (Dockerfile and docker-compose.yml)")
-        print("2. Build Docker image: docker-compose build")
-        print("3. Authenticate Cursor CLI: docker-compose run --rm agent agent --help")
-        print("4. Run Phase 1 test: docker-compose run --rm agent python main.py")
+        print("2. Build Docker image: docker compose build")
+        print("3. Authenticate Cursor CLI: docker compose run --rm agent agent login")
+        print("4. Run Phase 1 test: docker compose run --rm agent python main.py")
         
     except AssertionError as e:
         print(f"\n✗ Test failed: {e}")
