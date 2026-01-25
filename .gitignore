@@ -15,14 +15,9 @@ build/
 .env
 .env.local
 
-# State files (optional - uncomment if you don't want to track state)
-# state/
-# logs/
-
-# Keep initial state files
-!state/status.json
-!state/tasks.json
-!state/plan.md
+# State files (not tracked - generated at runtime)
+state/
+logs/
 
 # IDE
 .vscode/
