@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+
+# State files (optional - uncomment if you don't want to track state)
+# state/
+# logs/
+
+# Keep initial state files
+!state/status.json
+!state/tasks.json
+!state/plan.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Cursor CLI config (contains auth tokens)
+.cursor/
+
+# Docker
+*.log

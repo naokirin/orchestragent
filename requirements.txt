@@ -1,0 +1,7 @@
+# Python dependencies for Cursor Agent System
+
+# Core dependencies
+python-dotenv>=1.0.0
+
+# Optional: for better JSON handling
+# No additional dependencies needed for Phase 1
