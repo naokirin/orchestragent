@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  agent:
+    build: .
+    volumes:
+      # プロジェクトディレクトリをマウント
+      - .:/workspace
+      # 状態ファイルを永続化（オプション）
+      - ./state:/workspace/state
+      - ./logs:/workspace/logs
+      # Cursor CLIの認証情報を永続化（重要）
+      - cursor-config:/root/.cursor
+    environment:
+      # その他の環境変数（API Keyは不要、OAuth認証を使用）
+      - PROJECT_ROOT=/workspace
+      - LOG_LEVEL=INFO
+      - PROJECT_GOAL=${PROJECT_GOAL:-プロジェクトの目標を設定してください}
+    working_dir: /workspace
+    # コマンド制限をかけない（すべての権限を許可）
+    privileged: false
+    # ネットワークアクセスを許可（API呼び出し用）
+    network_mode: bridge
+    # 長時間実行を許可
+    restart: unless-stopped
+    # インタラクティブモードで実行（初回認証用）
+    stdin_open: true
+    tty: true
+
+volumes:
+  cursor-config:
+    # Cursor CLIの認証情報を永続化
