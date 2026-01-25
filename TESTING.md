@@ -42,6 +42,8 @@ chmod +x scripts/check_auth.sh
 
 # または手動で確認
 docker compose run --rm agent ls -la /root/.cursor
+docker compose run --rm agent ls -la /root/.config/cursor
+docker compose run --rm agent cat /root/.config/cursor/auth.json
 docker compose run --rm agent agent --version
 ```
 
@@ -103,14 +105,16 @@ docker compose run --rm agent agent --version
 
 1. **認証情報の確認**:
 ```bash
-# 認証情報が保存されているか確認
+# 認証情報が保存されているか確認（両方の場所を確認）
 docker compose run --rm agent ls -la /root/.cursor
+docker compose run --rm agent ls -la /root/.config/cursor
+docker compose run --rm agent cat /root/.config/cursor/auth.json
 ```
 
 2. **認証情報の再保存**:
 ```bash
-# ボリュームを削除して再認証
-docker volume rm cursor_scage_cursor-config
+# ボリュームを削除して再認証（両方のボリュームを削除）
+docker volume rm cursor_scage_cursor-config cursor_scage_cursor-config-config
 docker compose run --rm agent agent login
 ```
 
@@ -120,6 +124,8 @@ docker compose run --rm agent agent login
 docker compose run --rm agent /bin/bash
 # コンテナ内で:
 # ls -la /root/.cursor
+# ls -la /root/.config/cursor
+# cat /root/.config/cursor/auth.json
 # agent --version
 # agent login  # 必要に応じて
 ```
@@ -163,13 +169,18 @@ Phase 1が正常に動作すると、以下が実行されます：
 
 ## 認証情報の永続化について
 
-認証情報は `cursor-config` という名前付きボリュームに保存されます。このボリュームは：
+認証情報は2つの場所に保存され、それぞれ別の名前付きボリュームで永続化されます：
+
+1. **`/root/.cursor`** → `cursor-config` ボリューム
+2. **`/root/.config/cursor/auth.json`** → `cursor-config-config` ボリューム
+
+これらのボリュームは：
 
 - **永続化**: コンテナを削除しても認証情報は保持されます
 - **共有**: 同じボリュームを使用するすべてのコンテナで認証情報が共有されます
-- **削除**: `docker volume rm cursor_scage_cursor-config` で削除できます
+- **削除**: `docker volume rm cursor_scage_cursor-config cursor_scage_cursor-config-config` で削除できます
 
-認証情報が保持されない場合は、ボリュームが正しくマウントされているか確認してください。
+**重要**: 両方のボリュームが正しくマウントされている必要があります。認証情報が保持されない場合は、両方のボリュームが正しくマウントされているか確認してください。
 
 ## 次のステップ
 

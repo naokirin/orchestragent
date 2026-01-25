@@ -7,8 +7,74 @@
       "id": "task_001",
       "status": "pending",
       "created_at": "2026-01-26T00:53:06.671810"
+    },
+    {
+      "id": "task_002",
+      "title": "モックLLMクライアントの実装",
+      "description": "Cursor CLIなしでエージェントをテストするためのモックLLMクライアントを実装する。\n\n実装内容:\n- utils/mock_llm_client.py を作成\n- LLMClientインターフェースを実装\n- 定義済みレスポンスまたはコールバック関数でレスポンスを返す\n- LLMClientFactoryにmockバックエンドを追加\n\n関連ファイル:\n- utils/llm_client.py（インターフェース）\n- utils/llm_client_factory.py（ファクトリー）",
+      "priority": "high",
+      "dependencies": [],
+      "estimated_hours": 2,
+      "status": "pending",
+      "created_at": "2026-01-25T16:28:43.219329"
+    },
+    {
+      "id": "task_003",
+      "title": "Plannerエージェントの単体テスト強化",
+      "description": "PlannerAgentの各メソッドを個別にテストするユニットテストを作成する。\n\n実装内容:\n- tests/test_planner.py を作成\n- build_prompt() のテスト\n- parse_response() のテスト（正常ケース、エラーケース）\n- update_state() のテスト\n- モックLLMクライアントを使用したrun()のテスト\n\n関連ファイル:\n- agents/planner.py\n- tests/ ディレクトリを新規作成",
+      "priority": "high",
+      "dependencies": [
+        "task_002"
+      ],
+      "estimated_hours": 3,
+      "status": "pending",
+      "created_at": "2026-01-25T16:28:43.222638"
+    },
+    {
+      "id": "task_004",
+      "title": "StateManagerのタスク管理機能拡張",
+      "description": "タスクの更新・取得機能を拡張し、Workerエージェントの実装に備える。\n\n実装内容:\n- update_task(task_id, updates) メソッド追加\n- get_pending_tasks() メソッド追加\n- get_task_by_id(task_id) メソッド追加\n- assign_task(task_id, worker_id) メソッド追加\n- complete_task(task_id, result) メソッド追加\n\n関連ファイル:\n- utils/state_manager.py",
+      "priority": "medium",
+      "dependencies": [],
+      "estimated_hours": 2,
+      "status": "pending",
+      "created_at": "2026-01-25T16:28:43.223901"
+    },
+    {
+      "id": "task_005",
+      "title": "エラーハンドリングとリトライロジックの実装",
+      "description": "Cursor CLI呼び出しとファイル操作のエラーハンドリングを強化する。\n\n実装内容:\n- CursorCLIClientにリトライロジック追加（exponential backoff）\n- カスタム例外クラスの定義（AgentError, LLMError等）\n- BaseAgentにリトライ対応のrun()メソッド\n- エラー時のログ記録強化\n\n関連ファイル:\n- utils/cursor_cli_client.py\n- agents/base.py\n- utils/exceptions.py（新規作成）",
+      "priority": "medium",
+      "dependencies": [],
+      "estimated_hours": 3,
+      "status": "pending",
+      "created_at": "2026-01-25T16:28:43.224628"
+    },
+    {
+      "id": "task_006",
+      "title": "エンドツーエンド統合テストの作成",
+      "description": "Docker環境でCursor CLIを使用した実際の動作確認テストを作成する。\n\n実装内容:\n- tests/test_e2e.py を作成\n- main.pyの動作を検証するテスト\n- 状態ファイルが正しく作成・更新されることを確認\n- テスト実行用のMakefileまたはシェルスクリプト\n\n前提条件:\n- Cursor CLI認証済み\n- Docker環境で実行\n\n関連ファイル:\n- main.py\n- tests/test_e2e.py（新規作成）",
+      "priority": "medium",
+      "dependencies": [
+        "task_003"
+      ],
+      "estimated_hours": 3,
+      "status": "pending",
+      "created_at": "2026-01-25T16:28:43.225461"
+    },
+    {
+      "id": "task_007",
+      "title": "Plannerプロンプトの改善",
+      "description": "Plannerエージェントのプロンプトを改善し、より具体的で実行可能なタスクを生成できるようにする。\n\n実装内容:\n- コードベース分析の詳細情報を追加（ファイルの内容サマリー等）\n- 出力JSONのバリデーション強化\n- few-shot examplesの追加検討\n- プロンプトテンプレートの変数拡張\n\n関連ファイル:\n- prompts/planner.md\n- agents/planner.py（_get_codebase_summary改善）",
+      "priority": "low",
+      "dependencies": [
+        "task_003"
+      ],
+      "estimated_hours": 2,
+      "status": "pending",
+      "created_at": "2026-01-25T16:28:43.226514"
     }
   ],
-  "next_task_id": 2,
-  "version": 1
+  "next_task_id": 8,
+  "version": 7
 }

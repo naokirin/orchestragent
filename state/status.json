@@ -1,12 +1,13 @@
 {
   "iteration": 0,
-  "last_planner_run": null,
+  "last_planner_run": "2026-01-25T16:28:43.228160",
   "last_worker_run": null,
   "last_judge_run": null,
   "should_continue": true,
   "reason": "初期状態",
-  "total_tasks": 0,
+  "total_tasks": 7,
   "completed_tasks": 0,
   "failed_tasks": 0,
-  "version": 0
+  "version": 1,
+  "last_updated": "2026-01-25T16:28:43.228674"
 }

@@ -45,24 +45,36 @@ def check_cursor_auth():
     import subprocess
     try:
         # Check if auth files exist (primary check)
+        # Cursor CLI stores auth in two locations:
+        # 1. ~/.cursor
+        # 2. ~/.config/cursor/auth.json
         cursor_config_dir = Path.home() / '.cursor'
-        if cursor_config_dir.exists():
+        cursor_config_auth = Path.home() / '.config' / 'cursor' / 'auth.json'
+        
+        # Check both locations
+        has_auth = False
+        if cursor_config_auth.exists():
+            has_auth = True
+        elif cursor_config_dir.exists():
             config_files = list(cursor_config_dir.iterdir())
             # Check for common auth file patterns
             auth_indicators = ['auth', 'token', 'session', 'config']
             if any(any(indicator in f.name.lower() for indicator in auth_indicators) for f in config_files):
-                # Try a lightweight command to verify auth is working
-                try:
-                    result = subprocess.run(
-                        ['agent', '--version'],
-                        capture_output=True,
-                        text=True,
-                        timeout=5
-                    )
-                    if result.returncode == 0:
-                        return True
-                except (subprocess.TimeoutExpired, FileNotFoundError):
-                    pass
+                has_auth = True
+        
+        if has_auth:
+            # Try a lightweight command to verify auth is working
+            try:
+                result = subprocess.run(
+                    ['agent', '--version'],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    return True
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
         
         # Fallback: Try a simple command (not 'ls' which might be slow)
         try:
@@ -72,10 +84,8 @@ def check_cursor_auth():
                 text=True,
                 timeout=5
             )
-            # If version command works, assume auth is OK (version doesn't require auth)
-            # But we still need to check if actual commands work
-            # For now, if config dir exists, assume authenticated
-            if cursor_config_dir.exists() and result.returncode == 0:
+            # If version command works and config exists, assume authenticated
+            if (cursor_config_dir.exists() or cursor_config_auth.exists()) and result.returncode == 0:
                 return True
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
@@ -85,8 +95,9 @@ def check_cursor_auth():
         print(f"Warning: Could not check auth status: {e}")
         # If config directory exists, assume authenticated (optimistic)
         cursor_config_dir = Path.home() / '.cursor'
-        if cursor_config_dir.exists():
-            print("Note: .cursor directory exists, assuming authenticated")
+        cursor_config_auth = Path.home() / '.config' / 'cursor' / 'auth.json'
+        if cursor_config_dir.exists() or cursor_config_auth.exists():
+            print("Note: Cursor config directory exists, assuming authenticated")
             return True
         return False
 
@@ -126,8 +137,13 @@ def main():
     if not auth_status:
         print("\n[警告] 認証状態の確認に失敗しました。")
         cursor_config_dir = Path.home() / '.cursor'
-        if cursor_config_dir.exists():
-            print(f"[情報] .cursor ディレクトリが存在します: {cursor_config_dir}")
+        cursor_config_auth = Path.home() / '.config' / 'cursor' / 'auth.json'
+        if cursor_config_dir.exists() or cursor_config_auth.exists():
+            print(f"[情報] Cursor設定ディレクトリが存在します:")
+            if cursor_config_dir.exists():
+                print(f"  - {cursor_config_dir}")
+            if cursor_config_auth.exists():
+                print(f"  - {cursor_config_auth}")
             print("[情報] 認証済みの可能性があります。続行します...")
         else:
             authenticate_cursor()
