@@ -10,6 +10,11 @@ load_dotenv()
 # Project root
 PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT", ".")).resolve()
 
+# Target project (optional)
+TARGET_PROJECT = os.getenv("TARGET_PROJECT", None)
+if TARGET_PROJECT:
+    TARGET_PROJECT = Path(TARGET_PROJECT).resolve()
+
 # LLM Configuration
 LLM_BACKEND = os.getenv("LLM_BACKEND", "cursor_cli")
 LLM_OUTPUT_FORMAT = os.getenv("LLM_OUTPUT_FORMAT", "text")
