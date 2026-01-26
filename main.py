@@ -118,6 +118,59 @@ def authenticate_cursor():
     sys.exit(1)
 
 
+def print_configuration():
+    """Print current configuration settings."""
+    print("\n" + "=" * 60)
+    print("実行設定")
+    print("=" * 60)
+    
+    # Project Configuration
+    print("\n[プロジェクト設定]")
+    print(f"  プロジェクトルート: {config.PROJECT_ROOT}")
+    print(f"  プロジェクト目標: {config.AGENT_CONFIG['project_goal']}")
+    
+    # LLM Configuration
+    print("\n[LLM設定]")
+    print(f"  バックエンド: {config.LLM_BACKEND}")
+    print(f"  出力形式: {config.LLM_OUTPUT_FORMAT}")
+    if config.LLM_MODEL:
+        print(f"  モデル: {config.LLM_MODEL}")
+    else:
+        print(f"  モデル: (デフォルト)")
+    
+    # State Configuration
+    print("\n[状態管理設定]")
+    print(f"  状態ディレクトリ: {config.STATE_DIR}")
+    
+    # Logging Configuration
+    print("\n[ログ設定]")
+    print(f"  ログディレクトリ: {config.LOG_DIR}")
+    print(f"  ログレベル: {config.LOG_LEVEL}")
+    
+    # Main Loop Configuration
+    print("\n[メインループ設定]")
+    print(f"  待機時間: {config.WAIT_TIME_MINUTES}分")
+    print(f"  最大イテレーション数: {config.MAX_ITERATIONS}")
+    
+    # Agent Configuration
+    print("\n[エージェント設定]")
+    print(f"  Planner モード: plan")
+    print(f"  Planner プロンプト: {config.AGENT_CONFIG['prompt_template']}")
+    print(f"  Worker モード: agent")
+    print(f"  Worker プロンプト: prompts/worker.md")
+    print(f"  Judge モード: ask")
+    print(f"  Judge プロンプト: prompts/judge.md")
+    
+    # Environment Information
+    print("\n[環境情報]")
+    is_container = is_running_in_container()
+    print(f"  実行環境: {'コンテナ内' if is_container else 'ホスト環境'}")
+    cursor_cli_available = check_cursor_cli()
+    print(f"  Cursor CLI: {'利用可能' if cursor_cli_available else '未検出'}")
+    
+    print("=" * 60)
+
+
 def main():
     """Main function."""
     print("=" * 60)
@@ -125,9 +178,12 @@ def main():
     print("Phase 1: 動作確認")
     print("=" * 60)
     
+    # Print configuration at the start
+    print_configuration()
+    
     # Environment check
     if not is_running_in_container():
-        print("Warning: Not running in container. Recommended to use Docker/DevContainer.")
+        print("\n[警告] コンテナ外で実行されています。Docker/DevContainerでの実行を推奨します。")
     
     if not check_cursor_cli():
         raise RuntimeError(
