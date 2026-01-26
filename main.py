@@ -244,9 +244,7 @@ def main():
                 
                 if worker.assign_task(task_id):
                     try:
-                        # Load task into state for worker
-                        state = worker.load_state()
-                        state["current_task"] = task
+                        # Worker.run() will use self.current_task_id set by assign_task()
                         worker_result = worker.run(iteration=iteration)
                         print(f"[Worker] タスク {task_id} 完了")
                     except Exception as e:

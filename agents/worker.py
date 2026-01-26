@@ -17,12 +17,13 @@ class WorkerAgent(BaseAgent):
     
     def build_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for worker."""
-        # Get assigned task
-        task = state.get("current_task")
-        if not task:
-            raise ValueError("No task assigned to worker")
+        # Get assigned task from current_task_id (set by assign_task)
+        if not self.current_task_id:
+            raise ValueError("No task assigned to worker. Call assign_task() first.")
         
-        self.current_task_id = task.get("id")
+        task = self.state_manager.get_task_by_id(self.current_task_id)
+        if not task:
+            raise ValueError(f"Task {self.current_task_id} not found")
         
         # Load prompt template
         prompt_template_path = self.config.get(
@@ -137,6 +138,9 @@ Please complete this task and report the result.
         if task.get("status") != "pending":
             self.logger.warning(f"[Worker] Task {task_id} is not pending (status: {task.get('status')})")
             return False
+        
+        # Set current_task_id before assigning (used in build_prompt)
+        self.current_task_id = task_id
         
         self.state_manager.assign_task(task_id, self.name)
         self.logger.info(f"[Worker] Assigned task {task_id}")
