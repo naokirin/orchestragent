@@ -89,6 +89,11 @@ class DashboardApp(App):
         width: 50%;
         height: 1fr;
     }
+    
+    #task-detail-scroll {
+        height: 1fr;
+        width: 1fr;
+    }
     """
     
     TITLE = "orchestragent ダッシュボード"
@@ -117,7 +122,7 @@ class DashboardApp(App):
             id="tabs"
         )
         yield Container(id="content")
-        yield Static("[q] 終了  [d] ダークモード切替 [tab] タブ/コンテンツ切替", id="footer-bar", markup=False)
+        yield Static("[q] 終了  [d] ダークモード切替  [tab] タブ/コンテンツ切替", id="footer-bar", markup=False)
     
     def on_mount(self) -> None:
         """Called when app starts."""

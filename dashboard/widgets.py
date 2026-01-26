@@ -198,6 +198,7 @@ class TasksWidget(ScrollableContainer):
         self.id = "tasks-widget"
         self.selected_task_id: Optional[str] = None
         self._updating = False
+        self._last_task_ids: List[str] = []  # Track task IDs for diff update
     
     def compose(self):
         """Create tasks content."""
@@ -208,7 +209,8 @@ class TasksWidget(ScrollableContainer):
             
             with Vertical(classes="task-detail-container"):
                 yield Static("[bold]タスク詳細[/bold]", classes="section-title")
-                yield Static(id="task-detail", classes="content")
+                with ScrollableContainer(id="task-detail-scroll"):
+                    yield Static(id="task-detail", classes="content")
     
     def on_mount(self) -> None:
         """Set up task table."""
@@ -217,44 +219,94 @@ class TasksWidget(ScrollableContainer):
         table.cursor_type = "row"
         self.update_tasks()
     
+    def _get_status_colored(self, status: str) -> str:
+        """Get colored status text."""
+        return {
+            'pending': '[yellow]保留中[/yellow]',
+            'in_progress': '[cyan]実行中[/cyan]',
+            'completed': '[green]完了[/green]',
+            'failed': '[red]失敗[/red]'
+        }.get(status, status)
+    
     def update_tasks(self) -> None:
-        """Update task list from state."""
+        """Update task list from state using diff update to preserve cursor position."""
         # Skip update if we're already updating
         if self._updating:
-            return
-        
-        # Skip update if user has moved cursor (selected_task_id is set by on_data_table_row_highlighted)
-        if self.selected_task_id:
             return
         
         self._updating = True
         try:
             table = self.query_one("#task-table", DataTable)
-            table.clear()
-            
             all_tasks = self.state_manager.get_all_tasks_from_files()
             
+            # Build current task data
+            current_task_ids = []
+            task_data_map = {}
             for task in all_tasks:
                 task_id = task.get('id', 'N/A')
-                title = task.get('title', 'No title')[:30]  # Truncate long titles
-                status = task.get('status', 'unknown')
-                priority = task.get('priority', 'medium')
-                
-                # Color code status
-                status_colored = {
-                    'pending': '[yellow]保留中[/yellow]',
-                    'in_progress': '[cyan]実行中[/cyan]',
-                    'completed': '[green]完了[/green]',
-                    'failed': '[red]失敗[/red]'
-                }.get(status, status)
-                
-                table.add_row(
-                    task_id,
-                    title,
-                    status_colored,
-                    priority,
-                    key=task_id
-                )
+                current_task_ids.append(task_id)
+                task_data_map[task_id] = {
+                    'title': task.get('title', 'No title')[:30],
+                    'status': task.get('status', 'unknown'),
+                    'priority': task.get('priority', 'medium')
+                }
+            
+            # Get existing row keys
+            existing_keys = set()
+            for row_key in table.rows.keys():
+                existing_keys.add(str(row_key.value))
+            
+            # If table is empty (first load), just add all rows
+            if not existing_keys:
+                for task_id in current_task_ids:
+                    data = task_data_map[task_id]
+                    table.add_row(
+                        task_id,
+                        data['title'],
+                        self._get_status_colored(data['status']),
+                        data['priority'],
+                        key=task_id
+                    )
+                self._last_task_ids = current_task_ids
+                return
+            
+            # Update existing rows (only status changes are likely)
+            for task_id in current_task_ids:
+                if task_id in existing_keys:
+                    # Update existing row - use update_cell for each column
+                    data = task_data_map[task_id]
+                    try:
+                        # Update title (column 1)
+                        table.update_cell(task_id, "タイトル", data['title'])
+                        # Update status (column 2)
+                        table.update_cell(task_id, "ステータス", self._get_status_colored(data['status']))
+                        # Update priority (column 3)
+                        table.update_cell(task_id, "優先度", data['priority'])
+                    except Exception:
+                        pass  # Ignore errors during update
+            
+            # Add new rows
+            new_task_ids = set(current_task_ids) - existing_keys
+            for task_id in current_task_ids:
+                if task_id in new_task_ids:
+                    data = task_data_map[task_id]
+                    table.add_row(
+                        task_id,
+                        data['title'],
+                        self._get_status_colored(data['status']),
+                        data['priority'],
+                        key=task_id
+                    )
+            
+            # Remove deleted rows
+            deleted_task_ids = existing_keys - set(current_task_ids)
+            for task_id in deleted_task_ids:
+                try:
+                    table.remove_row(task_id)
+                except Exception:
+                    pass  # Ignore errors during removal
+            
+            self._last_task_ids = current_task_ids
         finally:
             self._updating = False
     
