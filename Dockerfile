@@ -31,4 +31,5 @@ RUN chmod +x scripts/setup.sh || true
 
 # エントリーポイント（セットアップスクリプト経由で実行）
 # setup.shが存在する場合は実行、存在しない場合は直接main.pyを実行
-CMD ["/bin/bash", "-c", "if [ -f scripts/setup.sh ]; then scripts/setup.sh; fi && python main.py"]
+# DASHBOARD環境変数が設定されている場合はダッシュボードモードで起動
+CMD ["/bin/bash", "-c", "if [ -f scripts/setup.sh ]; then scripts/setup.sh; fi && if [ \"$DASHBOARD\" = \"true\" ] || [ \"$DASHBOARD\" = \"1\" ] || [ \"$DASHBOARD\" = \"on\" ]; then python main.py --dashboard; else python main.py; fi"]

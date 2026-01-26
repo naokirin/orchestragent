@@ -24,6 +24,8 @@ services:
       - PROJECT_ROOT=${PROJECT_ROOT:-/target}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - PROJECT_GOAL=${PROJECT_GOAL:-プロジェクトの目標を設定してください}
+      # ダッシュボードモード（true/1/onで有効化）
+      - DASHBOARD=${DASHBOARD:-false}
       # .envファイルから環境変数を読み込む
       - LLM_BACKEND=${LLM_BACKEND:-cursor_cli}
       - LLM_OUTPUT_FORMAT=${LLM_OUTPUT_FORMAT:-text}
