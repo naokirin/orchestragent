@@ -224,9 +224,10 @@ def run_main_loop():
     # Initialize components
     print("\n[初期化] コンポーネントを初期化しています...")
     
+    # Use WORKING_DIR which is already determined based on container/host environment
     llm_client = LLMClientFactory.create(
         backend=config.LLM_BACKEND,
-        project_root=config.PROJECT_ROOT,
+        project_root=str(config.WORKING_DIR),
         output_format=config.LLM_OUTPUT_FORMAT
     )
     

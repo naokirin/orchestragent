@@ -7,10 +7,25 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+
+def is_running_in_container():
+    """Check if running in container."""
+    # Docker environment detection
+    if os.path.exists('/.dockerenv'):
+        return True
+    # cgroup check
+    try:
+        with open('/proc/self/cgroup', 'r') as f:
+            return 'docker' in f.read()
+    except:
+        pass
+    return False
+
+
 # Project root
 PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT", ".")).resolve()
 
-# Target project (optional)
+# Target project (optional) - this is the host-side path
 TARGET_PROJECT = os.getenv("TARGET_PROJECT", None)
 if TARGET_PROJECT:
     TARGET_PROJECT = Path(TARGET_PROJECT).resolve()
@@ -21,8 +36,18 @@ LLM_OUTPUT_FORMAT = os.getenv("LLM_OUTPUT_FORMAT", "text")
 LLM_MODEL = os.getenv("LLM_MODEL", None)  # None = use default
 
 # Agent Configuration
+# Determine working directory:
+# - In container: Use PROJECT_ROOT (which should be /target when TARGET_PROJECT is set)
+# - On host: Use TARGET_PROJECT if set, otherwise PROJECT_ROOT
+if is_running_in_container():
+    # In container, always use PROJECT_ROOT (which is set to /target in docker-compose)
+    WORKING_DIR = PROJECT_ROOT
+else:
+    # On host, use TARGET_PROJECT if set, otherwise PROJECT_ROOT
+    WORKING_DIR = TARGET_PROJECT if TARGET_PROJECT else PROJECT_ROOT
+
 AGENT_CONFIG = {
-    "project_root": str(PROJECT_ROOT),
+    "project_root": str(WORKING_DIR),
     "project_goal": os.getenv("PROJECT_GOAL", "プロジェクトの目標を設定してください"),
     "mode": "plan",  # For planner
     "model": LLM_MODEL,

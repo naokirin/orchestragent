@@ -48,11 +48,15 @@ Please create a plan and new tasks in JSON format.
             for t in tasks_list
         ]) if tasks_list else "なし"
         
+        # Get working directory from config
+        working_dir = self.config.get("project_root", ".")
+        
         prompt = template.format(
             project_goal=self.config.get("project_goal", "未設定"),
             current_plan=plan if plan else "計画はまだ作成されていません",
             existing_tasks=existing_tasks_str,
-            codebase_summary=self._get_codebase_summary()
+            codebase_summary=self._get_codebase_summary(),
+            working_dir=working_dir
         )
         
         return prompt

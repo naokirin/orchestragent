@@ -45,12 +45,16 @@ Task Description: {task_description}
 Please complete this task and report the result.
 """
         
+        # Get working directory from config
+        working_dir = self.config.get("project_root", ".")
+        
         # Format template
         prompt = template.format(
             task_id=task.get("id", "unknown"),
             task_title=task.get("title", "No title"),
             task_description=task.get("description", "No description"),
-            related_files=self._get_related_files(task)
+            related_files=self._get_related_files(task),
+            working_dir=working_dir
         )
         
         return prompt

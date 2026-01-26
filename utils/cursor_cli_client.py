@@ -19,6 +19,14 @@ class CursorCLIClient(LLMClient):
             output_format: Output format ("text" or "json")
         """
         self.project_root = Path(project_root).resolve()
+        if not self.project_root.exists():
+            raise FileNotFoundError(
+                f"Project root directory does not exist: {self.project_root}"
+            )
+        if not self.project_root.is_dir():
+            raise NotADirectoryError(
+                f"Project root is not a directory: {self.project_root}"
+            )
         self.output_format = output_format
     
     def call_agent(
@@ -63,13 +71,24 @@ class CursorCLIClient(LLMClient):
         except subprocess.TimeoutExpired as e:
             raise LLMTimeoutError(timeout, e)
         except FileNotFoundError as e:
-            # FileNotFoundError is not retryable
-            raise LLMError(
-                "Cursor CLI not found. Install with: "
-                "curl https://cursor.com/install -fsS | bash",
-                retryable=False,
-                original_error=e
-            )
+            # Check if the error is about the working directory or the command
+            error_msg = str(e)
+            if "No such file or directory" in error_msg and str(self.project_root) in error_msg:
+                # The working directory doesn't exist
+                raise LLMError(
+                    f"Working directory does not exist: {self.project_root}. "
+                    f"Please check TARGET_PROJECT or PROJECT_ROOT configuration.",
+                    retryable=False,
+                    original_error=e
+                )
+            else:
+                # Cursor CLI command not found
+                raise LLMError(
+                    "Cursor CLI not found. Install with: "
+                    "curl https://cursor.com/install -fsS | bash",
+                    retryable=False,
+                    original_error=e
+                )
         except (LLMError, LLMTimeoutError, LLMRateLimitError):
             # Re-raise our custom exceptions
             raise
