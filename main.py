@@ -122,7 +122,7 @@ def main():
     """Main function."""
     print("=" * 60)
     print("プランナー・ワーカースタイル自律エージェントシステム")
-    print("Phase 1: 最小動作確認")
+    print("Phase 1: 動作確認")
     print("=" * 60)
     
     # Environment check
