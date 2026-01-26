@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 from utils.llm_client import LLMClient
 from utils.state_manager import StateManager
 from utils.logger import AgentLogger
+from utils.exceptions import AgentError, LLMError
 
 
 class BaseAgent:
@@ -69,73 +70,120 @@ class BaseAgent:
         """
         raise NotImplementedError("Subclasses must implement update_state")
     
-    def run(self, iteration: int = 0) -> Dict[str, Any]:
+    def run(self, iteration: int = 0, max_retries: int = 3) -> Dict[str, Any]:
         """
-        Run agent.
+        Run agent with retry logic.
         
         Args:
             iteration: Current iteration number
+            max_retries: Maximum number of retries for retryable errors
+        
+        Returns:
+            Result dictionary
+        
+        Raises:
+            AgentError: If agent execution fails after all retries
+        """
+        start_time = time.time()
+        
+        for attempt in range(max_retries):
+            try:
+                return self._run_internal(iteration, start_time)
+            except LLMError as e:
+                if e.retryable and attempt < max_retries - 1:
+                    wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s, ...
+                    self.logger.warning(
+                        f"[{self.name}] LLM error (attempt {attempt + 1}/{max_retries}), "
+                        f"retrying in {wait_time} seconds: {e}"
+                    )
+                    time.sleep(wait_time)
+                    continue
+                # Not retryable or max retries reached
+                self.logger.log_error_with_traceback(
+                    self.name,
+                    e,
+                    context={
+                        "iteration": iteration,
+                        "attempt": attempt + 1,
+                        "max_retries": max_retries
+                    }
+                )
+                raise
+            except AgentError as e:
+                # Other agent errors are not retryable
+                self.logger.log_error_with_traceback(
+                    self.name,
+                    e,
+                    context={"iteration": iteration}
+                )
+                raise
+            except Exception as e:
+                # Unexpected errors
+                self.logger.log_error_with_traceback(
+                    self.name,
+                    e,
+                    context={"iteration": iteration}
+                )
+                # Wrap in AgentError
+                raise AgentError(f"Unexpected error: {e}", retryable=False, original_error=e)
+    
+    def _run_internal(self, iteration: int, start_time: float) -> Dict[str, Any]:
+        """
+        Internal run method (without retry logic).
+        
+        Args:
+            iteration: Current iteration number
+            start_time: Start time for duration calculation
         
         Returns:
             Result dictionary
         """
-        start_time = time.time()
+        # 1. Load state
+        state = self.load_state()
         
+        # 2. Build prompt
+        prompt = self.build_prompt(state)
+        
+        # 3. Call LLM
+        self.logger.info(f"[{self.name}] Calling LLM...")
+        response = self.llm_client.call_agent(
+            prompt=prompt,
+            mode=self.mode,
+            model=self.config.get("model")
+        )
+        
+        # 4. Parse response
         try:
-            # 1. Load state
-            state = self.load_state()
-            
-            # 2. Build prompt
-            prompt = self.build_prompt(state)
-            
-            # 3. Call LLM
-            self.logger.info(f"[{self.name}] Calling LLM...")
-            response = self.llm_client.call_agent(
-                prompt=prompt,
-                mode=self.mode,
-                model=self.config.get("model")
-            )
-            
-            # 4. Parse response
-            try:
-                result = self.parse_response(response)
-                # Ensure result is a dictionary
-                if not isinstance(result, dict):
-                    raise ValueError(f"parse_response() must return a dict, got {type(result)}")
-            except Exception as e:
-                self.logger.error(f"[{self.name}] Error parsing response: {e}")
-                # Create a fallback result
-                result = {
-                    "response": response,
-                    "error": str(e)
-                }
-            
-            # 5. Update state
-            try:
-                self.update_state(result)
-            except Exception as e:
-                self.logger.error(f"[{self.name}] Error updating state: {e}")
-                raise
-            
-            # 6. Log
-            duration = time.time() - start_time
-            self.logger.log_agent_run(
-                agent_name=self.name,
-                iteration=iteration,
-                prompt=prompt,
-                response=response,
-                duration=duration
-            )
-            
-            return result
-            
+            result = self.parse_response(response)
+            # Ensure result is a dictionary
+            if not isinstance(result, dict):
+                raise ValueError(f"parse_response() must return a dict, got {type(result)}")
         except Exception as e:
-            duration = time.time() - start_time
-            import traceback
-            error_traceback = traceback.format_exc()
-            self.logger.error(f"[{self.name}] Error: {e}")
-            self.logger.error(f"[{self.name}] Traceback:\n{error_traceback}")
+            self.logger.error(f"[{self.name}] Error parsing response: {e}")
+            # Create a fallback result
+            result = {
+                "response": response,
+                "error": str(e)
+            }
+        
+        # 5. Update state
+        try:
+            self.update_state(result)
+        except Exception as e:
+            self.logger.error(f"[{self.name}] Error updating state: {e}")
             raise
+        
+        # 6. Log
+        duration = time.time() - start_time
+        self.logger.log_agent_run(
+            agent_name=self.name,
+            iteration=iteration,
+            prompt=prompt,
+            response=response,
+            duration=duration
+        )
+        
+        return result
     
     def load_state(self) -> Dict[str, Any]:
         """

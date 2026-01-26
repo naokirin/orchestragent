@@ -34,3 +34,6 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 # Main Loop Configuration
 WAIT_TIME_SECONDS = int(os.getenv("WAIT_TIME_SECONDS", "60"))  # Wait time between agent runs (in seconds)
 MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", "100"))  # Maximum iterations
+
+# Error Handling Configuration
+MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))  # Maximum retries for retryable errors

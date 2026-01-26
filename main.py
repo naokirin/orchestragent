@@ -11,6 +11,7 @@ from utils.logger import AgentLogger
 from agents.planner import PlannerAgent
 from agents.worker import WorkerAgent
 from agents.judge import JudgeAgent
+from utils.exceptions import AgentError
 import config
 
 
@@ -217,6 +218,23 @@ def main():
     )
     
     state_manager = StateManager(state_dir=config.STATE_DIR)
+    
+    # Validate state and attempt recovery if needed
+    validation = state_manager.validate_state()
+    if not validation["valid"]:
+        print("\n[警告] 状態ファイルに問題が検出されました")
+        for error in validation["errors"]:
+            print(f"  エラー: {error}")
+        print("\n[復元] 最新のチェックポイントから復元を試みます...")
+        if state_manager.recover_from_corruption():
+            print("[復元] 復元に成功しました")
+            # Re-validate
+            validation = state_manager.validate_state()
+            if not validation["valid"]:
+                print("[警告] 復元後も問題が残っています。手動での確認を推奨します。")
+        else:
+            print("[復元] 復元に失敗しました。初期状態から開始します。")
+    
     logger = AgentLogger(log_dir=config.LOG_DIR, log_level=config.LOG_LEVEL)
     
     # Initialize agents
@@ -265,6 +283,13 @@ def main():
     
     iteration = 0
     
+    # Create initial checkpoint
+    try:
+        checkpoint_path = state_manager.create_checkpoint("initial")
+        logger.info(f"Initial checkpoint created: {checkpoint_path}")
+    except Exception as e:
+        logger.warning(f"Failed to create initial checkpoint: {e}")
+    
     try:
         while iteration < config.MAX_ITERATIONS:
             iteration += 1
@@ -275,11 +300,16 @@ def main():
             # 1. Planner実行
             print("\n[1/3] Planner実行中...")
             try:
-                planner.run(iteration=iteration)
+                planner.run(iteration=iteration, max_retries=config.MAX_RETRIES)
                 print("[Planner] 完了")
-            except Exception as e:
-                logger.error(f"[Planner] Error: {e}")
+            except AgentError as e:
+                logger.log_error_with_traceback("Planner", e, context={"iteration": iteration})
                 print(f"[Planner] エラー: {e}")
+                # Continue to next iteration even if planner fails
+            except Exception as e:
+                logger.log_error_with_traceback("Planner", e, context={"iteration": iteration})
+                print(f"[Planner] 予期しないエラー: {e}")
+                # Continue to next iteration
             
             # 待機
             wait_seconds = config.WAIT_TIME_SECONDS
@@ -301,16 +331,24 @@ def main():
                 if worker.assign_task(task_id):
                     try:
                         # Worker.run() will use self.current_task_id set by assign_task()
-                        worker_result = worker.run(iteration=iteration)
+                        worker_result = worker.run(iteration=iteration, max_retries=config.MAX_RETRIES)
                         print(f"[Worker] タスク {task_id} 完了")
-                    except Exception as e:
-                        import traceback
-                        error_traceback = traceback.format_exc()
-                        error_msg = f"{type(e).__name__}: {e}\n{error_traceback}"
-                        logger.error(f"[Worker] Error: {e}")
-                        logger.error(f"[Worker] Traceback:\n{error_traceback}")
+                    except AgentError as e:
+                        logger.log_error_with_traceback(
+                            "Worker",
+                            e,
+                            context={"iteration": iteration, "task_id": task_id}
+                        )
                         state_manager.fail_task(task_id, str(e))
                         print(f"[Worker] エラー: {e}")
+                    except Exception as e:
+                        logger.log_error_with_traceback(
+                            "Worker",
+                            e,
+                            context={"iteration": iteration, "task_id": task_id}
+                        )
+                        state_manager.fail_task(task_id, str(e))
+                        print(f"[Worker] 予期しないエラー: {e}")
                 else:
                     print(f"[Worker] タスク {task_id} の割り当てに失敗")
                 
@@ -321,15 +359,36 @@ def main():
             # 3. Judge実行
             print("\n[3/3] Judge実行中...")
             try:
-                judge.run(iteration=iteration)
+                judge.run(iteration=iteration, max_retries=config.MAX_RETRIES)
                 print("[Judge] 完了")
-            except Exception as e:
-                logger.error(f"[Judge] Error: {e}")
+            except AgentError as e:
+                logger.log_error_with_traceback("Judge", e, context={"iteration": iteration})
                 print(f"[Judge] エラー: {e}")
+                # Continue to next iteration even if judge fails
+            except Exception as e:
+                logger.log_error_with_traceback("Judge", e, context={"iteration": iteration})
+                print(f"[Judge] 予期しないエラー: {e}")
+                # Continue to next iteration
             
             # 継続判定
             status = state_manager.get_status()
             should_continue = status.get("should_continue", True)
+            
+            # 進捗ログ
+            tasks = state_manager.get_tasks()
+            task_list = tasks.get("tasks", [])
+            total_tasks = len(task_list)
+            completed_tasks = len([t for t in task_list if t.get("status") == "completed"])
+            failed_tasks = len([t for t in task_list if t.get("status") == "failed"])
+            pending_tasks = len([t for t in task_list if t.get("status") == "pending"])
+            
+            logger.log_progress(
+                iteration=iteration,
+                total_tasks=total_tasks,
+                completed_tasks=completed_tasks,
+                failed_tasks=failed_tasks,
+                pending_tasks=pending_tasks
+            )
             
             print(f"\n[判定] 継続判定: {should_continue}")
             print(f"理由: {status.get('reason', 'N/A')}")
@@ -337,6 +396,21 @@ def main():
             if not should_continue:
                 print("\n[完了] Judgeが停止を判定しました")
                 break
+            
+            # Create checkpoint after each iteration
+            try:
+                checkpoint_path = state_manager.create_checkpoint()
+                logger.info(f"Checkpoint created after iteration {iteration}: {checkpoint_path}")
+            except Exception as e:
+                logger.warning(f"Failed to create checkpoint: {e}")
+            
+            # Create backup periodically (every 5 iterations)
+            if iteration % 5 == 0:
+                try:
+                    backup_path = state_manager.create_backup()
+                    logger.info(f"Backup created: {backup_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to create backup: {e}")
             
             # 次のイテレーション前に待機
             if iteration < config.MAX_ITERATIONS:
@@ -364,8 +438,22 @@ def main():
     except KeyboardInterrupt:
         print("\n\n[中断] ユーザーによって中断されました")
         logger.info("Main loop interrupted by user")
+        # Create checkpoint before exit
+        try:
+            checkpoint_path = state_manager.create_checkpoint("interrupted")
+            logger.info(f"Checkpoint created before exit: {checkpoint_path}")
+            print(f"[チェックポイント] 中断前の状態を保存しました: {checkpoint_path}")
+        except Exception as e:
+            logger.warning(f"Failed to create checkpoint before exit: {e}")
     except Exception as e:
-        logger.error(f"Error in main loop: {e}")
+        logger.log_error_with_traceback("MainLoop", e, context={"iteration": iteration})
+        # Create checkpoint before exit
+        try:
+            checkpoint_path = state_manager.create_checkpoint("error")
+            logger.info(f"Checkpoint created after error: {checkpoint_path}")
+            print(f"[チェックポイント] エラー発生時の状態を保存しました: {checkpoint_path}")
+        except Exception as checkpoint_error:
+            logger.warning(f"Failed to create checkpoint after error: {checkpoint_error}")
         raise
     
     print("\n[Phase 2] メインループ完了")

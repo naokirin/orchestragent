@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 from .llm_client import LLMClient
+from .exceptions import LLMError, LLMTimeoutError, LLMRateLimitError
 
 
 class CursorCLIClient(LLMClient):
@@ -48,16 +49,33 @@ class CursorCLIClient(LLMClient):
             )
             
             if result.returncode != 0:
-                raise RuntimeError(f"Cursor CLI error: {result.stderr}")
+                stderr = result.stderr or ""
+                # Check for rate limit errors
+                if "rate limit" in stderr.lower() or "429" in stderr:
+                    raise LLMRateLimitError(f"Cursor CLI rate limit: {stderr}")
+                # Check for timeout-like errors
+                if "timeout" in stderr.lower():
+                    raise LLMTimeoutError(timeout, RuntimeError(stderr))
+                # Other errors are retryable by default
+                raise LLMError(f"Cursor CLI error: {stderr}", retryable=True)
             
             return result.stdout
-        except subprocess.TimeoutExpired:
-            raise RuntimeError(f"Cursor CLI timeout after {timeout} seconds")
-        except FileNotFoundError:
-            raise RuntimeError(
+        except subprocess.TimeoutExpired as e:
+            raise LLMTimeoutError(timeout, e)
+        except FileNotFoundError as e:
+            # FileNotFoundError is not retryable
+            raise LLMError(
                 "Cursor CLI not found. Install with: "
-                "curl https://cursor.com/install -fsS | bash"
+                "curl https://cursor.com/install -fsS | bash",
+                retryable=False,
+                original_error=e
             )
+        except (LLMError, LLMTimeoutError, LLMRateLimitError):
+            # Re-raise our custom exceptions
+            raise
+        except Exception as e:
+            # Wrap unexpected errors
+            raise LLMError(f"Unexpected error in Cursor CLI: {e}", retryable=True, original_error=e)
     
     def call_agent_from_file(
         self, 
