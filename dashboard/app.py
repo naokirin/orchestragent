@@ -268,4 +268,4 @@ class DashboardApp(App):
     
     def action_toggle_dark(self) -> None:
         """Toggle dark mode."""
-        self.dark = not self.dark
+        self.screen.dark = not self.screen.dark

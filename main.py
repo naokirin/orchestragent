@@ -3,8 +3,8 @@
 import os
 import sys
 import time
+import argparse
 from pathlib import Path
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils.llm_client_factory import LLMClientFactory
 from utils.state_manager import StateManager
@@ -182,10 +182,13 @@ def print_configuration():
     print("=" * 60)
 
 
-def main():
-    """Main function."""
+def run_main_loop():
+    """
+    Run the main agent loop.
+    This function contains the original main loop logic.
+    """
     print("=" * 60)
-    print("プランナー・ワーカースタイル自律エージェントシステム")
+    print("orchestragent")
     print("Phase 1: 動作確認")
     print("=" * 60)
     
@@ -310,6 +313,9 @@ def main():
             print(f"\n{'=' * 60}")
             print(f"イテレーション {iteration}")
             print(f"{'=' * 60}")
+            
+            # Update status with current iteration
+            state_manager.update_status(current_iteration=iteration)
             
             # 1. Planner実行
             print("\n[1/3] Planner実行中...")
@@ -591,6 +597,44 @@ def main():
         raise
     
     print("\n[Phase 2] メインループ完了")
+
+
+def main():
+    """
+    Main entry point with command-line argument parsing.
+    Supports --dashboard option to run in dashboard mode.
+    """
+    parser = argparse.ArgumentParser(
+        description='プランナー・ワーカースタイル自律エージェントシステム',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+例:
+  python main.py                    # 簡易ログ形式（デフォルト）
+  python main.py --dashboard         # ダッシュボード形式
+        """
+    )
+    parser.add_argument(
+        '--dashboard',
+        action='store_true',
+        help='ダッシュボード形式で表示（インタラクティブなUI）'
+    )
+    
+    args = parser.parse_args()
+    
+    if args.dashboard:
+        # ダッシュボードモード
+        try:
+            from dashboard.app import DashboardApp
+            app = DashboardApp()
+            app.run()
+        except ImportError as e:
+            print(f"エラー: ダッシュボードモードに必要なライブラリがインストールされていません: {e}")
+            print("以下のコマンドでインストールしてください:")
+            print("  pip install rich textual")
+            sys.exit(1)
+    else:
+        # 通常モード（既存の動作）
+        run_main_loop()
 
 
 if __name__ == "__main__":

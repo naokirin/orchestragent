@@ -3,5 +3,9 @@
 # Core dependencies
 python-dotenv>=1.0.0
 
+# Dashboard dependencies (optional, only needed for --dashboard mode)
+rich>=13.0.0
+textual>=0.40.0
+
 # Optional: for better JSON handling
 # No additional dependencies needed for Phase 1
