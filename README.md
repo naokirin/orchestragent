@@ -2,6 +2,8 @@
 
 Cursorブログ記事「[長時間稼働する自律型コーディングをスケールさせる](https://cursor.com/ja/blog/scaling-agents)」で紹介されているプランナー・ワーカースタイルのエージェントシステムを、最小構成で実装するプロジェクトです。
 
+![dashboard overview](assets/orchestragent_overview.jpg)
+
 ## プロジェクト目標
 
 - ✅ 複数エージェント（役割分離：Planner, Worker, Judge）
@@ -34,20 +36,12 @@ Cursorブログ記事「[長時間稼働する自律型コーディングをス�
 
 ```bash
 git clone <repository-url>
-cd cursor_scage
-docker compose up
+cd orchestragent
+docker compose build
+docker compose run --rm -it agent python main.py --dashboard
 ```
 
 初回実行時に`.env`ファイルの作成や必要なディレクトリの作成が自動的に行われます。
-
-### DockerHubからpullする場合（最小構成）
-
-```bash
-# docker-compose.pull.ymlと.envファイルだけあれば実行可能
-docker compose -f docker-compose.pull.yml up
-```
-
-詳細は[DOCKERHUB.md](./DOCKERHUB.md)を参照してください。
 
 ## 前提条件
 
@@ -75,7 +69,7 @@ Mac上でDockerを実行する際、ホストのファイルシステムにア�
 
 ```bash
 git clone <repository-url>
-cd cursor_scage
+cd orchestragent
 ```
 
 #### 2. 環境変数の設定（オプション）

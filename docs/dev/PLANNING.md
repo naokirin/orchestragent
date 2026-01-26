@@ -92,7 +92,7 @@ Cursor CLIは非対話モードでも、ファイル操作、git操作、シェ�
 ### 3.1 ディレクトリ構造
 
 ```
-cursor_scage/
+orchestragent/
 ├── main.py                 # メインループ
 ├── config.py               # 設定ファイル
 ├── state/

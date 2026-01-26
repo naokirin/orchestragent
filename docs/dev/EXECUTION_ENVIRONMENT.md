@@ -361,7 +361,7 @@ def main():
 ## ディレクトリ構造
 
 ```
-cursor_scage/
+orchestragent/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .devcontainer/

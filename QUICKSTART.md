@@ -23,7 +23,7 @@
 
 ```bash
 git clone <repository-url>
-cd cursor_scage
+cd orchestragent
 ```
 
 ### 2. Dockerイメージをビルドして実行
