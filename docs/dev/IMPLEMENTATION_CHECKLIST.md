@@ -4,9 +4,9 @@
 
 ### Cursor CLI/API
 - [x] Cursor CLIの公式ドキュメントを確認（https://cursor.com/ja/docs/cli/overview）
-- [ ] `agent --help` でCLIの存在を確認
-- [ ] `agent` コマンドのインストール確認（`curl https://cursor.com/install -fsS | bash`）
-- [ ] 非対話モード（`-p` フラグ）の動作確認
+- [x] `agent --help` でCLIの存在を確認
+- [x] `agent` コマンドのインストール確認（`curl https://cursor.com/install -fsS | bash`）
+- [x] 非対話モード（`-p` フラグ）の動作確認
 - [ ] 出力のキャプチャ方法を確認
 - [ ] レート制限を確認（要調査）
 

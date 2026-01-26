@@ -4,15 +4,24 @@
 
 基本的な機能のテストは、Cursor CLIなしで実行できます。
 
+### Phase 1テスト
+
 ```bash
-python3 test_phase1.py
+# Phase 1の基本機能テスト（削除済み）
+# 以前は test_phase1.py で実行していました
+```
+
+### Phase 2テスト
+
+```bash
+python3 test_phase2.py
 ```
 
 このテストでは以下を確認します：
-- ✅ すべてのモジュールのインポート
-- ✅ 設定ファイルの読み込み
-- ✅ StateManagerの機能（JSON/テキストの保存・読み込み、タスク管理）
-- ✅ Loggerの機能
+- ✅ すべてのエージェント（Planner, Worker, Judge）のインポート
+- ✅ プロンプトテンプレートファイルの存在確認
+- ✅ StateManagerの拡張機能（タスク管理、割り当て、完了、失敗）
+- ✅ メインループの構造確認
 
 ## Docker環境での動作確認（Cursor CLI必要）
 
@@ -47,12 +56,19 @@ docker compose run --rm agent cat /root/.config/cursor/auth.json
 docker compose run --rm agent agent --version
 ```
 
-### 3. Phase 1の実行
+### 3. Phase 2の実行
 
 ```bash
 # プロジェクト目標を設定して実行
-PROJECT_GOAL="このプロジェクトのPhase 1動作確認" docker compose run --rm agent python main.py
+PROJECT_GOAL="このプロジェクトのPhase 2動作確認" docker compose run --rm agent python main.py
 ```
+
+**注意**: Phase 2はメインループを実行します。以下のサイクルが繰り返されます：
+1. Planner実行（計画更新・タスク作成）
+2. Worker実行（保留中のタスクを1つ実行）
+3. Judge実行（進捗評価・継続判定）
+
+各ステップの間に待機時間（デフォルト1分）があります。
 
 または、`.env`ファイルを作成して設定：
 
@@ -150,6 +166,8 @@ docker compose run --rm agent /bin/bash
 
 ## 期待される動作
 
+### Phase 1（単体テスト）
+
 Phase 1が正常に動作すると、以下が実行されます：
 
 1. **環境チェック**
@@ -166,6 +184,27 @@ Phase 1が正常に動作すると、以下が実行されます：
 3. **結果の表示**
    - 作成されたタスク数
    - 更新された計画の概要
+
+### Phase 2（メインループ）
+
+Phase 2が正常に動作すると、以下が実行されます：
+
+1. **初期化**
+   - Planner, Worker, Judgeエージェントの初期化
+   - 設定の読み込み
+
+2. **メインループ（各イテレーション）**
+   - **Planner実行**: 計画更新・タスク作成
+   - **待機**: 設定された時間（デフォルト1分）
+   - **Worker実行**: 保留中のタスクを1つ実行・完了
+   - **待機**: 設定された時間（デフォルト1分）
+   - **Judge実行**: 進捗評価・継続判定
+   - **待機**: 設定された時間（デフォルト1分）
+   - **継続判定**: Judgeの判定に基づいて継続/停止
+
+3. **最終状態の表示**
+   - 総イテレーション数
+   - タスクの統計（総数、完了、失敗、保留中）
 
 ## 認証情報の永続化について
 
@@ -184,4 +223,21 @@ Phase 1が正常に動作すると、以下が実行されます：
 
 ## 次のステップ
 
-Phase 1の動作確認が完了したら、Phase 2（基本ループ）の実装に進みます。
+### Phase 2の動作確認後
+
+Phase 2の動作確認が完了したら、以下を確認してください：
+
+1. **状態ファイルの確認**
+   - `state/plan.md`: 計画が更新されているか
+   - `state/tasks.json`: タスクが作成・更新されているか
+   - `state/results/`: Workerの実行結果が保存されているか
+
+2. **ログの確認**
+   - `logs/execution_*.log`: 実行ログ
+   - `logs/execution_*.jsonl`: 構造化ログ
+
+3. **次のフェーズ**
+   - Phase 3（安定化）の実装に進む
+   - エラーハンドリングの強化
+   - ログ機能の改善
+   - 状態の永続化と復元
