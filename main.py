@@ -149,7 +149,7 @@ def print_configuration():
     
     # Main Loop Configuration
     print("\n[メインループ設定]")
-    print(f"  待機時間: {config.WAIT_TIME_MINUTES}分")
+    print(f"  待機時間: {config.WAIT_TIME_SECONDS}秒")
     print(f"  最大イテレーション数: {config.MAX_ITERATIONS}")
     
     # Agent Configuration
@@ -260,7 +260,7 @@ def main():
     # Phase 2: Main loop
     print("\n[Phase 2] メインループを開始します...")
     print(f"プロジェクト目標: {config.AGENT_CONFIG['project_goal']}")
-    print(f"待機時間: {config.WAIT_TIME_MINUTES}分")
+    print(f"待機時間: {config.WAIT_TIME_SECONDS}秒")
     print(f"最大イテレーション: {config.MAX_ITERATIONS}")
     
     iteration = 0
@@ -282,8 +282,8 @@ def main():
                 print(f"[Planner] エラー: {e}")
             
             # 待機
-            wait_seconds = config.WAIT_TIME_MINUTES * 60
-            print(f"\n[待機] {config.WAIT_TIME_MINUTES}分待機中...")
+            wait_seconds = config.WAIT_TIME_SECONDS
+            print(f"\n[待機] {config.WAIT_TIME_SECONDS}秒待機中...")
             time.sleep(wait_seconds)
             
             # 2. Worker実行（保留中のタスクがある限り）
@@ -315,7 +315,7 @@ def main():
                     print(f"[Worker] タスク {task_id} の割り当てに失敗")
                 
                 # 待機
-                print(f"\n[待機] {config.WAIT_TIME_MINUTES}分待機中...")
+                print(f"\n[待機] {config.WAIT_TIME_SECONDS}秒待機中...")
                 time.sleep(wait_seconds)
             
             # 3. Judge実行
@@ -340,7 +340,7 @@ def main():
             
             # 次のイテレーション前に待機
             if iteration < config.MAX_ITERATIONS:
-                print(f"\n[待機] 次のイテレーションまで {config.WAIT_TIME_MINUTES}分待機中...")
+                print(f"\n[待機] 次のイテレーションまで {config.WAIT_TIME_SECONDS}秒待機中...")
                 time.sleep(wait_seconds)
         
         if iteration >= config.MAX_ITERATIONS:

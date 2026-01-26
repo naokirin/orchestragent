@@ -32,5 +32,5 @@ LOG_DIR = os.getenv("LOG_DIR", "logs")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # Main Loop Configuration
-WAIT_TIME_MINUTES = int(os.getenv("WAIT_TIME_MINUTES", "1"))  # Wait time between agent runs
+WAIT_TIME_SECONDS = int(os.getenv("WAIT_TIME_SECONDS", "60"))  # Wait time between agent runs (in seconds)
 MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", "100"))  # Maximum iterations
