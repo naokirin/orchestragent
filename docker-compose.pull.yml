@@ -1,18 +1,22 @@
+# DockerHubからイメージをpullして実行する場合の設定
+# 使用方法: docker compose -f docker-compose.pull.yml up
+#
+# イメージを公開する場合:
+# docker build -t your-username/cursor-scage:latest .
+# docker push your-username/cursor-scage:latest
+
 services:
   agent:
-    # ローカルでビルドする場合
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    # DockerHubからpullする場合は、以下の行のコメントを外して、build: をコメントアウト
-    # image: your-username/cursor-scage:latest
+    # DockerHubからイメージをpull（build: の代わりにimage: を指定）
+    image: your-username/cursor-scage:latest
+    # ローカルのコードをマウントしない（イメージ内のコードを使用）
+    # volumes:
+    #   - .:/workspace  # この行をコメントアウト
     volumes:
-      # エージェントシステム自体のコードをマウント
-      - .:/workspace
       # 作業対象のプロジェクトディレクトリをマウント
       # TARGET_PROJECT環境変数で指定（未指定の場合は現在のディレクトリ）
       - ${TARGET_PROJECT:-.}:/target
-      # 状態ファイルを永続化
+      # 状態ファイルを永続化（ホスト側に保存）
       - ./state:/workspace/state
       - ./logs:/workspace/logs
       # Cursor CLIの認証情報を永続化（重要）

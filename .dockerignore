@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Environment variables (will be created in container)
+.env
+.env.local
+
+# State files (generated at runtime, but mounted as volume)
+# state/
+# logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Cursor CLI config (mounted as volume, don't copy)
+# .cursor/
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Documentation (optional, can be included)
+# docs/
+
+# Test files (optional)
+# test_*.py

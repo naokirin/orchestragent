@@ -24,6 +24,31 @@ Cursorブログ記事「[長時間稼働する自律型コーディングをス�
 - **[実行環境の設計](./docs/dev/EXECUTION_ENVIRONMENT.md)**: Sandbox/DevContainerでの実行方法
 - **[実装前チェックリスト](./docs/dev/IMPLEMENTATION_CHECKLIST.md)**: 実装開始前の確認項目
 
+## クイックスタート
+
+**最小限の手順で実行したい場合は、[QUICKSTART.md](./QUICKSTART.md)を参照してください。**
+
+**DockerHubにイメージを公開すれば、docker-compose.ymlと.envファイルだけで実行可能です。詳細は[DOCKERHUB.md](./DOCKERHUB.md)を参照してください。**
+
+### 基本的な実行手順（ローカルビルド）
+
+```bash
+git clone <repository-url>
+cd cursor_scage
+docker compose up
+```
+
+初回実行時に`.env`ファイルの作成や必要なディレクトリの作成が自動的に行われます。
+
+### DockerHubからpullする場合（最小構成）
+
+```bash
+# docker-compose.pull.ymlと.envファイルだけあれば実行可能
+docker compose -f docker-compose.pull.yml up
+```
+
+詳細は[DOCKERHUB.md](./DOCKERHUB.md)を参照してください。
+
 ## 前提条件
 
 ### Mac上でDockerを使用する場合
@@ -40,68 +65,104 @@ Mac上でDockerを実行する際、ホストのファイルシステムにア�
 
 > **注意**: この権限がない場合、コンテナからホストのファイルシステムへのマウントが正しく動作しない可能性があります。
 
-## 使用方法
+## クイックスタート
 
-### 基本的な使用方法
+### 最小限の手順で実行する
 
-このエージェントシステムは、任意のプロジェクトディレクトリで動作させることができます。
+このシステムは、Dockerイメージとdocker-compose.yml、少数の設定ファイルだけで実行可能です。
 
-#### 1. リポジトリ内で実行する場合（デフォルト）
+#### 1. リポジトリをクローン（初回のみ）
 
-リポジトリ自体を開発対象とする場合：
+```bash
+git clone <repository-url>
+cd cursor_scage
+```
+
+#### 2. 環境変数の設定（オプション）
+
+`.env`ファイルは初回実行時に`.env.example`から自動作成されますが、事前に設定することもできます：
+
+```bash
+# .env.exampleをコピーして編集
+cp .env.example .env
+# 必要に応じて編集
+nano .env  # またはお好みのエディタ
+```
+
+主要な設定項目：
+- `PROJECT_GOAL`: プロジェクトの目標（必須）
+- `TARGET_PROJECT`: 作業対象のプロジェクトディレクトリ（絶対パス推奨、未指定時はリポジトリ自体）
+- `LOG_LEVEL`: ログレベル（デフォルト: `INFO`）
+
+#### 3. Dockerイメージをビルドして実行
 
 ```bash
 docker compose up
 ```
 
-この場合、リポジトリのルートディレクトリが作業対象となります。
+初回実行時は、以下の処理が自動的に行われます：
+- `.env`ファイルの自動作成（存在しない場合）
+- 必要なディレクトリの作成（`state/`, `logs/`）
+- Cursor CLIの認証確認
 
-#### 2. 外部プロジェクトで実行する場合
+#### 4. Cursor CLIの認証（初回のみ）
 
-他のプロジェクトディレクトリを開発対象とする場合、`TARGET_PROJECT`環境変数で対象ディレクトリを指定します：
+初回実行時にCursor CLIの認証が必要な場合、以下のコマンドで認証できます：
 
 ```bash
-# 例: /path/to/my-project を開発対象とする場合
-TARGET_PROJECT=/path/to/my-project docker compose up
+# 別のターミナルで実行
+docker compose run --rm agent agent login
 ```
 
-または、`.env`ファイルに設定することもできます：
+表示されたURLをブラウザで開いて認証を完了してください。
+
+### 実行モード
+
+#### モード1: リポジトリ自体を開発対象とする場合（デフォルト）
+
+```bash
+# .envファイルでPROJECT_GOALを設定
+echo "PROJECT_GOAL=このリポジトリを改善する" >> .env
+docker compose up
+```
+
+#### モード2: 外部プロジェクトを開発対象とする場合
+
+```bash
+# .envファイルまたは環境変数で設定
+TARGET_PROJECT=/path/to/my-project \
+PROJECT_GOAL="REST APIを実装する" \
+docker compose up
+```
+
+または`.env`ファイルに設定：
 
 ```env
 TARGET_PROJECT=/path/to/my-project
-PROJECT_GOAL=プロジェクトの目標をここに記述
+PROJECT_GOAL=REST APIを実装する
 ```
 
-#### 3. 環境変数の設定
+### 環境変数の詳細
 
-主要な環境変数：
+主要な環境変数（`.env`ファイルまたは`docker-compose.yml`で設定可能）：
 
-- `TARGET_PROJECT`: 作業対象のプロジェクトディレクトリのパス（絶対パス推奨）
-  - 未指定の場合、リポジトリのルートディレクトリが使用されます
-- `PROJECT_ROOT`: コンテナ内での作業対象ディレクトリのパス（通常は変更不要）
-  - `TARGET_PROJECT`が設定されている場合は`/target`、未設定の場合は`/workspace`
-- `PROJECT_GOAL`: プロジェクトの目標（エージェントに伝える目標）
-- `LOG_LEVEL`: ログレベル（`DEBUG`, `INFO`, `WARNING`, `ERROR`）
-
-#### 4. 実行例
-
-```bash
-# 例1: 別のプロジェクトで実行
-TARGET_PROJECT=/Users/naoki/work/my-other-project \
-PROJECT_GOAL="REST APIを実装する" \
-docker compose up
-
-# 例2: .envファイルを使用
-echo "TARGET_PROJECT=/Users/naoki/work/my-other-project" >> .env
-echo "PROJECT_GOAL=REST APIを実装する" >> .env
-docker compose up
-```
+| 変数名 | 説明 | デフォルト値 |
+|--------|------|-------------|
+| `PROJECT_GOAL` | プロジェクトの目標（必須） | `プロジェクトの目標を設定してください` |
+| `TARGET_PROJECT` | 作業対象のプロジェクトディレクトリ（絶対パス推奨） | `.`（リポジトリ自体） |
+| `PROJECT_ROOT` | コンテナ内での作業対象ディレクトリ（通常は変更不要） | `/target` または `/workspace` |
+| `LOG_LEVEL` | ログレベル | `INFO` |
+| `WAIT_TIME_SECONDS` | エージェント間の待機時間（秒） | `60` |
+| `MAX_ITERATIONS` | 最大イテレーション数 | `100` |
+| `MAX_PARALLEL_WORKERS` | 最大並列Worker数 | `3` |
+| `ENABLE_PARALLEL_EXECUTION` | 並列実行の有効化 | `true` |
 
 ### 注意事項
 
 - `TARGET_PROJECT`には**絶対パス**を指定することを推奨します
 - 指定されたディレクトリはコンテナ内の`/target`にマウントされます
 - エージェントシステム自体のコードは`/workspace`にマウントされ、状態ファイル（`state/`、`logs/`）はリポジトリ内に保存されます
+- Cursor CLIの認証情報はDockerボリュームに永続化されます（`cursor-config`、`cursor-config-config`）
 
 ## アーキテクチャ概要
 
