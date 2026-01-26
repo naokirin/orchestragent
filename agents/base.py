@@ -97,10 +97,25 @@ class BaseAgent:
             )
             
             # 4. Parse response
-            result = self.parse_response(response)
+            try:
+                result = self.parse_response(response)
+                # Ensure result is a dictionary
+                if not isinstance(result, dict):
+                    raise ValueError(f"parse_response() must return a dict, got {type(result)}")
+            except Exception as e:
+                self.logger.error(f"[{self.name}] Error parsing response: {e}")
+                # Create a fallback result
+                result = {
+                    "response": response,
+                    "error": str(e)
+                }
             
             # 5. Update state
-            self.update_state(result)
+            try:
+                self.update_state(result)
+            except Exception as e:
+                self.logger.error(f"[{self.name}] Error updating state: {e}")
+                raise
             
             # 6. Log
             duration = time.time() - start_time

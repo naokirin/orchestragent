@@ -67,43 +67,68 @@ Please complete this task and report the result.
     
     def parse_response(self, response: str) -> Dict[str, Any]:
         """Parse worker response."""
-        # Extract report from response
-        # Try to find markdown report section
-        report_match = re.search(r'# タスク完了レポート.*', response, re.DOTALL)
-        if report_match:
-            report = report_match.group(0)
-        else:
-            # If no structured report, use entire response
-            report = response
-        
-        # Try to extract commit info
-        commit_hash = None
-        commit_message = None
-        commit_match = re.search(r'コミットハッシュ[:\s]+([a-f0-9]+)', response, re.IGNORECASE)
-        if commit_match:
-            commit_hash = commit_match.group(1)
-        
-        msg_match = re.search(r'コミットメッセージ[:\s]+(.+)', response, re.MULTILINE)
-        if msg_match:
-            commit_message = msg_match.group(1).strip()
-        
-        return {
-            "report": report,
-            "commit_hash": commit_hash,
-            "commit_message": commit_message,
-            "task_id": self.current_task_id
-        }
+        try:
+            # Extract report from response
+            # Try to find markdown report section
+            report_match = re.search(r'# タスク完了レポート.*', response, re.DOTALL)
+            if report_match:
+                report = report_match.group(0)
+            else:
+                # If no structured report, use entire response
+                report = response
+            
+            # Try to extract commit info
+            commit_hash = None
+            commit_message = None
+            commit_match = re.search(r'コミットハッシュ[:\s]+([a-f0-9]+)', response, re.IGNORECASE)
+            if commit_match:
+                commit_hash = commit_match.group(1)
+            
+            msg_match = re.search(r'コミットメッセージ[:\s]+(.+)', response, re.MULTILINE)
+            if msg_match:
+                commit_message = msg_match.group(1).strip()
+            
+            result = {
+                "report": report,
+                "commit_hash": commit_hash,
+                "commit_message": commit_message,
+                "task_id": self.current_task_id
+            }
+            
+            # Ensure task_id is set
+            if not result.get("task_id"):
+                result["task_id"] = self.current_task_id
+            
+            return result
+        except Exception as e:
+            self.logger.error(f"[Worker] Error parsing response: {e}")
+            # Return a safe fallback result
+            return {
+                "report": response[:1000] if response else "No response",
+                "commit_hash": None,
+                "commit_message": None,
+                "task_id": self.current_task_id,
+                "error": str(e)
+            }
     
     def update_state(self, result: Dict[str, Any]) -> None:
         """Update state with worker result."""
-        task_id = result.get("task_id")
+        # Ensure result is a dictionary
+        if not isinstance(result, dict):
+            raise ValueError(f"result must be a dict, got {type(result)}")
+        
+        task_id = result.get("task_id") or self.current_task_id
         if not task_id:
             self.logger.error("[Worker] No task ID in result")
-            return
+            raise ValueError("No task ID available")
         
         # Mark task as completed
-        self.state_manager.complete_task(task_id, result)
-        self.logger.info(f"[Worker] Task {task_id} completed")
+        try:
+            self.state_manager.complete_task(task_id, result)
+            self.logger.info(f"[Worker] Task {task_id} completed")
+        except Exception as e:
+            self.logger.error(f"[Worker] Error completing task: {e}")
+            raise
         
         # Update status
         tasks = self.state_manager.get_tasks()
