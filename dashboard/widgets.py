@@ -197,6 +197,7 @@ class TasksWidget(ScrollableContainer):
         self.state_manager = state_manager
         self.id = "tasks-widget"
         self.selected_task_id: Optional[str] = None
+        self._updating = False
     
     def compose(self):
         """Create tasks content."""
@@ -218,35 +219,52 @@ class TasksWidget(ScrollableContainer):
     
     def update_tasks(self) -> None:
         """Update task list from state."""
-        table = self.query_one("#task-table", DataTable)
-        table.clear()
+        # Skip update if we're already updating
+        if self._updating:
+            return
         
-        all_tasks = self.state_manager.get_all_tasks_from_files()
+        # Skip update if user has moved cursor (selected_task_id is set by on_data_table_row_highlighted)
+        if self.selected_task_id:
+            return
         
-        for task in all_tasks:
-            task_id = task.get('id', 'N/A')
-            title = task.get('title', 'No title')[:30]  # Truncate long titles
-            status = task.get('status', 'unknown')
-            priority = task.get('priority', 'medium')
+        self._updating = True
+        try:
+            table = self.query_one("#task-table", DataTable)
+            table.clear()
             
-            # Color code status
-            status_colored = {
-                'pending': '[yellow]保留中[/yellow]',
-                'in_progress': '[cyan]実行中[/cyan]',
-                'completed': '[green]完了[/green]',
-                'failed': '[red]失敗[/red]'
-            }.get(status, status)
+            all_tasks = self.state_manager.get_all_tasks_from_files()
             
-            table.add_row(
-                task_id,
-                title,
-                status_colored,
-                priority,
-                key=task_id
-            )
+            for task in all_tasks:
+                task_id = task.get('id', 'N/A')
+                title = task.get('title', 'No title')[:30]  # Truncate long titles
+                status = task.get('status', 'unknown')
+                priority = task.get('priority', 'medium')
+                
+                # Color code status
+                status_colored = {
+                    'pending': '[yellow]保留中[/yellow]',
+                    'in_progress': '[cyan]実行中[/cyan]',
+                    'completed': '[green]完了[/green]',
+                    'failed': '[red]失敗[/red]'
+                }.get(status, status)
+                
+                table.add_row(
+                    task_id,
+                    title,
+                    status_colored,
+                    priority,
+                    key=task_id
+                )
+        finally:
+            self._updating = False
+    
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        """Handle cursor movement - track which row is highlighted."""
+        if event.row_key:
+            self.selected_task_id = str(event.row_key.value)
     
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
-        """Handle task selection."""
+        """Handle task selection (Enter key)."""
         task_id = event.row_key.value
         self.selected_task_id = task_id
         self._show_task_detail(task_id)
