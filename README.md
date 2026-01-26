@@ -40,6 +40,69 @@ Mac上でDockerを実行する際、ホストのファイルシステムにア�
 
 > **注意**: この権限がない場合、コンテナからホストのファイルシステムへのマウントが正しく動作しない可能性があります。
 
+## 使用方法
+
+### 基本的な使用方法
+
+このエージェントシステムは、任意のプロジェクトディレクトリで動作させることができます。
+
+#### 1. リポジトリ内で実行する場合（デフォルト）
+
+リポジトリ自体を開発対象とする場合：
+
+```bash
+docker compose up
+```
+
+この場合、リポジトリのルートディレクトリが作業対象となります。
+
+#### 2. 外部プロジェクトで実行する場合
+
+他のプロジェクトディレクトリを開発対象とする場合、`TARGET_PROJECT`環境変数で対象ディレクトリを指定します：
+
+```bash
+# 例: /path/to/my-project を開発対象とする場合
+TARGET_PROJECT=/path/to/my-project docker compose up
+```
+
+または、`.env`ファイルに設定することもできます：
+
+```env
+TARGET_PROJECT=/path/to/my-project
+PROJECT_GOAL=プロジェクトの目標をここに記述
+```
+
+#### 3. 環境変数の設定
+
+主要な環境変数：
+
+- `TARGET_PROJECT`: 作業対象のプロジェクトディレクトリのパス（絶対パス推奨）
+  - 未指定の場合、リポジトリのルートディレクトリが使用されます
+- `PROJECT_ROOT`: コンテナ内での作業対象ディレクトリのパス（通常は変更不要）
+  - `TARGET_PROJECT`が設定されている場合は`/target`、未設定の場合は`/workspace`
+- `PROJECT_GOAL`: プロジェクトの目標（エージェントに伝える目標）
+- `LOG_LEVEL`: ログレベル（`DEBUG`, `INFO`, `WARNING`, `ERROR`）
+
+#### 4. 実行例
+
+```bash
+# 例1: 別のプロジェクトで実行
+TARGET_PROJECT=/Users/naoki/work/my-other-project \
+PROJECT_GOAL="REST APIを実装する" \
+docker compose up
+
+# 例2: .envファイルを使用
+echo "TARGET_PROJECT=/Users/naoki/work/my-other-project" >> .env
+echo "PROJECT_GOAL=REST APIを実装する" >> .env
+docker compose up
+```
+
+### 注意事項
+
+- `TARGET_PROJECT`には**絶対パス**を指定することを推奨します
+- 指定されたディレクトリはコンテナ内の`/target`にマウントされます
+- エージェントシステム自体のコードは`/workspace`にマウントされ、状態ファイル（`state/`、`logs/`）はリポジトリ内に保存されます
+
 ## アーキテクチャ概要
 
 ```

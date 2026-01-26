@@ -2,8 +2,11 @@ services:
   agent:
     build: .
     volumes:
-      # プロジェクトディレクトリをマウント
+      # エージェントシステム自体のコードをマウント
       - .:/workspace
+      # 作業対象のプロジェクトディレクトリをマウント
+      # TARGET_PROJECT環境変数で指定（未指定の場合は現在のディレクトリ）
+      - ${TARGET_PROJECT:-.}:/target
       # 状態ファイルを永続化（オプション）
       - ./state:/workspace/state
       - ./logs:/workspace/logs
@@ -12,8 +15,8 @@ services:
       - cursor-config:/root/.cursor
       - cursor-config-config:/root/.config/cursor
     environment:
-      # その他の環境変数（API Keyは不要、OAuth認証を使用）
-      - PROJECT_ROOT=/workspace
+      # 作業対象プロジェクトのルート（TARGET_PROJECTが設定されている場合は/target、未設定の場合は/workspace）
+      - PROJECT_ROOT=${PROJECT_ROOT:-/target}
       - LOG_LEVEL=INFO
       - PROJECT_GOAL=${PROJECT_GOAL:-プロジェクトの目標を設定してください}
     working_dir: /workspace
