@@ -3,6 +3,7 @@
 import json
 import os
 import shutil
+import time
 from pathlib import Path
 from typing import Dict, Any, Optional, Callable, List
 from datetime import datetime
@@ -25,10 +26,7 @@ class StateManager:
         # Ensure subdirectories exist
         (self.state_dir / "results").mkdir(exist_ok=True)
         (self.state_dir / "checkpoints").mkdir(exist_ok=True)
-        
-        # Backup directory
-        self.backup_dir = Path(backup_dir)
-        self.backup_dir.mkdir(parents=True, exist_ok=True)
+        (self.state_dir / "tasks").mkdir(exist_ok=True)  # Individual task files
     
     def load_json(self, filename: str) -> Dict[str, Any]:
         """
@@ -102,7 +100,9 @@ class StateManager:
         update_func: Callable[[Dict[str, Any]], Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Update JSON file using a function (optimistic concurrency control).
+        Update JSON file using a function with optimistic concurrency control.
+        Note: For task-specific updates, use update_task() which uses individual files.
+        This is mainly for index files (tasks.json) and status.json.
         
         Args:
             filename: JSON filename
@@ -111,44 +111,53 @@ class StateManager:
         Returns:
             Updated data dictionary
         """
+        filepath = self.state_dir / filename
         max_retries = 5
-        for attempt in range(max_retries):
-            # Load current state
-            current_data = self.load_json(filename)
-            version = current_data.get('version', 0)
-            
-            # Apply update
-            updated_data = update_func(current_data)
-            updated_data['version'] = version + 1
-            
-            # Try to save (with version check)
-            filepath = self.state_dir / filename
-            try:
-                # Re-read to check version
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    check_data = json.load(f)
-                
-                if check_data.get('version', 0) != version:
-                    # Conflict detected, retry
-                    if attempt < max_retries - 1:
-                        import time
-                        time.sleep(0.1 * (attempt + 1))  # Exponential backoff
-                        continue
-                    else:
-                        raise RuntimeError(f"Failed to update {filename} after {max_retries} attempts")
-                
-                # Save updated data
-                with open(filepath, 'w', encoding='utf-8') as f:
-                    json.dump(updated_data, f, indent=2, ensure_ascii=False)
-                
-                return updated_data
-            except FileNotFoundError:
-                # File doesn't exist, create it
-                with open(filepath, 'w', encoding='utf-8') as f:
-                    json.dump(updated_data, f, indent=2, ensure_ascii=False)
-                return updated_data
         
-        raise RuntimeError(f"Failed to update {filename}")
+        for attempt in range(max_retries):
+            try:
+                # Load current state
+                current_data = self.load_json(filename)
+                version = current_data.get('version', 0)
+                
+                # Apply update
+                updated_data = update_func(current_data.copy())
+                updated_data['version'] = version + 1
+                
+                # Try to save (with version check)
+                try:
+                    # Re-read to check version (optimistic concurrency control)
+                    if filepath.exists():
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            check_data = json.load(f)
+                        
+                        if check_data.get('version', 0) != version:
+                            # Conflict detected, retry
+                            if attempt < max_retries - 1:
+                                time.sleep(0.1 * (2 ** attempt))  # Exponential backoff
+                                continue
+                            else:
+                                raise RuntimeError(f"Failed to update {filename} after {max_retries} attempts (version conflict)")
+                    
+                    # Save updated data
+                    with open(filepath, 'w', encoding='utf-8') as f:
+                        json.dump(updated_data, f, indent=2, ensure_ascii=False)
+                        f.flush()
+                        os.fsync(f.fileno())  # Force write to disk
+                    
+                    return updated_data
+                except FileNotFoundError:
+                    # File doesn't exist, create it
+                    with open(filepath, 'w', encoding='utf-8') as f:
+                        json.dump(updated_data, f, indent=2, ensure_ascii=False)
+                    return updated_data
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    time.sleep(0.1 * (attempt + 1))
+                    continue
+                raise
+        
+        raise RuntimeError(f"Failed to update {filename} after {max_retries} attempts")
     
     def get_status(self) -> Dict[str, Any]:
         """Get current status."""
@@ -164,12 +173,42 @@ class StateManager:
         self.update_json("status.json", update)
     
     def get_tasks(self) -> Dict[str, Any]:
-        """Get current tasks."""
+        """
+        Get current tasks (index only - read-only).
+        This is a lightweight index for quick lookups.
+        """
         return self.load_json("tasks.json")
+    
+    def _get_task_file_path(self, task_id: str) -> Path:
+        """Get path to individual task state file."""
+        return self.state_dir / "tasks" / f"{task_id}.json"
+    
+    def _load_task_state(self, task_id: str) -> Dict[str, Any]:
+        """Load individual task state from its own file."""
+        task_file = self._get_task_file_path(task_id)
+        if task_file.exists():
+            try:
+                with open(task_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, FileNotFoundError):
+                return {}
+        return {}
+    
+    def _save_task_state(self, task_id: str, task_data: Dict[str, Any]) -> None:
+        """Save individual task state to its own file."""
+        task_file = self._get_task_file_path(task_id)
+        # Ensure directory exists
+        task_file.parent.mkdir(parents=True, exist_ok=True)
+        # Save directly (no locking needed - each task has its own file)
+        with open(task_file, 'w', encoding='utf-8') as f:
+            json.dump(task_data, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())  # Force write to disk
     
     def add_task(self, task: Dict[str, Any]) -> str:
         """
         Add a new task.
+        Creates both index entry and individual task file.
         
         Args:
             task: Task dictionary
@@ -188,12 +227,26 @@ class StateManager:
             task['status'] = 'pending'
             task['created_at'] = datetime.now().isoformat()
             
-            data['tasks'].append(task)
+            # Add to index (lightweight metadata only)
+            index_entry = {
+                'id': task_id,
+                'title': task.get('title', 'No title'),
+                'status': 'pending',
+                'priority': task.get('priority', 'medium'),
+                'created_at': task['created_at']
+            }
+            data['tasks'].append(index_entry)
             data['next_task_id'] += 1
             return data
         
+        # Update index
         updated = self.update_json("tasks.json", update)
-        return task['id']
+        task_id = task['id']
+        
+        # Save full task data to individual file
+        self._save_task_state(task_id, task)
+        
+        return task_id
     
     def get_plan(self) -> str:
         """Get current plan."""
@@ -204,30 +257,125 @@ class StateManager:
         self.save_text("plan.md", plan)
     
     def get_pending_tasks(self) -> List[Dict[str, Any]]:
-        """Get all pending tasks."""
-        tasks = self.get_tasks()
-        return [t for t in tasks.get("tasks", []) if t.get("status") == "pending"]
+        """
+        Get all pending tasks.
+        Loads full task data from individual files.
+        """
+        tasks_index = self.get_tasks()
+        pending = []
+        
+        for task_index in tasks_index.get("tasks", []):
+            task_id = task_index.get("id")
+            if not task_id:
+                continue
+            
+            # Load full task state
+            task = self.get_task_by_id(task_id)
+            if task and task.get("status") == "pending":
+                pending.append(task)
+        
+        return pending
+    
+    def get_all_tasks_from_files(self) -> List[Dict[str, Any]]:
+        """
+        Get all tasks by loading from individual task files.
+        This is the source of truth for task status.
+        
+        Returns:
+            List of all tasks with their current status from individual files
+        """
+        tasks_index = self.get_tasks()
+        all_tasks = []
+        
+        for task_index in tasks_index.get("tasks", []):
+            task_id = task_index.get("id")
+            if not task_id:
+                continue
+            
+            # Load full task state from individual file
+            task = self.get_task_by_id(task_id)
+            if task:
+                all_tasks.append(task)
+            else:
+                # If individual file doesn't exist, use index data
+                all_tasks.append(task_index.copy())
+        
+        return all_tasks
+    
+    def get_task_statistics(self) -> Dict[str, int]:
+        """
+        Get task statistics by loading from individual task files.
+        This ensures accurate counts based on actual task states.
+        
+        Returns:
+            Dictionary with counts: total, completed, failed, pending, in_progress
+        """
+        all_tasks = self.get_all_tasks_from_files()
+        
+        total = len(all_tasks)
+        completed = len([t for t in all_tasks if t.get("status") == "completed"])
+        failed = len([t for t in all_tasks if t.get("status") == "failed"])
+        pending = len([t for t in all_tasks if t.get("status") == "pending"])
+        in_progress = len([t for t in all_tasks if t.get("status") == "in_progress"])
+        
+        return {
+            "total": total,
+            "completed": completed,
+            "failed": failed,
+            "pending": pending,
+            "in_progress": in_progress
+        }
     
     def get_task_by_id(self, task_id: str) -> Optional[Dict[str, Any]]:
-        """Get task by ID."""
+        """
+        Get task by ID (loads from individual task file only).
+        Index is only used to verify task exists.
+        
+        Args:
+            task_id: Task ID
+        
+        Returns:
+            Task data from individual file, or None if not found
+        """
+        # Check if task exists in index (quick check)
         tasks = self.get_tasks()
-        for task in tasks.get("tasks", []):
-            if task.get("id") == task_id:
-                return task
-        return None
+        task_exists = any(t.get("id") == task_id for t in tasks.get("tasks", []))
+        
+        if not task_exists:
+            return None
+        
+        # Load from individual task file (source of truth)
+        task_state = self._load_task_state(task_id)
+        
+        # If task file doesn't exist but is in index, return basic info from index
+        if not task_state:
+            for task in tasks.get("tasks", []):
+                if task.get("id") == task_id:
+                    return task.copy()
+            return None
+        
+        return task_state
     
     def update_task(self, task_id: str, updates: Dict[str, Any]) -> None:
-        """Update task with given fields."""
-        def update(data: Dict[str, Any]) -> Dict[str, Any]:
-            for task in data.get("tasks", []):
-                if task.get("id") == task_id:
-                    task.update(updates)
-                    if "status" in updates:
-                        task["updated_at"] = datetime.now().isoformat()
-                    break
-            return data
+        """
+        Update task with given fields.
+        Updates only the individual task file (no conflict with other workers).
+        Index (tasks.json) is not updated - it's read-only after task creation.
         
-        self.update_json("tasks.json", update)
+        Args:
+            task_id: Task ID
+            updates: Fields to update
+        """
+        # Load current task state
+        task_state = self._load_task_state(task_id)
+        
+        # Apply updates
+        task_state.update(updates)
+        if "status" in updates:
+            task_state["updated_at"] = datetime.now().isoformat()
+        
+        # Save to individual task file only
+        self._save_task_state(task_id, task_state)
     
     def assign_task(self, task_id: str, worker_id: str = "worker") -> None:
         """Assign task to worker."""
@@ -238,14 +386,19 @@ class StateManager:
         })
     
     def complete_task(self, task_id: str, result: Dict[str, Any]) -> None:
-        """Mark task as completed with result."""
+        """
+        Mark task as completed with result.
+        Updates only the individual task file (no conflict).
+        """
         result_file = f"results/{task_id}.md"
         self.save_text(result_file, result.get("report", ""))
         
+        # Update individual task file only
         self.update_task(task_id, {
             "status": "completed",
             "completed_at": datetime.now().isoformat(),
-            "result_file": result_file
+            "result_file": result_file,
+            "result": result  # Store full result in task file
         })
     
     def fail_task(self, task_id: str, error: str) -> None:
@@ -278,6 +431,14 @@ class StateManager:
             source = self.state_dir / filename
             if source.exists():
                 shutil.copy2(source, checkpoint_dir / filename)
+        
+        # Copy individual task files directory
+        tasks_source = self.state_dir / "tasks"
+        if tasks_source.exists():
+            tasks_dest = checkpoint_dir / "tasks"
+            if tasks_dest.exists():
+                shutil.rmtree(tasks_dest)
+            shutil.copytree(tasks_source, tasks_dest)
         
         # Copy results directory
         results_source = self.state_dir / "results"
@@ -332,6 +493,14 @@ class StateManager:
                     dest = self.state_dir / filename
                     shutil.copy2(source, dest)
             
+            # Restore individual task files directory
+            tasks_source = checkpoint_dir / "tasks"
+            if tasks_source.exists():
+                tasks_dest = self.state_dir / "tasks"
+                if tasks_dest.exists():
+                    shutil.rmtree(tasks_dest)
+                shutil.copytree(tasks_source, tasks_dest)
+            
             # Restore results directory
             results_source = checkpoint_dir / "results"
             if results_source.exists():
@@ -365,6 +534,14 @@ class StateManager:
             source = self.state_dir / filename
             if source.exists():
                 shutil.copy2(source, backup_path / filename)
+        
+        # Copy individual task files directory
+        tasks_source = self.state_dir / "tasks"
+        if tasks_source.exists():
+            tasks_dest = backup_path / "tasks"
+            if tasks_dest.exists():
+                shutil.rmtree(tasks_dest)
+            shutil.copytree(tasks_source, tasks_dest)
         
         # Copy results directory
         results_source = self.state_dir / "results"

@@ -110,8 +110,44 @@ Please create a plan and new tasks in JSON format.
         # Add new tasks
         new_tasks = result.get("new_tasks", [])
         for task in new_tasks:
+            # Ensure files field exists (extract from description if not provided)
+            if "files" not in task:
+                # Try to extract files from description
+                description = task.get("description", "")
+                files = self._extract_files_from_description(description)
+                if files:
+                    task["files"] = files
+            
             task_id = self.state_manager.add_task(task)
             self.logger.info(f"[{self.name}] Added task: {task_id} - {task.get('title', 'No title')}")
+            if task.get("files"):
+                self.logger.info(f"[{self.name}] Task {task_id} files: {', '.join(task['files'])}")
+    
+    def _extract_files_from_description(self, description: str) -> list:
+        """Extract file paths from task description."""
+        import re
+        files = []
+        
+        # Pattern 1: Explicit file mentions
+        explicit_pattern = r'file:\s*([^\s\n]+\.(py|ts|js|md|json|yml|yaml|txt|html|css))'
+        matches = re.findall(explicit_pattern, description, re.IGNORECASE)
+        files.extend([m[0] for m in matches])
+        
+        # Pattern 2: File paths in quotes
+        quoted_pattern = r'["\'`]([^\'"`]+\.(py|ts|js|md|json|yml|yaml|txt|html|css))["\'`]'
+        matches = re.findall(quoted_pattern, description, re.IGNORECASE)
+        files.extend([m[0] for m in matches])
+        
+        # Normalize and deduplicate
+        normalized_files = []
+        seen = set()
+        for filepath in files:
+            normalized = filepath.strip().strip('"\'`')
+            if normalized and normalized not in seen:
+                normalized_files.append(normalized)
+                seen.add(normalized)
+        
+        return normalized_files
         
         # Update status
         self.state_manager.update_status(

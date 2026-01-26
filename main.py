@@ -5,13 +5,17 @@ import sys
 import time
 from pathlib import Path
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils.llm_client_factory import LLMClientFactory
 from utils.state_manager import StateManager
 from utils.logger import AgentLogger
+from utils.file_lock import FileLockManager
+from utils.task_scheduler import TaskScheduler
 from agents.planner import PlannerAgent
 from agents.worker import WorkerAgent
 from agents.judge import JudgeAgent
 from utils.exceptions import AgentError
+from typing import Dict, Any
 import config
 
 
@@ -153,6 +157,12 @@ def print_configuration():
     print(f"  待機時間: {config.WAIT_TIME_SECONDS}秒")
     print(f"  最大イテレーション数: {config.MAX_ITERATIONS}")
     
+    # Parallel Execution Configuration
+    print("\n[並列実行設定]")
+    print(f"  並列実行: {'有効' if config.ENABLE_PARALLEL_EXECUTION else '無効'}")
+    if config.ENABLE_PARALLEL_EXECUTION:
+        print(f"  最大並列Worker数: {config.MAX_PARALLEL_WORKERS}")
+    
     # Agent Configuration
     print("\n[エージェント設定]")
     print(f"  Planner モード: plan")
@@ -237,6 +247,10 @@ def main():
     
     logger = AgentLogger(log_dir=config.LOG_DIR, log_level=config.LOG_LEVEL)
     
+    # Initialize file lock manager and task scheduler for parallel execution
+    file_lock_manager = FileLockManager(lock_dir=f"{config.STATE_DIR}/locks")
+    task_scheduler = TaskScheduler(state_manager, file_lock_manager)
+    
     # Initialize agents
     planner_config = config.AGENT_CONFIG.copy()
     planner_config["mode"] = "plan"
@@ -316,45 +330,160 @@ def main():
             print(f"\n[待機] {config.WAIT_TIME_SECONDS}秒待機中...")
             time.sleep(wait_seconds)
             
-            # 2. Worker実行（保留中のタスクがある限り）
+            # 2. Worker実行（並列実行対応）
             print("\n[2/3] Worker実行中...")
-            pending_tasks = state_manager.get_pending_tasks()
             
-            if not pending_tasks:
-                print("[Worker] 保留中のタスクがありません")
-            else:
-                # 最初の保留タスクを実行
-                task = pending_tasks[0]
-                task_id = task.get("id")
-                print(f"[Worker] タスク {task_id} を実行: {task.get('title', 'No title')}")
+            if config.ENABLE_PARALLEL_EXECUTION:
+                # Parallel execution mode
+                parallelizable_tasks = task_scheduler.get_parallelizable_tasks(
+                    max_workers=config.MAX_PARALLEL_WORKERS
+                )
                 
-                if worker.assign_task(task_id):
-                    try:
-                        # Worker.run() will use self.current_task_id set by assign_task()
-                        worker_result = worker.run(iteration=iteration, max_retries=config.MAX_RETRIES)
-                        print(f"[Worker] タスク {task_id} 完了")
-                    except AgentError as e:
-                        logger.log_error_with_traceback(
-                            "Worker",
-                            e,
-                            context={"iteration": iteration, "task_id": task_id}
-                        )
-                        state_manager.fail_task(task_id, str(e))
-                        print(f"[Worker] エラー: {e}")
-                    except Exception as e:
-                        logger.log_error_with_traceback(
-                            "Worker",
-                            e,
-                            context={"iteration": iteration, "task_id": task_id}
-                        )
-                        state_manager.fail_task(task_id, str(e))
-                        print(f"[Worker] 予期しないエラー: {e}")
+                if not parallelizable_tasks:
+                    print("[Worker] 並列実行可能なタスクがありません")
                 else:
-                    print(f"[Worker] タスク {task_id} の割り当てに失敗")
+                    print(f"[Worker] {len(parallelizable_tasks)}個のタスクを並列実行します")
+                    
+                    def run_worker_task(task_data: Dict[str, Any]) -> Dict[str, Any]:
+                        """Run a single worker task."""
+                        task_id = task_data.get("id")
+                        worker_instance = WorkerAgent(
+                            name=f"Worker-{task_id}",
+                            llm_client=llm_client,
+                            state_manager=state_manager,
+                            logger=logger,
+                            config=worker_config
+                        )
+                        
+                        result = {
+                            "task_id": task_id,
+                            "success": False,
+                            "error": None
+                        }
+                        
+                        try:
+                            # Acquire file locks
+                            task_files = task_scheduler._extract_task_files(task_data)
+                            locks_acquired = []
+                            for filepath in task_files:
+                                if file_lock_manager.acquire_lock(filepath, task_id, timeout=10.0):
+                                    locks_acquired.append(filepath)
+                                else:
+                                    # Failed to acquire lock, release acquired locks and skip
+                                    for locked_file in locks_acquired:
+                                        file_lock_manager.release_lock(locked_file)
+                                    result["error"] = f"Failed to acquire lock for {filepath}"
+                                    return result
+                            
+                            # Assign and run task
+                            if worker_instance.assign_task(task_id):
+                                try:
+                                    worker_result = worker_instance.run(
+                                        iteration=iteration,
+                                        max_retries=config.MAX_RETRIES
+                                    )
+                                    result["success"] = True
+                                    logger.info(f"[Worker-{task_id}] Task completed")
+                                except Exception as e:
+                                    result["error"] = str(e)
+                                    state_manager.fail_task(task_id, str(e))
+                                    logger.log_error_with_traceback(
+                                        f"Worker-{task_id}",
+                                        e,
+                                        context={"iteration": iteration, "task_id": task_id}
+                                    )
+                            else:
+                                result["error"] = "Failed to assign task"
+                            
+                            # Release file locks
+                            for filepath in locks_acquired:
+                                file_lock_manager.release_lock(filepath)
+                        
+                        except Exception as e:
+                            result["error"] = str(e)
+                            logger.log_error_with_traceback(
+                                f"Worker-{task_id}",
+                                e,
+                                context={"iteration": iteration, "task_id": task_id}
+                            )
+                        
+                        return result
+                    
+                    # Execute tasks in parallel
+                    with ThreadPoolExecutor(max_workers=config.MAX_PARALLEL_WORKERS) as executor:
+                        future_to_task = {
+                            executor.submit(run_worker_task, task): task
+                            for task in parallelizable_tasks
+                        }
+                        
+                        completed_count = 0
+                        failed_count = 0
+                        
+                        for future in as_completed(future_to_task):
+                            task = future_to_task[future]
+                            task_id = task.get("id")
+                            try:
+                                result = future.result()
+                                if result["success"]:
+                                    completed_count += 1
+                                    print(f"[Worker] タスク {task_id} 完了: {task.get('title', 'No title')}")
+                                else:
+                                    failed_count += 1
+                                    print(f"[Worker] タスク {task_id} 失敗: {result.get('error', 'Unknown error')}")
+                            except Exception as e:
+                                failed_count += 1
+                                logger.log_error_with_traceback(
+                                    f"Worker-{task_id}",
+                                    e,
+                                    context={"iteration": iteration, "task_id": task_id}
+                                )
+                                print(f"[Worker] タスク {task_id} 例外: {e}")
+                        
+                        print(f"[Worker] 並列実行完了: {completed_count}成功, {failed_count}失敗")
+                    
+                    # Cleanup stale locks
+                    stale_locks = file_lock_manager.cleanup_stale_locks(timeout=300.0)
+                    if stale_locks > 0:
+                        logger.info(f"Cleaned up {stale_locks} stale locks")
+            else:
+                # Sequential execution mode (original behavior)
+                pending_tasks = state_manager.get_pending_tasks()
                 
-                # 待機
-                print(f"\n[待機] {config.WAIT_TIME_SECONDS}秒待機中...")
-                time.sleep(wait_seconds)
+                if not pending_tasks:
+                    print("[Worker] 保留中のタスクがありません")
+                else:
+                    # 最初の保留タスクを実行
+                    task = pending_tasks[0]
+                    task_id = task.get("id")
+                    print(f"[Worker] タスク {task_id} を実行: {task.get('title', 'No title')}")
+                    
+                    if worker.assign_task(task_id):
+                        try:
+                            # Worker.run() will use self.current_task_id set by assign_task()
+                            worker_result = worker.run(iteration=iteration, max_retries=config.MAX_RETRIES)
+                            print(f"[Worker] タスク {task_id} 完了")
+                        except AgentError as e:
+                            logger.log_error_with_traceback(
+                                "Worker",
+                                e,
+                                context={"iteration": iteration, "task_id": task_id}
+                            )
+                            state_manager.fail_task(task_id, str(e))
+                            print(f"[Worker] エラー: {e}")
+                        except Exception as e:
+                            logger.log_error_with_traceback(
+                                "Worker",
+                                e,
+                                context={"iteration": iteration, "task_id": task_id}
+                            )
+                            state_manager.fail_task(task_id, str(e))
+                            print(f"[Worker] 予期しないエラー: {e}")
+                    else:
+                        print(f"[Worker] タスク {task_id} の割り当てに失敗")
+            
+            # 待機
+            print(f"\n[待機] {config.WAIT_TIME_SECONDS}秒待機中...")
+            time.sleep(wait_seconds)
             
             # 3. Judge実行
             print("\n[3/3] Judge実行中...")
@@ -374,13 +503,12 @@ def main():
             status = state_manager.get_status()
             should_continue = status.get("should_continue", True)
             
-            # 進捗ログ
-            tasks = state_manager.get_tasks()
-            task_list = tasks.get("tasks", [])
-            total_tasks = len(task_list)
-            completed_tasks = len([t for t in task_list if t.get("status") == "completed"])
-            failed_tasks = len([t for t in task_list if t.get("status") == "failed"])
-            pending_tasks = len([t for t in task_list if t.get("status") == "pending"])
+            # 進捗ログ（個別タスクファイルから正確な状態を取得）
+            task_stats = state_manager.get_task_statistics()
+            total_tasks = task_stats["total"]
+            completed_tasks = task_stats["completed"]
+            failed_tasks = task_stats["failed"]
+            pending_tasks = task_stats["pending"]
             
             logger.log_progress(
                 iteration=iteration,
@@ -438,6 +566,9 @@ def main():
     except KeyboardInterrupt:
         print("\n\n[中断] ユーザーによって中断されました")
         logger.info("Main loop interrupted by user")
+        # Release all file locks
+        if config.ENABLE_PARALLEL_EXECUTION:
+            file_lock_manager.release_all_locks()
         # Create checkpoint before exit
         try:
             checkpoint_path = state_manager.create_checkpoint("interrupted")
@@ -447,6 +578,9 @@ def main():
             logger.warning(f"Failed to create checkpoint before exit: {e}")
     except Exception as e:
         logger.log_error_with_traceback("MainLoop", e, context={"iteration": iteration})
+        # Release all file locks
+        if config.ENABLE_PARALLEL_EXECUTION:
+            file_lock_manager.release_all_locks()
         # Create checkpoint before exit
         try:
             checkpoint_path = state_manager.create_checkpoint("error")

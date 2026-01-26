@@ -37,17 +37,19 @@ Tasks: {total_tasks} total, {completed_tasks} completed, {pending_tasks} pending
 Please evaluate progress and decide whether to continue.
 """
         
-        # Get task statistics
-        tasks = state.get("tasks", {})
-        task_list = tasks.get("tasks", [])
-        total_tasks = len(task_list)
-        completed_tasks = len([t for t in task_list if t.get("status") == "completed"])
-        failed_tasks = len([t for t in task_list if t.get("status") == "failed"])
-        pending_tasks = len([t for t in task_list if t.get("status") == "pending"])
+        # Get task statistics from individual task files (source of truth)
+        task_stats = self.state_manager.get_task_statistics()
+        total_tasks = task_stats["total"]
+        completed_tasks = task_stats["completed"]
+        failed_tasks = task_stats["failed"]
+        pending_tasks = task_stats["pending"]
+        
+        # Get all tasks from individual files to get completed task results
+        all_tasks = self.state_manager.get_all_tasks_from_files()
         
         # Get completed task results
         completed_results = []
-        for task in task_list:
+        for task in all_tasks:
             if task.get("status") == "completed":
                 result_file = task.get("result_file")
                 if result_file:
