@@ -248,7 +248,11 @@ def main():
                         worker_result = worker.run(iteration=iteration)
                         print(f"[Worker] タスク {task_id} 完了")
                     except Exception as e:
+                        import traceback
+                        error_traceback = traceback.format_exc()
+                        error_msg = f"{type(e).__name__}: {e}\n{error_traceback}"
                         logger.error(f"[Worker] Error: {e}")
+                        logger.error(f"[Worker] Traceback:\n{error_traceback}")
                         state_manager.fail_task(task_id, str(e))
                         print(f"[Worker] エラー: {e}")
                 else:

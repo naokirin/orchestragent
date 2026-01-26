@@ -131,7 +131,10 @@ class BaseAgent:
             
         except Exception as e:
             duration = time.time() - start_time
+            import traceback
+            error_traceback = traceback.format_exc()
             self.logger.error(f"[{self.name}] Error: {e}")
+            self.logger.error(f"[{self.name}] Traceback:\n{error_traceback}")
             raise
     
     def load_state(self) -> Dict[str, Any]:
