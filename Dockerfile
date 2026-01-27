@@ -26,6 +26,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # アプリケーションコードをコピー
 COPY . .
 
+# Cursor CLIですべての操作を許可（コンテナ内のため、許可する）
+ENV CURSOR_CONFIG_DIR "/root/.orchestragent"
+RUN mkdir -p "$CURSOR_CONFIG_DIR" && \
+    echo '{ "version": 1, "permissions": { "allow": [ "Shell(*)", "Read(**/*)", "Write(**/*)" ], "deny": [] } }' > "$CURSOR_CONFIG_DIR/cli-config.json"
+
 # 初回セットアップスクリプトを実行可能にする
 RUN chmod +x scripts/setup.sh || true
 
