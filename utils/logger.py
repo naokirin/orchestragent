@@ -2,6 +2,7 @@
 
 import json
 import logging
+import threading
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, Optional
@@ -190,3 +191,68 @@ class AgentLogger:
     def exception(self, message: str, exc_info: bool = True) -> None:
         """Log exception with traceback."""
         self.logger.exception(message, exc_info=exc_info)
+    
+    def log_agent_command_output(
+        self,
+        agent_name: str,
+        stdout: str,
+        stderr: str,
+        command: Optional[str] = None
+    ) -> Path:
+        """
+        Log agent command output to individual log file.
+        
+        Args:
+            agent_name: Name of the agent
+            stdout: Standard output from the command
+            stderr: Standard error output from the command
+            command: Command that was executed (optional)
+        
+        Returns:
+            Path to the log file created
+        """
+        # Generate unique log file name with agent name, timestamp, and thread ID
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        thread_id = threading.get_ident()
+        # Sanitize agent name for filename (replace special characters)
+        safe_agent_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in agent_name)
+        log_filename = f"agent_{safe_agent_name}_{timestamp}_{thread_id}.log"
+        log_file = self.log_dir / log_filename
+        
+        # Write to log file
+        with open(log_file, 'w', encoding='utf-8') as f:
+            # Write header
+            f.write(f"Agent Command Output Log\n")
+            f.write(f"{'=' * 60}\n")
+            f.write(f"Agent: {agent_name}\n")
+            f.write(f"Timestamp: {datetime.now().isoformat()}\n")
+            f.write(f"Thread ID: {thread_id}\n")
+            if command:
+                f.write(f"Command: {command}\n")
+            f.write(f"{'=' * 60}\n\n")
+            
+            # Write stdout
+            if stdout:
+                f.write("=== Standard Output ===\n")
+                f.write(stdout)
+                if not stdout.endswith('\n'):
+                    f.write('\n')
+                f.write("\n")
+            
+            # Write stderr
+            if stderr:
+                f.write("=== Standard Error ===\n")
+                f.write(stderr)
+                if not stderr.endswith('\n'):
+                    f.write('\n')
+                f.write("\n")
+            
+            f.write(f"{'=' * 60}\n")
+            f.write(f"End of log\n")
+        
+        # Log to standard logger
+        self.logger.info(
+            f"[{agent_name}] Agent command output logged to: {log_file}"
+        )
+        
+        return log_file

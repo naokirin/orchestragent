@@ -2,9 +2,12 @@
 
 import subprocess
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from .llm_client import LLMClient
 from .exceptions import LLMError, LLMTimeoutError, LLMRateLimitError
+
+if TYPE_CHECKING:
+    from .logger import AgentLogger
 
 
 class CursorCLIClient(LLMClient):
@@ -34,9 +37,24 @@ class CursorCLIClient(LLMClient):
         prompt: str, 
         mode: str = "agent", 
         model: Optional[str] = None,
+        agent_name: Optional[str] = None,
+        logger: Optional["AgentLogger"] = None,
         **kwargs
     ) -> str:
-        """Execute agent via Cursor CLI."""
+        """
+        Execute agent via Cursor CLI.
+        
+        Args:
+            prompt: Prompt string
+            mode: Mode ("agent", "plan", "ask")
+            model: Model to use (optional)
+            agent_name: Name of the agent (optional, for logging)
+            logger: Logger instance (optional, for logging command output)
+            **kwargs: Other options (e.g., timeout)
+        
+        Returns:
+            Agent output (string)
+        """
         cmd = ['agent', '-p', prompt, '--output-format', self.output_format]
         
         if mode != "agent":
@@ -55,6 +73,22 @@ class CursorCLIClient(LLMClient):
                 cwd=str(self.project_root),
                 timeout=timeout
             )
+            
+            # Log command output to individual log file if logger is provided
+            if logger and agent_name:
+                try:
+                    command_str = ' '.join(cmd)
+                    logger.log_agent_command_output(
+                        agent_name=agent_name,
+                        stdout=result.stdout or "",
+                        stderr=result.stderr or "",
+                        command=command_str
+                    )
+                except Exception as log_error:
+                    # Don't fail the main operation if logging fails
+                    # Just log a warning if we have a logger
+                    if logger:
+                        logger.warning(f"Failed to log agent command output: {log_error}")
             
             if result.returncode != 0:
                 stderr = result.stderr or ""

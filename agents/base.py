@@ -149,7 +149,9 @@ class BaseAgent:
         response = self.llm_client.call_agent(
             prompt=prompt,
             mode=self.mode,
-            model=self.config.get("model")
+            model=self.config.get("model"),
+            agent_name=self.name,
+            logger=self.logger
         )
         
         # 4. Parse response

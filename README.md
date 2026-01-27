@@ -207,27 +207,110 @@ main.py (メインループ)
 └─ state/status.json: 進行状態
 ```
 
-## 実装の優先順位
+## ログ仕様
 
-### Phase 1: 最小動作確認
-1. ファイルベースの状態管理
-2. 単一エージェント（Planner）の動作確認
-3. Cursor CLI/API との統合確認
+システムは実行ログを`logs/`ディレクトリに保存します。ログファイルは以下の種類があります：
 
-### Phase 2: 基本ループ
-1. メインループの実装
-2. Planner + Worker の連携
-3. Judge の実装
+### ログファイルの種類
 
-### Phase 3: 安定化
-1. エラーハンドリング
-2. ログ機能
-3. 状態の永続化と復元
+#### 1. 実行ログ（`execution_YYYYMMDD.log`）
+- **内容**: システム全体の実行ログ（Pythonのloggingモジュールによる標準ログ）
+- **形式**: テキスト形式
+- **ローテーション**: 10MBごとに自動ローテーション（最大5世代保持）
 
-### Phase 4: 最適化（後回し）
-1. 複数Workerの並列実行
-2. より高度なコンフリクト解決
-3. パフォーマンス最適化
+#### 2. 実行ログ（JSON形式）（`execution_YYYYMMDD.jsonl`）
+- **内容**: 各エージェントの実行結果をJSON Lines形式で記録
+- **形式**: JSON Lines（1行1JSON）
+- **記録項目**:
+  - `timestamp`: 実行時刻
+  - `agent`: エージェント名（Planner, Worker, Judgeなど）
+  - `iteration`: イテレーション番号
+  - `prompt_length`: プロンプトの文字数
+  - `response_length`: レスポンスの文字数
+  - `duration_seconds`: 実行時間（秒）
+
+#### 3. エージェントコマンドログ（`agent_{agent_name}_{timestamp}_{thread_id}.log`）
+- **内容**: 各エージェントが実行する`agent`コマンドの標準出力・標準エラー出力
+- **形式**: テキスト形式
+- **ファイル名規則**:
+  - `agent_`: プレフィックス
+  - `{agent_name}`: エージェント名（Planner, Worker-task1, Judgeなど）
+  - `{timestamp}`: 実行時刻（`YYYYMMDD_HHMMSS`形式）
+  - `{thread_id}`: スレッドID（並行実行時の識別用）
+- **記録内容**:
+  - 実行されたコマンド
+  - 標準出力（stdout）
+  - 標準エラー出力（stderr）
+  - エージェント名、タイムスタンプ、スレッドIDなどのメタデータ
+
+#### 4. エラーログ（`errors_YYYYMMDD.jsonl`）
+- **内容**: エラー発生時の詳細情報をJSON Lines形式で記録
+- **形式**: JSON Lines
+- **記録項目**:
+  - `timestamp`: エラー発生時刻
+  - `agent`: エージェント名
+  - `error_type`: エラーの種類
+  - `error_message`: エラーメッセージ
+  - `traceback`: スタックトレース
+  - `context`: 追加のコンテキスト情報
+
+#### 5. 進捗ログ（`progress_YYYYMMDD.jsonl`）
+- **内容**: タスクの進捗状況をJSON Lines形式で記録
+- **形式**: JSON Lines
+- **記録項目**:
+  - `timestamp`: 記録時刻
+  - `iteration`: イテレーション番号
+  - `total_tasks`: 総タスク数
+  - `completed_tasks`: 完了タスク数
+  - `failed_tasks`: 失敗タスク数
+  - `pending_tasks`: 保留中タスク数
+  - `completion_rate`: 完了率（%）
+
+### ログディレクトリの構成例
+
+```
+logs/
+├── execution_20260128.log          # 実行ログ（テキスト）
+├── execution_20260128.jsonl        # 実行ログ（JSON）
+├── errors_20260128.jsonl           # エラーログ
+├── progress_20260128.jsonl        # 進捗ログ
+├── agent_Planner_20260128_143022_12345.log      # Plannerのコマンドログ
+├── agent_Worker-task1_20260128_143025_12346.log # Worker-task1のコマンドログ
+├── agent_Worker-task2_20260128_143026_12347.log # Worker-task2のコマンドログ
+└── agent_Judge_20260128_143030_12348.log        # Judgeのコマンドログ
+```
+
+### ログの確認方法
+
+#### 実行ログの確認
+```bash
+# テキスト形式のログを確認
+tail -f logs/execution_$(date +%Y%m%d).log
+
+# JSON形式のログを確認（jqを使用）
+cat logs/execution_$(date +%Y%m%d).jsonl | jq .
+```
+
+#### エージェントコマンドログの確認
+```bash
+# 特定のエージェントのコマンドログを確認
+ls -lt logs/agent_Planner_*.log | head -1 | xargs cat
+
+# 最新のコマンドログを確認
+ls -t logs/agent_*.log | head -1 | xargs cat
+```
+
+#### エラーログの確認
+```bash
+# エラーログを確認（jqを使用）
+cat logs/errors_$(date +%Y%m%d).jsonl | jq .
+```
+
+### 注意事項
+
+- ログファイルは`LOG_DIR`環境変数で指定されたディレクトリに保存されます（デフォルト: `logs/`）
+- エージェントコマンドログは、並行実行時でもスレッドIDとタイムスタンプにより一意のファイル名が生成されます
+- ログファイルは自動的にローテーションされ、古いログは自動的に削除されます（実行ログのみ、10MBごとに最大5世代保持）
 
 ## 主要な課題と対応方針
 
