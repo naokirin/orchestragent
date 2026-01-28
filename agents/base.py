@@ -145,7 +145,12 @@ class BaseAgent:
         prompt = self.build_prompt(state)
         
         # 3. Call LLM
-        self.logger.info(f"[{self.name}] Calling LLM...")
+        # Log which model/mode this agent will use for this run
+        current_model = self.config.get("model") or "default"
+        self.logger.info(
+            f"[{self.name}] Starting run "
+            f"(mode={self.mode}, model={current_model}, iteration={iteration})"
+        )
         response = self.llm_client.call_agent(
             prompt=prompt,
             mode=self.mode,
@@ -182,7 +187,9 @@ class BaseAgent:
             iteration=iteration,
             prompt=prompt,
             response=response,
-            duration=duration
+            duration=duration,
+            mode=self.mode,
+            model=self.config.get("model")
         )
         
         return result
