@@ -215,7 +215,8 @@ class TasksWidget(ScrollableContainer):
     def on_mount(self) -> None:
         """Set up task table."""
         table = self.query_one("#task-table", DataTable)
-        table.add_columns("ID", "タイトル", "ステータス", "優先度")
+        # Column order: Status, ID, Title, Priority
+        table.add_columns("ステータス", "ID", "タイトル", "優先度")
         table.cursor_type = "row"
         self.update_tasks()
     
@@ -261,9 +262,9 @@ class TasksWidget(ScrollableContainer):
                 for task_id in current_task_ids:
                     data = task_data_map[task_id]
                     table.add_row(
+                        self._get_status_colored(data['status']),
                         task_id,
                         data['title'],
-                        self._get_status_colored(data['status']),
                         data['priority'],
                         key=task_id
                     )
@@ -276,10 +277,12 @@ class TasksWidget(ScrollableContainer):
                     # Update existing row - use update_cell for each column
                     data = task_data_map[task_id]
                     try:
-                        # Update title (column 1)
-                        table.update_cell(task_id, "タイトル", data['title'])
-                        # Update status (column 2)
+                        # Update status (column 0)
                         table.update_cell(task_id, "ステータス", self._get_status_colored(data['status']))
+                        # Update ID (column 1) - should stay in sync with row key
+                        table.update_cell(task_id, "ID", task_id)
+                        # Update title (column 2)
+                        table.update_cell(task_id, "タイトル", data['title'])
                         # Update priority (column 3)
                         table.update_cell(task_id, "優先度", data['priority'])
                     except Exception:
@@ -291,9 +294,9 @@ class TasksWidget(ScrollableContainer):
                 if task_id in new_task_ids:
                     data = task_data_map[task_id]
                     table.add_row(
+                        self._get_status_colored(data['status']),
                         task_id,
                         data['title'],
-                        self._get_status_colored(data['status']),
                         data['priority'],
                         key=task_id
                     )
