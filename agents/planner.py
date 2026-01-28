@@ -111,6 +111,27 @@ Please create a plan and new tasks in JSON format.
             self.state_manager.save_plan(plan_update)
             self.logger.info(f"[{self.name}] Plan updated")
         
+        # Update existing tasks if specified
+        updated_tasks = result.get("updated_tasks", [])
+        for updated in updated_tasks:
+            task_id = updated.get("id")
+            if not task_id:
+                self.logger.warning(f"[{self.name}] updated_tasks entry without id: {updated}")
+                continue
+            
+            # id 以外のフィールドだけを更新対象とする
+            updates = {k: v for k, v in updated.items() if k != "id"}
+            if not updates:
+                continue
+            
+            try:
+                self.state_manager.update_task(task_id, updates)
+                self.logger.info(
+                    f"[{self.name}] Updated task {task_id}: {', '.join(updates.keys())}"
+                )
+            except Exception as e:
+                self.logger.warning(f"[{self.name}] Failed to update task {task_id}: {e}")
+        
         # Add new tasks
         new_tasks = result.get("new_tasks", [])
         for task in new_tasks:
