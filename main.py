@@ -358,6 +358,7 @@ def run_main_loop():
             # 1. Planner ↔ Plan_Judge ループ
             print("\n[1/3] Planner / Plan_Judge フェーズを開始します...")
             plan_loop_failed = False
+            decision = None  # 初期化
             for plan_attempt in range(1, config.MAX_PLAN_REVISIONS + 1):
                 print(f"\n[1/3] Planner実行中... (attempt {plan_attempt}/{config.MAX_PLAN_REVISIONS})")
                 try:
@@ -406,7 +407,7 @@ def run_main_loop():
                     break
 
             # Planner / Plan_Judge ループが失敗、もしくは最大回数に達しても accept されなかった場合
-            if plan_loop_failed or decision == "revise":
+            if plan_loop_failed or (decision is not None and decision == "revise"):
                 reason = (
                     "Planner と Plan_Judge の最大再計画回数に達しても妥当な計画に収束しなかったため、"
                     "エージェントシステム全体を失敗として終了します。"

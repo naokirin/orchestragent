@@ -116,7 +116,7 @@ Please evaluate whether this plan and task list are appropriate.
                 "suggested_changes": response[:500],
             }
         except json.JSONDecodeError as e:
-            self.logger.warning(f"[PlanJudge] Failed to parse JSON: {e}")
+            self.logger.warning(f"[Plan_Judge] Failed to parse JSON: {e}")
             return {
                 "decision": "accept",
                 "score": 0.5,
@@ -138,7 +138,7 @@ Please evaluate whether this plan and task list are appropriate.
         )
 
         self.logger.info(
-            f"[PlanJudge] Decision: {decision}, score: {score}, "
+            f"[Plan_Judge] Decision: {decision}, score: {score}, "
             f"issues: {len(result.get('issues', []))}"
         )
 
