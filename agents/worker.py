@@ -148,10 +148,9 @@ Please complete this task and report the result.
             self.logger.error(f"[Worker] Error completing task: {e}")
             raise
         
-        # Update status
-        tasks = self.state_manager.get_tasks()
-        task_list = tasks.get("tasks", [])
-        completed_count = len([t for t in task_list if t.get("status") == "completed"])
+        # Update status (use task statistics from individual task files)
+        task_stats = self.state_manager.get_task_statistics()
+        completed_count = task_stats.get("completed", 0)
         
         self.state_manager.update_status(
             last_worker_run=self._get_timestamp(),

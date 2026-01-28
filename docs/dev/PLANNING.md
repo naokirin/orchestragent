@@ -145,18 +145,17 @@ orchestragent/
     {
       "id": "task_001",
       "title": "機能Xの実装",
-      "description": "詳細な説明...",
-      "status": "pending|in_progress|completed|failed",
-      "assigned_to": null,
-      "created_at": "2026-01-26T10:00:00Z",
-      "started_at": null,
-      "completed_at": null,
-      "result_file": null
+      "priority": "high|medium|low",
+      "created_at": "2026-01-26T10:00:00Z"
     }
   ],
   "next_task_id": 2
 }
 ```
+
+**注意**: `tasks.json` はタスクのインデックス（IDとメタ情報のみ）を保持します。
+- **状態管理**: ステータス（`status`）や実行情報（`assigned_to`, `started_at`, `completed_at` など）は個別タスクファイル（`state/tasks/task_XXX.json`）に保存されます。
+- **理由**: 複数のWorkerが並列実行する際、`tasks.json` への同時書き込みによる競合を避けるため、状態更新は個別ファイルのみで行います。
 
 #### `state/status.json`
 ```json

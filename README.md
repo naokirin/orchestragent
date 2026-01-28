@@ -202,7 +202,8 @@ main.py (メインループ)
 
 状態管理（ファイルベース）
 ├─ state/plan.md: 現在の計画
-├─ state/tasks.json: タスクキュー
+├─ state/tasks.json: タスクインデックス（ID・メタ情報のみ）
+├─ state/tasks/: 個別タスクファイル（状態・詳細情報）
 ├─ state/results/: Worker成果物
 └─ state/status.json: 進行状態
 ```

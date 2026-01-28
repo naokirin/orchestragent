@@ -178,8 +178,9 @@ class StateManager:
     
     def get_tasks(self) -> Dict[str, Any]:
         """
-        Get current tasks (index only - read-only).
-        This is a lightweight index for quick lookups.
+        Get current tasks index (read-only).
+        This is a lightweight index for ID and metadata only.
+        Status and other dynamic fields are stored in individual task files.
         """
         return self.load_json("tasks.json")
     
@@ -231,11 +232,11 @@ class StateManager:
             task['status'] = 'pending'
             task['created_at'] = datetime.now().isoformat()
             
-            # Add to index (lightweight metadata only)
+            # Add to index (lightweight metadata only - ID and index info only)
+            # Status is stored in individual task files, not in index
             index_entry = {
                 'id': task_id,
                 'title': task.get('title', 'No title'),
-                'status': 'pending',
                 'priority': task.get('priority', 'medium'),
                 'created_at': task['created_at']
             }

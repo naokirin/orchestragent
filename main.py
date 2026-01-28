@@ -583,15 +583,16 @@ def run_main_loop():
         print("最終状態")
         print("=" * 60)
         
-        tasks = state_manager.get_tasks()
-        task_list = tasks.get("tasks", [])
+        # Get accurate statistics from individual task files
+        task_stats = state_manager.get_task_statistics()
         status = state_manager.get_status()
         
         print(f"総イテレーション: {iteration}")
-        print(f"総タスク数: {len(task_list)}")
-        print(f"完了タスク: {status.get('completed_tasks', 0)}")
-        print(f"失敗タスク: {status.get('failed_tasks', 0)}")
-        print(f"保留中タスク: {len([t for t in task_list if t.get('status') == 'pending'])}")
+        print(f"総タスク数: {task_stats.get('total', 0)}")
+        print(f"完了タスク: {task_stats.get('completed', 0)}")
+        print(f"失敗タスク: {task_stats.get('failed', 0)}")
+        print(f"保留中タスク: {task_stats.get('pending', 0)}")
+        print(f"実行中タスク: {task_stats.get('in_progress', 0)}")
         
     except KeyboardInterrupt:
         print("\n\n[中断] ユーザーによって中断されました")

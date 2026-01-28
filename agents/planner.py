@@ -42,11 +42,24 @@ Please create a plan and new tasks in JSON format.
         tasks = state.get("tasks", {})
         tasks_list = tasks.get("tasks", [])
         
-        # Format existing tasks
-        existing_tasks_str = "\n".join([
-            f"- {t.get('id', 'unknown')}: {t.get('title', 'No title')} ({t.get('status', 'unknown')})"
-            for t in tasks_list
-        ]) if tasks_list else "なし"
+        # Format existing tasks (load status from individual task files)
+        existing_tasks_str = ""
+        if tasks_list:
+            task_lines = []
+            for task_index in tasks_list:
+                task_id = task_index.get('id', 'unknown')
+                # Load full task data to get current status
+                task = self.state_manager.get_task_by_id(task_id)
+                if task:
+                    status = task.get('status', 'unknown')
+                else:
+                    # Fallback to index data if individual file doesn't exist
+                    status = 'unknown'
+                title = task_index.get('title', 'No title')
+                task_lines.append(f"- {task_id}: {title} ({status})")
+            existing_tasks_str = "\n".join(task_lines)
+        else:
+            existing_tasks_str = "なし"
         
         # Get working directory from config
         working_dir = self.config.get("project_root", ".")
