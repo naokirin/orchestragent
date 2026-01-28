@@ -125,7 +125,8 @@ Please evaluate progress and decide whether to continue.
             should_continue=should_continue,
             reason=reason,
             progress_score=progress_score,
-            drift_detected=drift_detected
+            drift_detected=drift_detected,
+            last_execution_feedback=result
         )
         
         self.logger.info(f"[Judge] Should continue: {should_continue}, Reason: {reason[:100]}")

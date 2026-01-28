@@ -14,6 +14,7 @@ from utils.task_scheduler import TaskScheduler
 from agents.planner import PlannerAgent
 from agents.worker import WorkerAgent
 from agents.judge import JudgeAgent
+from agents.plan_judge import PlanJudgeAgent
 from utils.exceptions import AgentError
 from typing import Dict, Any
 import config
@@ -313,6 +314,19 @@ def run_main_loop():
         logger=logger,
         config=judge_config
     )
+
+    plan_judge_config = config.AGENT_CONFIG.copy()
+    plan_judge_config["mode"] = "ask"
+    plan_judge_config["prompt_template"] = "prompts/plan_judge.md"
+    plan_judge_config["model"] = config.JUDGE_MODEL
+
+    plan_judge = PlanJudgeAgent(
+        name="Plan_Judge",
+        llm_client=llm_client,
+        state_manager=state_manager,
+        logger=logger,
+        config=plan_judge_config,
+    )
     
     print("[初期化] 完了")
     
@@ -341,19 +355,71 @@ def run_main_loop():
             # Update status with current iteration
             state_manager.update_status(current_iteration=iteration)
             
-            # 1. Planner実行
-            print("\n[1/3] Planner実行中...")
-            try:
-                planner.run(iteration=iteration, max_retries=config.MAX_RETRIES)
-                print("[Planner] 完了")
-            except AgentError as e:
-                logger.log_error_with_traceback("Planner", e, context={"iteration": iteration})
-                print(f"[Planner] エラー: {e}")
-                # Continue to next iteration even if planner fails
-            except Exception as e:
-                logger.log_error_with_traceback("Planner", e, context={"iteration": iteration})
-                print(f"[Planner] 予期しないエラー: {e}")
-                # Continue to next iteration
+            # 1. Planner ↔ Plan_Judge ループ
+            print("\n[1/3] Planner / Plan_Judge フェーズを開始します...")
+            plan_loop_failed = False
+            for plan_attempt in range(1, config.MAX_PLAN_REVISIONS + 1):
+                print(f"\n[1/3] Planner実行中... (attempt {plan_attempt}/{config.MAX_PLAN_REVISIONS})")
+                try:
+                    planner.run(iteration=iteration, max_retries=config.MAX_RETRIES)
+                    print("[Planner] 完了")
+                except AgentError as e:
+                    logger.log_error_with_traceback("Planner", e, context={"iteration": iteration, "attempt": plan_attempt})
+                    print(f"[Planner] エラー: {e}")
+                    # Planner 自体が失敗した場合は計画が成立しないため、このイテレーションを失敗として扱う
+                    plan_loop_failed = True
+                    break
+                except Exception as e:
+                    logger.log_error_with_traceback("Planner", e, context={"iteration": iteration, "attempt": plan_attempt})
+                    print(f"[Planner] 予期しないエラー: {e}")
+                    plan_loop_failed = True
+                    break
+
+                print("\n[1/3] Plan_Judge実行中...")
+                try:
+                    plan_judge_result = plan_judge.run(
+                        iteration=iteration, max_retries=config.MAX_RETRIES
+                    )
+                    decision = plan_judge_result.get("decision", "accept")
+                    print(f"[Plan_Judge] 完了 (decision: {decision})")
+
+                    if decision != "revise":
+                        # 計画が受理されたので Planner ↔ Plan_Judge ループを終了
+                        break
+                    else:
+                        print("[Plan_Judge] 計画の再検討が必要と判断されました。Planner を再実行します...")
+                        # ループ継続（次の plan_attempt で Planner を再実行）
+                except AgentError as e:
+                    logger.log_error_with_traceback(
+                        "Plan_Judge", e, context={"iteration": iteration, "attempt": plan_attempt}
+                    )
+                    print(f"[Plan_Judge] エラー: {e}")
+                    # Plan_Judge が安定して動かない場合も計画が評価できないため失敗扱い
+                    plan_loop_failed = True
+                    break
+                except Exception as e:
+                    logger.log_error_with_traceback(
+                        "Plan_Judge", e, context={"iteration": iteration, "attempt": plan_attempt}
+                    )
+                    print(f"[Plan_Judge] 予期しないエラー: {e}")
+                    plan_loop_failed = True
+                    break
+
+            # Planner / Plan_Judge ループが失敗、もしくは最大回数に達しても accept されなかった場合
+            if plan_loop_failed or decision == "revise":
+                reason = (
+                    "Planner と Plan_Judge の最大再計画回数に達しても妥当な計画に収束しなかったため、"
+                    "エージェントシステム全体を失敗として終了します。"
+                )
+                print(f"\n[致命的エラー] {reason}")
+                state_manager.update_status(
+                    should_continue=False,
+                    reason=reason,
+                    plan_revision_failed=True,
+                    last_failed_iteration=iteration,
+                )
+                # ここでメインループを即座に終了
+                break
             
             # 待機
             wait_seconds = config.WAIT_TIME_SECONDS

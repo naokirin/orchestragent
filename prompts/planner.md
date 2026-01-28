@@ -27,6 +27,12 @@
 ### 現在の計画
 {current_plan}
 
+### 前回の計画レビュー結果（Plan_Judge）
+{last_plan_judge_feedback}
+
+### 前イテレーションの実行結果レビュー（Judge）
+{last_execution_feedback}
+
 ### 既存のタスク
 {existing_tasks}
 

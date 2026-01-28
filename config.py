@@ -103,3 +103,9 @@ MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))  # Maximum retries for retryabl
 # Parallel Execution Configuration
 MAX_PARALLEL_WORKERS = int(os.getenv("MAX_PARALLEL_WORKERS", "3"))  # Maximum parallel workers
 ENABLE_PARALLEL_EXECUTION = os.getenv("ENABLE_PARALLEL_EXECUTION", "true").lower() == "true"  # Enable parallel execution
+
+# Planning Review Configuration
+# 1イテレーション内で Planner ↔ Plan_Judge を何回まで往復するかの最大回数。
+# この回数を超えても Plan_Judge が「revise」を返す場合は、計画の収束に失敗したとみなし、
+# イテレーション数が残っていてもエージェントシステム全体を失敗として終了させる。
+MAX_PLAN_REVISIONS = int(os.getenv("MAX_PLAN_REVISIONS", "3"))

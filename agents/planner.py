@@ -40,6 +40,7 @@ Please create a plan and new tasks in JSON format.
         # Format template
         plan = state.get("plan", "")
         tasks = state.get("tasks", {})
+        status = state.get("status", {})
         tasks_list = tasks.get("tasks", [])
         
         # Format existing tasks (load status from individual task files)
@@ -47,19 +48,48 @@ Please create a plan and new tasks in JSON format.
         if tasks_list:
             task_lines = []
             for task_index in tasks_list:
-                task_id = task_index.get('id', 'unknown')
+                task_id = task_index.get("id", "unknown")
                 # Load full task data to get current status
                 task = self.state_manager.get_task_by_id(task_id)
                 if task:
-                    status = task.get('status', 'unknown')
+                    task_status = task.get("status", "unknown")
                 else:
                     # Fallback to index data if individual file doesn't exist
-                    status = 'unknown'
-                title = task_index.get('title', 'No title')
-                task_lines.append(f"- {task_id}: {title} ({status})")
+                    task_status = "unknown"
+                title = task_index.get("title", "No title")
+                task_lines.append(f"- {task_id}: {title} ({task_status})")
             existing_tasks_str = "\n".join(task_lines)
         else:
             existing_tasks_str = "なし"
+        
+        # Previous Plan_Judge feedback
+        last_plan_judge = status.get("last_plan_judge_feedback")
+        if last_plan_judge:
+            try:
+                last_plan_judge_str = json.dumps(
+                    last_plan_judge, indent=2, ensure_ascii=False
+                )
+            except TypeError:
+                last_plan_judge_str = str(last_plan_judge)
+        else:
+            last_plan_judge_str = "まだ Plan_Judge のフィードバックはありません。"
+        
+        # Previous execution (Judge) feedback
+        last_execution_feedback = {
+            "reason": status.get("reason"),
+            "progress_score": status.get("progress_score"),
+            "drift_detected": status.get("drift_detected"),
+            "drift_description": status.get("drift_description"),
+            "recommendations": status.get("recommendations"),
+            "next_iteration_focus": status.get("next_iteration_focus"),
+        }
+        # フィードバックがまったく存在しない場合は簡易メッセージにする
+        if any(v is not None for v in last_execution_feedback.values()):
+            last_execution_feedback_str = json.dumps(
+                last_execution_feedback, indent=2, ensure_ascii=False
+            )
+        else:
+            last_execution_feedback_str = "まだ Judge の実行結果フィードバックはありません。"
         
         # Get working directory from config
         working_dir = self.config.get("project_root", ".")
@@ -68,6 +98,8 @@ Please create a plan and new tasks in JSON format.
             project_goal=self.config.get("project_goal", "未設定"),
             current_plan=plan if plan else "計画はまだ作成されていません",
             existing_tasks=existing_tasks_str,
+             last_plan_judge_feedback=last_plan_judge_str,
+             last_execution_feedback=last_execution_feedback_str,
             codebase_summary=self._get_codebase_summary(),
             working_dir=working_dir
         )
