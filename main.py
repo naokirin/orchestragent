@@ -265,7 +265,11 @@ def run_main_loop():
         else:
             print("[復元] 復元に失敗しました。初期状態から開始します。")
     
-    logger = AgentLogger(log_dir=config.LOG_DIR, log_level=config.LOG_LEVEL)
+    logger = AgentLogger(
+        log_dir=config.LOG_DIR,
+        log_level=config.LOG_LEVEL,
+        sync=config.LOG_FSYNC,
+    )
     
     # Initialize file lock manager and task scheduler for parallel execution
     file_lock_manager = FileLockManager(lock_dir=f"{config.STATE_DIR}/locks")

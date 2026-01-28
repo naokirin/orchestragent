@@ -1,6 +1,7 @@
 """Cursor CLI client implementation."""
 
 import subprocess
+import threading
 from pathlib import Path
 from typing import Optional, TYPE_CHECKING
 from .llm_client import LLMClient
@@ -64,46 +65,31 @@ class CursorCLIClient(LLMClient):
             cmd.extend(['--model', model])
         
         timeout = kwargs.get('timeout', 300)  # Default 5 minutes
+        command_str = ' '.join(cmd)
+        
+        # Prepare streaming log if logger is provided
+        log_stream = None
+        if logger and agent_name:
+            try:
+                log_stream = logger.start_agent_command_stream(
+                    agent_name=agent_name,
+                    command=command_str
+                )
+            except Exception as log_error:
+                if logger:
+                    logger.warning(f"Failed to start command log stream: {log_error}")
+                log_stream = None
         
         try:
-            result = subprocess.run(
+            # Start Cursor CLI process with stdout/stderr merged into a single stream
+            process = subprocess.Popen(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
                 cwd=str(self.project_root),
-                timeout=timeout
+                bufsize=1,
             )
-            
-            # Log command output to individual log file if logger is provided
-            if logger and agent_name:
-                try:
-                    command_str = ' '.join(cmd)
-                    logger.log_agent_command_output(
-                        agent_name=agent_name,
-                        stdout=result.stdout or "",
-                        stderr=result.stderr or "",
-                        command=command_str
-                    )
-                except Exception as log_error:
-                    # Don't fail the main operation if logging fails
-                    # Just log a warning if we have a logger
-                    if logger:
-                        logger.warning(f"Failed to log agent command output: {log_error}")
-            
-            if result.returncode != 0:
-                stderr = result.stderr or ""
-                # Check for rate limit errors
-                if "rate limit" in stderr.lower() or "429" in stderr:
-                    raise LLMRateLimitError(f"Cursor CLI rate limit: {stderr}")
-                # Check for timeout-like errors
-                if "timeout" in stderr.lower():
-                    raise LLMTimeoutError(timeout, RuntimeError(stderr))
-                # Other errors are retryable by default
-                raise LLMError(f"Cursor CLI error: {stderr}", retryable=True)
-            
-            return result.stdout
-        except subprocess.TimeoutExpired as e:
-            raise LLMTimeoutError(timeout, e)
         except FileNotFoundError as e:
             # Check if the error is about the working directory or the command
             error_msg = str(e)
@@ -123,12 +109,62 @@ class CursorCLIClient(LLMClient):
                     retryable=False,
                     original_error=e
                 )
-        except (LLMError, LLMTimeoutError, LLMRateLimitError):
-            # Re-raise our custom exceptions
-            raise
         except Exception as e:
-            # Wrap unexpected errors
-            raise LLMError(f"Unexpected error in Cursor CLI: {e}", retryable=True, original_error=e)
+            # Wrap unexpected errors from process start
+            raise LLMError(f"Unexpected error starting Cursor CLI: {e}", retryable=True, original_error=e)
+        
+        collected_output = []
+        
+        def _reader():
+            """Read process output line by line and stream to log."""
+            if process.stdout is None:
+                return
+            for line in process.stdout:
+                collected_output.append(line)
+                if log_stream:
+                    try:
+                        log_stream.write(line)
+                    except Exception:
+                        # Logging failure should not break main flow
+                        pass
+        
+        reader_thread = threading.Thread(target=_reader, daemon=True)
+        reader_thread.start()
+        
+        try:
+            # Wait for process to complete (with timeout)
+            returncode = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired as e:
+            process.kill()
+            if log_stream:
+                try:
+                    log_stream.write("\n[Cursor CLI timed out]\n")
+                except Exception:
+                    pass
+            raise LLMTimeoutError(timeout, e)
+        finally:
+            # Ensure reader thread finishes
+            reader_thread.join(timeout=5)
+            if log_stream:
+                try:
+                    log_stream.close()
+                except Exception:
+                    pass
+        
+        output_text = ''.join(collected_output)
+        
+        if returncode != 0:
+            stderr = output_text or ""
+            # Check for rate limit errors
+            if "rate limit" in stderr.lower() or "429" in stderr:
+                raise LLMRateLimitError(f"Cursor CLI rate limit: {stderr}")
+            # Check for timeout-like errors (in message)
+            if "timeout" in stderr.lower():
+                raise LLMTimeoutError(timeout, RuntimeError(stderr))
+            # Other errors are retryable by default
+            raise LLMError(f"Cursor CLI error: {stderr}", retryable=True)
+        
+        return output_text
     
     def call_agent_from_file(
         self, 

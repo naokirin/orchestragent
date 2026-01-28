@@ -78,6 +78,7 @@ STATE_DIR = os.getenv("STATE_DIR", "state")
 # Logging Configuration
 LOG_DIR = os.getenv("LOG_DIR", "logs")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOG_FSYNC = os.getenv("LOG_FSYNC", "false").lower() == "true"
 
 # Main Loop Configuration
 WAIT_TIME_SECONDS = int(os.getenv("WAIT_TIME_SECONDS", "60"))  # Wait time between agent runs (in seconds)
