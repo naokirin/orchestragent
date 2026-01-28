@@ -1,7 +1,7 @@
 services:
   agent:
     # ローカルでビルドする場合
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     # DockerHubからpullする場合は、以下の行のコメントを外して、build: をコメントアウト
@@ -49,6 +49,9 @@ services:
       - MAX_RETRIES=${MAX_RETRIES:-3}
       - MAX_PARALLEL_WORKERS=${MAX_PARALLEL_WORKERS:-3}
       - ENABLE_PARALLEL_EXECUTION=${ENABLE_PARALLEL_EXECUTION:-true}
+      # Git configuration used by agents inside the container
+      - GIT_USER_NAME=${GIT_USER_NAME:-}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-}
     working_dir: /workspace
     # ネットワークアクセスを許可（API呼び出し用）
     network_mode: bridge
