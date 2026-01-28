@@ -30,17 +30,30 @@ TARGET_PROJECT = os.getenv("TARGET_PROJECT", None)
 if TARGET_PROJECT:
     TARGET_PROJECT = Path(TARGET_PROJECT).resolve()
 
+def _env_or_default(name: str, default: str | None) -> str | None:
+    """
+    Get environment variable value or default, treating empty string as unset.
+    
+    This ensures that when docker-compose passes empty env vars like
+    PLANNER_MODEL="", we still correctly fall back to LLM_MODEL.
+    """
+    value = os.getenv(name, None)
+    if value is None or value == "":
+        return default
+    return value
+
+
 # LLM Configuration
 LLM_BACKEND = os.getenv("LLM_BACKEND", "cursor_cli")
 LLM_OUTPUT_FORMAT = os.getenv("LLM_OUTPUT_FORMAT", "text")
-LLM_MODEL = os.getenv("LLM_MODEL", None)  # None = use default
+LLM_MODEL = os.getenv("LLM_MODEL", None)  # None = use Cursor CLI default
 
 # Agent-specific Model Configuration
 # Each agent can have its own default model
-# Falls back to LLM_MODEL if not set, then to None (use Cursor CLI default)
-PLANNER_MODEL = os.getenv("PLANNER_MODEL", LLM_MODEL)
-WORKER_MODEL = os.getenv("WORKER_MODEL", LLM_MODEL)  # Default model for workers
-JUDGE_MODEL = os.getenv("JUDGE_MODEL", LLM_MODEL)
+# Falls back to LLM_MODEL if not set or empty, then to None (use Cursor CLI default)
+PLANNER_MODEL = _env_or_default("PLANNER_MODEL", LLM_MODEL)
+WORKER_MODEL = _env_or_default("WORKER_MODEL", LLM_MODEL)  # Default model for workers
+JUDGE_MODEL = _env_or_default("JUDGE_MODEL", LLM_MODEL)
 
 # Dynamic Model Selection for Workers
 # These models are used when dynamic selection is enabled
