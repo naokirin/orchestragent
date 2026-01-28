@@ -365,6 +365,7 @@ class SettingsWidget(ScrollableContainer):
             yield Static("", classes="spacer")
             yield Static("[bold]LLM設定[/bold]", classes="section-title")
             yield Static(id="llm-config", classes="content")
+            yield Static(id="model-config", classes="content")
             
             yield Static("", classes="spacer")
             yield Static("[bold]メインループ設定[/bold]", classes="section-title")
@@ -397,9 +398,27 @@ class SettingsWidget(ScrollableContainer):
         llm_text = f"""
 バックエンド: {config.LLM_BACKEND}
 出力形式: {config.LLM_OUTPUT_FORMAT}
-モデル: {config.LLM_MODEL or '(デフォルト)'}
+デフォルトモデル (LLM_MODEL): {config.LLM_MODEL or '(未設定)'}
         """.strip()
         llm_widget.update(llm_text)
+        
+        # Model configuration (per agent & dynamic selection)
+        model_widget = self.query_one("#model-config", Static)
+        model_text = f"""
+[bold]エージェント別モデル[/bold]
+Planner モデル: {config.PLANNER_MODEL or '(デフォルト)'}
+Worker モデル: {config.WORKER_MODEL or '(デフォルト)'}
+Judge モデル: {config.JUDGE_MODEL or '(デフォルト)'}
+
+[bold]Worker 動的モデル選択[/bold]
+有効: {'有効' if config.MODEL_SELECTION_ENABLED else '無効'}
+軽量タスク用モデル: {config.WORKER_MODEL_LIGHT or '(デフォルト)'}
+標準タスク用モデル: {config.WORKER_MODEL_STANDARD or '(デフォルト)'}
+複雑タスク用モデル: {config.WORKER_MODEL_POWERFUL or '(デフォルト)'}
+軽量判定閾値: {config.MODEL_COMPLEXITY_THRESHOLD_LIGHT}
+複雑判定閾値: {config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL}
+        """.strip()
+        model_widget.update(model_text)
         
         # Main loop configuration
         loop_widget = self.query_one("#loop-config", Static)
