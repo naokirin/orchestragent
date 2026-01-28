@@ -35,6 +35,24 @@ LLM_BACKEND = os.getenv("LLM_BACKEND", "cursor_cli")
 LLM_OUTPUT_FORMAT = os.getenv("LLM_OUTPUT_FORMAT", "text")
 LLM_MODEL = os.getenv("LLM_MODEL", None)  # None = use default
 
+# Agent-specific Model Configuration
+# Each agent can have its own default model
+# Falls back to LLM_MODEL if not set, then to None (use Cursor CLI default)
+PLANNER_MODEL = os.getenv("PLANNER_MODEL", LLM_MODEL)
+WORKER_MODEL = os.getenv("WORKER_MODEL", LLM_MODEL)  # Default model for workers
+JUDGE_MODEL = os.getenv("JUDGE_MODEL", LLM_MODEL)
+
+# Dynamic Model Selection for Workers
+# These models are used when dynamic selection is enabled
+WORKER_MODEL_LIGHT = os.getenv("WORKER_MODEL_LIGHT", WORKER_MODEL)  # For simple tasks
+WORKER_MODEL_STANDARD = os.getenv("WORKER_MODEL_STANDARD", WORKER_MODEL)  # For standard tasks
+WORKER_MODEL_POWERFUL = os.getenv("WORKER_MODEL_POWERFUL", WORKER_MODEL)  # For complex tasks
+
+# Model Selection Configuration
+MODEL_SELECTION_ENABLED = os.getenv("MODEL_SELECTION_ENABLED", "false").lower() == "true"
+MODEL_COMPLEXITY_THRESHOLD_LIGHT = float(os.getenv("MODEL_COMPLEXITY_THRESHOLD_LIGHT", "10.0"))
+MODEL_COMPLEXITY_THRESHOLD_POWERFUL = float(os.getenv("MODEL_COMPLEXITY_THRESHOLD_POWERFUL", "30.0"))
+
 # Agent Configuration
 # Determine working directory:
 # - In container: Use PROJECT_ROOT (which should be /target when TARGET_PROJECT is set)

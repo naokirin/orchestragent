@@ -139,9 +139,25 @@ def print_configuration():
     print(f"  バックエンド: {config.LLM_BACKEND}")
     print(f"  出力形式: {config.LLM_OUTPUT_FORMAT}")
     if config.LLM_MODEL:
-        print(f"  モデル: {config.LLM_MODEL}")
+        print(f"  デフォルトモデル: {config.LLM_MODEL}")
     else:
-        print(f"  モデル: (デフォルト)")
+        print(f"  デフォルトモデル: (未設定)")
+    
+    # Model Configuration
+    print("\n[モデル設定]")
+    print(f"  Planner モデル: {config.PLANNER_MODEL or '(デフォルト)'}")
+    print(f"  Worker モデル: {config.WORKER_MODEL or '(デフォルト)'}")
+    print(f"  Judge モデル: {config.JUDGE_MODEL or '(デフォルト)'}")
+    
+    # Dynamic Model Selection
+    print(f"\n[動的モデル選択]")
+    print(f"  有効: {'有効' if config.MODEL_SELECTION_ENABLED else '無効'}")
+    if config.MODEL_SELECTION_ENABLED:
+        print(f"  軽量タスク用モデル: {config.WORKER_MODEL_LIGHT or '(デフォルト)'}")
+        print(f"  標準タスク用モデル: {config.WORKER_MODEL_STANDARD or '(デフォルト)'}")
+        print(f"  複雑タスク用モデル: {config.WORKER_MODEL_POWERFUL or '(デフォルト)'}")
+        print(f"  軽量判定閾値: {config.MODEL_COMPLEXITY_THRESHOLD_LIGHT}")
+        print(f"  複雑判定閾値: {config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL}")
     
     # State Configuration
     print("\n[状態管理設定]")
@@ -258,6 +274,7 @@ def run_main_loop():
     # Initialize agents
     planner_config = config.AGENT_CONFIG.copy()
     planner_config["mode"] = "plan"
+    planner_config["model"] = config.PLANNER_MODEL
     
     planner = PlannerAgent(
         name="Planner",
@@ -270,6 +287,7 @@ def run_main_loop():
     worker_config = config.AGENT_CONFIG.copy()
     worker_config["mode"] = "agent"
     worker_config["prompt_template"] = "prompts/worker.md"
+    worker_config["model"] = config.WORKER_MODEL
     
     worker = WorkerAgent(
         name="Worker",
@@ -282,6 +300,7 @@ def run_main_loop():
     judge_config = config.AGENT_CONFIG.copy()
     judge_config["mode"] = "ask"
     judge_config["prompt_template"] = "prompts/judge.md"
+    judge_config["model"] = config.JUDGE_MODEL
     
     judge = JudgeAgent(
         name="Judge",

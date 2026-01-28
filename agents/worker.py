@@ -1,9 +1,12 @@
 """Worker agent implementation."""
 
 import re
+import time
 from typing import Dict, Any, Optional
 from .base import BaseAgent
 from utils.state_manager import StateManager
+from utils.model_selector import ModelSelector
+import config
 
 
 class WorkerAgent(BaseAgent):
@@ -14,6 +17,17 @@ class WorkerAgent(BaseAgent):
         super().__init__(*args, **kwargs)
         self.mode = "agent"  # Worker uses agent mode (not plan)
         self.current_task_id = None
+        
+        # Initialize model selector for dynamic model selection
+        self.model_selector = ModelSelector(
+            enabled=config.MODEL_SELECTION_ENABLED,
+            threshold_light=config.MODEL_COMPLEXITY_THRESHOLD_LIGHT,
+            threshold_powerful=config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL,
+            model_light=config.WORKER_MODEL_LIGHT,
+            model_standard=config.WORKER_MODEL_STANDARD,
+            model_powerful=config.WORKER_MODEL_POWERFUL,
+            model_default=config.WORKER_MODEL
+        )
     
     def build_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for worker."""
@@ -174,3 +188,45 @@ Please complete this task and report the result.
         self.state_manager.assign_task(task_id, self.name)
         self.logger.info(f"[Worker] Assigned task {task_id}")
         return True
+    
+    def _run_internal(self, iteration: int, start_time: float) -> Dict[str, Any]:
+        """
+        Internal run method with dynamic model selection.
+        
+        Args:
+            iteration: Current iteration number
+            start_time: Start time for duration calculation
+        
+        Returns:
+            Result dictionary
+        """
+        # Get current task for model selection
+        if not self.current_task_id:
+            raise ValueError("No task assigned to worker. Call assign_task() first.")
+        
+        task = self.state_manager.get_task_by_id(self.current_task_id)
+        if not task:
+            raise ValueError(f"Task {self.current_task_id} not found")
+        
+        # Select model based on task complexity (if enabled)
+        original_model = self.config.get("model")
+        selected_model = self.model_selector.select_model(task)
+        
+        if selected_model != original_model:
+            # Temporarily update model in config
+            self.config["model"] = selected_model
+            complexity_category = self.model_selector.get_complexity_category(task)
+            complexity_score = self.model_selector.calculate_complexity_score(task)
+            self.logger.info(
+                f"[Worker] Model selected: {selected_model} "
+                f"(category: {complexity_category}, score: {complexity_score:.2f})"
+            )
+        
+        try:
+            # Call parent's _run_internal() with selected model
+            result = super()._run_internal(iteration, start_time)
+            return result
+        finally:
+            # Restore original model in config
+            if selected_model != original_model:
+                self.config["model"] = original_model
