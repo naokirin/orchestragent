@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "permissions": {
+    "allow": [
+      "Shell(*)",
+      "Read(**/*)",
+      "Write(**/*)"
+    ],
+    "deny": []
+  }
+}
