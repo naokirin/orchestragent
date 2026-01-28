@@ -22,6 +22,10 @@ class StateManager:
         """
         self.state_dir = Path(state_dir)
         self.state_dir.mkdir(parents=True, exist_ok=True)
+
+        # Backup directory for state recovery
+        self.backup_dir = Path(backup_dir)
+        self.backup_dir.mkdir(parents=True, exist_ok=True)
         
         # Ensure subdirectories exist
         (self.state_dir / "results").mkdir(exist_ok=True)
