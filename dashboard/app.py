@@ -83,13 +83,21 @@ class DashboardApp(App):
     .task-list-container {
         width: 50%;
         height: 1fr;
+        padding: 0 1;
     }
-    
+
     .task-detail-container {
         width: 50%;
         height: 1fr;
+        padding: 0 1;
     }
-    
+
+    #task-table {
+        height: 1fr;
+        margin-top: 1;
+        margin-bottom: 1;
+    }
+
     #task-detail-scroll {
         height: 1fr;
         width: 1fr;

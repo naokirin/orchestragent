@@ -465,11 +465,19 @@ class IntentsWidget(ScrollableContainer):
     .intent-list-container {
         width: 40%;
         height: 1fr;
+        padding: 0 1;
     }
 
     .intent-detail-container {
         width: 60%;
         height: 1fr;
+        padding: 0 1;
+    }
+
+    #intent-table {
+        height: 1fr;
+        margin-top: 1;
+        margin-bottom: 1;
     }
 
     #intent-detail-tabs {
