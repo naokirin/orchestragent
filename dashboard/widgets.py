@@ -1,13 +1,18 @@
 """Dashboard widgets for each tab."""
 
 import sys
-from textual.widgets import Static, DataTable, RichLog
+from textual.widgets import Static, DataTable, RichLog, TabbedContent, TabPane
 from textual.containers import Vertical, Horizontal, ScrollableContainer
 from textual import events
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from pathlib import Path
 import config
 from utils.state_manager import StateManager
+
+if TYPE_CHECKING:
+    from utils.intent_manager import IntentManager
+    from utils.adr_manager import ADRManager
+    from utils.git_helper import GitHelper
 
 
 class OverviewWidget(ScrollableContainer):
@@ -446,3 +451,304 @@ Cursor CLI: {'利用可能' if cursor_available else '未検出'}
 Python バージョン: {sys.version.split()[0]}
         """.strip()
         env_widget.update(env_text)
+
+
+class IntentsWidget(ScrollableContainer):
+    """Intents tab widget showing Intent list and details with diff viewer."""
+
+    DEFAULT_CSS = """
+    IntentsWidget {
+        height: 1fr;
+        width: 1fr;
+    }
+
+    .intent-list-container {
+        width: 40%;
+        height: 1fr;
+    }
+
+    .intent-detail-container {
+        width: 60%;
+        height: 1fr;
+    }
+
+    #intent-detail-tabs {
+        height: 1fr;
+    }
+
+    .intent-detail-content {
+        height: 1fr;
+        padding: 1;
+    }
+
+    #diff-viewer {
+        height: 1fr;
+    }
+    """
+
+    def __init__(
+        self,
+        intent_manager: 'IntentManager',
+        adr_manager: 'ADRManager',
+        git_helper: 'GitHelper'
+    ):
+        super().__init__()
+        self.intent_manager = intent_manager
+        self.adr_manager = adr_manager
+        self.git_helper = git_helper
+        self.id = "intents-widget"
+        self.selected_intent: Optional[Dict[str, Any]] = None
+        self._updating = False
+
+    def compose(self):
+        """Create intents content."""
+        with Horizontal():
+            with Vertical(classes="intent-list-container"):
+                yield Static("[bold]変更意図一覧[/bold]", classes="section-title")
+                yield DataTable(id="intent-table")
+
+            with Vertical(classes="intent-detail-container"):
+                yield Static("[bold]詳細[/bold]", classes="section-title")
+                with TabbedContent(id="intent-detail-tabs"):
+                    with TabPane("Intent", id="intent-pane"):
+                        with ScrollableContainer(classes="intent-detail-content"):
+                            yield Static(id="intent-detail", classes="content")
+                    with TabPane("Diff", id="diff-pane"):
+                        with ScrollableContainer(classes="intent-detail-content"):
+                            yield RichLog(id="diff-viewer", markup=True, max_lines=2000)
+                    with TabPane("ADR", id="adr-pane"):
+                        with ScrollableContainer(classes="intent-detail-content"):
+                            yield Static(id="adr-detail", classes="content")
+
+    def on_mount(self) -> None:
+        """Set up intent table."""
+        table = self.query_one("#intent-table", DataTable)
+        table.add_columns("Task ID", "目標", "コミット数", "ADR")
+        table.cursor_type = "row"
+        self.update_intents()
+
+    def update_intents(self) -> None:
+        """Update intent list from files."""
+        if self._updating:
+            return
+
+        self._updating = True
+        try:
+            table = self.query_one("#intent-table", DataTable)
+            intents = self.intent_manager.get_all_intents()
+
+            # Get existing keys
+            existing_keys = set()
+            for row_key in table.rows.keys():
+                existing_keys.add(str(row_key.value))
+
+            current_task_ids = []
+            for intent in intents:
+                task_id = intent.get("task_id", "N/A")
+                current_task_ids.append(task_id)
+
+                goal = intent.get("intent", {}).get("goal", "No goal") or "No goal"
+                goal_display = goal[:35] + "..." if len(goal) > 35 else goal
+                commit_count = len(intent.get("commits", []))
+                related_adr = intent.get("related_adr", "-") or "-"
+
+                if task_id in existing_keys:
+                    # Update existing row
+                    try:
+                        table.update_cell(task_id, "目標", goal_display)
+                        table.update_cell(task_id, "コミット数", str(commit_count))
+                        table.update_cell(task_id, "ADR", related_adr)
+                    except Exception:
+                        pass
+                else:
+                    # Add new row
+                    table.add_row(task_id, goal_display, str(commit_count), related_adr, key=task_id)
+
+            # Remove deleted rows
+            deleted_task_ids = existing_keys - set(current_task_ids)
+            for task_id in deleted_task_ids:
+                try:
+                    table.remove_row(task_id)
+                except Exception:
+                    pass
+        finally:
+            self._updating = False
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        """Handle intent selection."""
+        task_id = event.row_key.value
+        self.selected_intent = self.intent_manager.get_intent(task_id)
+        self._show_intent_detail()
+        self._show_diff()
+        self._show_adr()
+
+    def _show_intent_detail(self) -> None:
+        """Show intent detail."""
+        if not self.selected_intent:
+            return
+
+        detail_widget = self.query_one("#intent-detail", Static)
+        intent_info = self.selected_intent.get("intent", {})
+
+        detail_text = f"""
+[bold]Task ID:[/bold] {self.selected_intent.get('task_id', 'N/A')}
+[bold]作成日時:[/bold] {self.selected_intent.get('created_at', 'N/A')}
+[bold]更新日時:[/bold] {self.selected_intent.get('updated_at', 'N/A')}
+
+[bold cyan]目標 (Goal):[/bold cyan]
+{intent_info.get('goal') or 'N/A'}
+
+[bold cyan]理由 (Rationale):[/bold cyan]
+{intent_info.get('rationale') or 'N/A'}
+
+[bold cyan]期待される変更:[/bold cyan]
+{self._format_list(intent_info.get('expected_change', []))}
+
+[bold cyan]非目標:[/bold cyan]
+{self._format_list(intent_info.get('non_goals', []))}
+
+[bold yellow]リスク:[/bold yellow]
+{self._format_list(intent_info.get('risk', []))}
+
+[bold]コミット:[/bold]
+{self._format_commits(self.selected_intent.get('commits', []))}
+
+[bold]関連ADR:[/bold] {self.selected_intent.get('related_adr') or 'なし'}
+        """.strip()
+
+        detail_widget.update(detail_text)
+
+    def _show_diff(self) -> None:
+        """Show diff for selected intent's commits with colored output."""
+        diff_viewer = self.query_one("#diff-viewer", RichLog)
+        diff_viewer.clear()
+
+        if not self.selected_intent:
+            diff_viewer.write("[dim]Intentを選択してください[/dim]")
+            return
+
+        commits = self.selected_intent.get("commits", [])
+        if not commits:
+            diff_viewer.write("[dim]コミットがありません[/dim]")
+            return
+
+        for commit in commits:
+            commit_hash = commit.get("hash")
+            if not commit_hash:
+                continue
+
+            # Get commit info
+            commit_info = self.git_helper.get_commit_info(commit_hash)
+            if commit_info:
+                diff_viewer.write(f"[bold magenta]Commit: {commit_info.get('hash', commit_hash)[:7]}[/bold magenta]")
+                diff_viewer.write(f"[bold]{commit_info.get('message', 'No message')}[/bold]")
+                diff_viewer.write(f"[dim]Author: {commit_info.get('author', 'Unknown')}[/dim]")
+                diff_viewer.write(f"[dim]Date: {commit_info.get('timestamp', 'Unknown')}[/dim]")
+            else:
+                diff_viewer.write(f"[bold magenta]Commit: {commit_hash[:7]}[/bold magenta]")
+                diff_viewer.write(f"[dim]{commit.get('message', '')}[/dim]")
+
+            diff_viewer.write("")
+
+            # Get diff
+            diff_text = self.git_helper.get_commit_diff(commit_hash)
+            if not diff_text:
+                diff_viewer.write(f"[dim]Diff not available for {commit_hash[:7]}[/dim]")
+                diff_viewer.write("")
+                continue
+
+            # Colorize diff output
+            for line in diff_text.split('\n'):
+                colored_line = self._colorize_diff_line(line)
+                diff_viewer.write(colored_line)
+
+            diff_viewer.write("")
+            diff_viewer.write("[dim]" + "=" * 60 + "[/dim]")
+            diff_viewer.write("")
+
+    def _colorize_diff_line(self, line: str) -> str:
+        """Colorize a single diff line with background colors."""
+        # Escape Rich markup characters first
+        escaped = self._escape_markup(line)
+
+        if line.startswith('+') and not line.startswith('+++'):
+            # Added line - green background
+            return f"[green on #1a3d1a]{escaped}[/green on #1a3d1a]"
+        elif line.startswith('-') and not line.startswith('---'):
+            # Removed line - red background
+            return f"[red on #3d1a1a]{escaped}[/red on #3d1a1a]"
+        elif line.startswith('@@'):
+            # Hunk header - cyan
+            return f"[bold cyan]{escaped}[/bold cyan]"
+        elif line.startswith('diff ') or line.startswith('index '):
+            # Diff header - dim
+            return f"[dim]{escaped}[/dim]"
+        elif line.startswith('+++') or line.startswith('---'):
+            # File names - bold
+            return f"[bold]{escaped}[/bold]"
+        else:
+            return escaped
+
+    def _show_adr(self) -> None:
+        """Show related ADR."""
+        adr_widget = self.query_one("#adr-detail", Static)
+
+        if not self.selected_intent:
+            adr_widget.update("[dim]Intentを選択してください[/dim]")
+            return
+
+        related_adr = self.selected_intent.get("related_adr")
+        if not related_adr:
+            adr_widget.update("[dim]関連ADRがありません[/dim]")
+            return
+
+        adr = self.adr_manager.get_adr(related_adr)
+        if not adr:
+            adr_widget.update(f"[red]ADR-{related_adr} が見つかりません[/red]")
+            return
+
+        adr_text = f"""
+[bold]ADR-{adr.get('number')}: {adr.get('title')}[/bold]
+
+[bold]ステータス:[/bold] {adr.get('status')}
+[bold]ファイル:[/bold] {adr.get('filepath')}
+
+[bold cyan]コンテキスト:[/bold cyan]
+{adr.get('context', 'N/A')}
+
+[bold cyan]決定:[/bold cyan]
+{adr.get('decision', 'N/A')}
+
+[bold cyan]理由:[/bold cyan]
+{adr.get('rationale', 'N/A')}
+
+[bold cyan]結果:[/bold cyan]
+{adr.get('consequences', 'N/A')}
+
+[bold]関連Intent:[/bold]
+{self._format_list(adr.get('related_intents', []))}
+        """.strip()
+
+        adr_widget.update(adr_text)
+
+    def _format_list(self, items: List[str]) -> str:
+        """Format list items for display."""
+        if not items:
+            return "  [dim]なし[/dim]"
+        return "\n".join([f"  - {item}" for item in items])
+
+    def _format_commits(self, commits: List[Dict]) -> str:
+        """Format commit list for display."""
+        if not commits:
+            return "  [dim]なし[/dim]"
+        formatted = []
+        for c in commits:
+            hash_short = (c.get('hash') or 'N/A')[:7]
+            message = c.get('message', 'No message')
+            formatted.append(f"  - [cyan]{hash_short}[/cyan]: {message}")
+        return "\n".join(formatted)
+
+    @staticmethod
+    def _escape_markup(text: str) -> str:
+        """Escape Rich markup characters."""
+        return text.replace("[", "\\[").replace("]", "\\]")

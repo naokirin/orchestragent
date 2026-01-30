@@ -28,6 +28,7 @@ Cursorブログ記事「[長時間稼働する自律型コーディングをス�
 - **[抽象化レイヤーの設計](./docs/dev/ARCHITECTURE_DESIGN.md)**: 後からLLM APIに差し替え可能な設計
 - **[実行環境の設計](./docs/dev/EXECUTION_ENVIRONMENT.md)**: Sandbox/DevContainerでの実行方法
 - **[実装前チェックリスト](./docs/dev/IMPLEMENTATION_CHECKLIST.md)**: 実装開始前の確認項目
+- **[ADR（Architecture Decision Records）](./docs/adr/)**: アーキテクチャ決定の記録
 
 ## クイックスタート
 
@@ -208,8 +209,65 @@ main.py (メインループ)
 ├─ state/tasks.json: タスクインデックス（ID・メタ情報のみ）
 ├─ state/tasks/: 個別タスクファイル（状態・詳細情報）
 ├─ state/results/: Worker成果物
+├─ state/intents/: 変更意図（Intent）ファイル
 └─ state/status.json: 進行状態
 ```
+
+## Intent追跡システム
+
+変更の意図（Intent）を記録し、コードベースの理解を容易にするための機能です。
+
+### 概要
+
+Workerエージェントがタスクを実行する際、以下の情報を自動的に記録します：
+
+- **Goal（目標）**: 何を達成しようとしたか
+- **Rationale（理由）**: なぜその変更が必要だったか
+- **Expected Change（期待される変更）**: どのような動作変更を期待するか
+- **Non-Goals（非目標）**: 意図的に行わないこと
+- **Risk（リスク）**: 潜在的なリスクや懸念事項
+
+### ファイル構成
+
+```
+state/intents/              # Intent保存（YAML形式）
+├── intent_task_001.yaml
+├── intent_task_002.yaml
+└── ...
+
+docs/adr/                   # ADR保存（Markdown形式）
+├── template.md             # ADRテンプレート
+├── 0001-*.md
+└── ...
+```
+
+### TUIダッシュボードでの確認
+
+ダッシュボードの「Intent」タブで以下を確認できます：
+
+- Intent一覧と詳細情報
+- 関連コミットのDiff（色付き表示：追加=緑背景、削除=赤背景）
+- 関連ADR（Architecture Decision Records）
+
+```bash
+# ダッシュボード起動
+python main.py --dashboard
+# または
+docker compose run --rm -it agent python main.py --dashboard
+```
+
+### ADR（Architecture Decision Records）
+
+重要なアーキテクチャ決定を`docs/adr/`に記録できます。ADRはIntentと紐づけることで、設計判断とその実装を関連付けられます。
+
+ADRのフォーマット：
+- タイトル
+- ステータス（Proposed/Accepted/Deprecated/Superseded）
+- コンテキスト
+- 決定
+- 理由
+- 結果
+- 関連Intent
 
 ## ログ仕様
 

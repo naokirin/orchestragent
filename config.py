@@ -88,6 +88,9 @@ AGENT_CONFIG = {
 # State Configuration
 STATE_DIR = os.getenv("STATE_DIR", "state")
 
+# ADR (Architecture Decision Records) Configuration
+ADR_DIR = os.getenv("ADR_DIR", "docs/adr")
+
 # Logging Configuration
 LOG_DIR = os.getenv("LOG_DIR", "logs")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

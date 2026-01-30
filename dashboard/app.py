@@ -108,6 +108,7 @@ class DashboardApp(App):
         self._main_loop_running = False
         self.logs_widget: Optional[Any] = None
         self.tasks_widget: Optional[Any] = None
+        self.intents_widget: Optional[Any] = None
         self.settings_widget: Optional[Any] = None
         self.current_tab: Optional[str] = None
     
@@ -118,6 +119,7 @@ class DashboardApp(App):
             Tab("概要", id="overview"),
             Tab("ログ", id="logs"),
             Tab("タスク", id="tasks"),
+            Tab("Intent", id="intents"),
             Tab("設定", id="settings"),
             id="tabs"
         )
@@ -208,6 +210,7 @@ class DashboardApp(App):
         # Clear widget references before switching (important to avoid NoActiveAppError)
         self.logs_widget = None
         self.tasks_widget = None
+        self.intents_widget = None
         self.settings_widget = None
         
         try:
@@ -220,6 +223,8 @@ class DashboardApp(App):
                 self._show_logs()
             elif active_tab == "tasks":
                 self._show_tasks()
+            elif active_tab == "intents":
+                self._show_intents()
             elif active_tab == "settings":
                 self._show_settings()
         except Exception:
@@ -257,10 +262,26 @@ class DashboardApp(App):
         content.mount(tasks)
         self.tasks_widget = tasks  # Store reference for updates
     
+    def _show_intents(self) -> None:
+        """Show intents tab content."""
+        from dashboard.widgets import IntentsWidget
+        from utils.intent_manager import IntentManager
+        from utils.adr_manager import ADRManager
+        from utils.git_helper import GitHelper
+        import config
+
+        content = self.query_one("#content", Container)
+        intent_manager = IntentManager(state_dir=config.STATE_DIR)
+        adr_manager = ADRManager(adr_dir=getattr(config, 'ADR_DIR', 'docs/adr'))
+        git_helper = GitHelper(repo_path=getattr(config, 'TARGET_PROJECT', '.'))
+        intents = IntentsWidget(intent_manager, adr_manager, git_helper)
+        content.mount(intents)
+        self.intents_widget = intents  # Store reference for updates
+
     def _show_settings(self) -> None:
         """Show settings tab content."""
         from dashboard.widgets import SettingsWidget
-        
+
         content = self.query_one("#content", Container)
         settings = SettingsWidget()
         content.mount(settings)
