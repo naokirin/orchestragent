@@ -20,8 +20,8 @@ build/
 .env.local
 
 # State files (generated at runtime, but mounted as volume)
-# state/
-# logs/
+state/
+logs/
 
 # IDE
 .vscode/
@@ -31,14 +31,21 @@ build/
 .DS_Store
 
 # Cursor CLI config (mounted as volume, don't copy)
-# .cursor/
+.cursor/
 
 # Docker
 *.log
 docker-compose.override.yml
 
 # Documentation (optional, can be included)
-# docs/
+docs/
+assets/
 
 # Test files (optional)
 # test_*.py
+
+# Except validation directories
+/examples
+/orchestragent
+/logs
+/tmp
