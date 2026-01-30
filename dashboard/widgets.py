@@ -20,17 +20,16 @@ class OverviewWidget(ScrollableContainer):
     
     def compose(self):
         """Create overview content."""
-        with Vertical():
-            yield Static("[bold]プロジェクト目標[/bold]", classes="section-title")
-            yield Static(id="project-goal", classes="content")
-            
-            yield Static("", classes="spacer")
-            yield Static("[bold]進行状況[/bold]", classes="section-title")
-            yield Static(id="progress-info", classes="content")
-            
-            yield Static("", classes="spacer")
-            yield Static("[bold]タスク統計[/bold]", classes="section-title")
-            yield Static(id="task-stats", classes="content")
+        yield Static("[bold]プロジェクト目標[/bold]", classes="section-title")
+        yield Static(id="project-goal", classes="content")
+
+        yield Static("", classes="spacer")
+        yield Static("[bold]進行状況[/bold]", classes="section-title")
+        yield Static(id="progress-info", classes="content")
+
+        yield Static("", classes="spacer")
+        yield Static("[bold]タスク統計[/bold]", classes="section-title")
+        yield Static(id="task-stats", classes="content")
     
     def on_mount(self) -> None:
         """Update content when mounted."""
@@ -361,22 +360,21 @@ class SettingsWidget(ScrollableContainer):
     
     def compose(self):
         """Create settings content."""
-        with Vertical():
-            yield Static("[bold]プロジェクト設定[/bold]", classes="section-title")
-            yield Static(id="project-config", classes="content")
-            
-            yield Static("", classes="spacer")
-            yield Static("[bold]LLM設定[/bold]", classes="section-title")
-            yield Static(id="llm-config", classes="content")
-            yield Static(id="model-config", classes="content")
-            
-            yield Static("", classes="spacer")
-            yield Static("[bold]メインループ設定[/bold]", classes="section-title")
-            yield Static(id="loop-config", classes="content")
-            
-            yield Static("", classes="spacer")
-            yield Static("[bold]環境情報[/bold]", classes="section-title")
-            yield Static(id="env-info", classes="content")
+        yield Static("[bold]プロジェクト設定[/bold]", classes="section-title")
+        yield Static(id="project-config", classes="content")
+
+        yield Static("", classes="spacer")
+        yield Static("[bold]LLM設定[/bold]", classes="section-title")
+        yield Static(id="llm-config", classes="content")
+        yield Static(id="model-config", classes="content")
+
+        yield Static("", classes="spacer")
+        yield Static("[bold]メインループ設定[/bold]", classes="section-title")
+        yield Static(id="loop-config", classes="content")
+
+        yield Static("", classes="spacer")
+        yield Static("[bold]環境情報[/bold]", classes="section-title")
+        yield Static(id="env-info", classes="content")
     
     def on_mount(self) -> None:
         """Update content when mounted."""
