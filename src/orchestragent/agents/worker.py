@@ -8,6 +8,7 @@ from orchestragent.models import Task
 from orchestragent.llm.model_selector import ModelSelector
 from orchestragent.tracking.intent_parser import IntentParser
 from orchestragent.tracking.intent_manager import IntentManager
+from orchestragent.tracking.adr_manager import ADRManager
 import config
 
 
@@ -33,6 +34,8 @@ class WorkerAgent(BaseAgent):
 
         # Initialize intent manager for tracking change intents
         self.intent_manager = IntentManager(state_dir=config.STATE_DIR)
+        # Initialize ADR manager for auto-creating ADRs from Worker decisions
+        self.adr_manager = ADRManager(adr_dir=getattr(config, "ADR_DIR", "docs/adr"))
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for worker."""
@@ -167,6 +170,30 @@ Please complete this task and report the result.
         except Exception as e:
             self.logger.error(f"[Worker] Error completing task: {e}")
             raise
+
+        # Create ADR first if Worker reported an architecture/design decision
+        intent_data = result.get("intent")
+        if intent_data and intent_data.get("adr_to_create"):
+            adr_spec = intent_data["adr_to_create"]
+            title = adr_spec.get("title") if isinstance(adr_spec, dict) else None
+            if title and title.strip():
+                try:
+                    adr_number = self.adr_manager.create_adr(
+                        title=title.strip(),
+                        context=adr_spec.get("context", ""),
+                        decision=adr_spec.get("decision", ""),
+                        rationale=adr_spec.get("rationale", ""),
+                        consequences=adr_spec.get("consequences", ""),
+                        related_intents=[task_id],
+                        status="Proposed",
+                    )
+                    # Link this intent to the new ADR (overwrite related_adr)
+                    intent_data["related_adr"] = adr_number
+                    self.logger.info(f"[Worker] ADR-{adr_number} created and linked to task {task_id}")
+                except Exception as e:
+                    self.logger.warning(f"[Worker] Failed to create ADR: {e}")
+            # Remove adr_to_create so we don't persist it in the intent YAML
+            intent_data.pop("adr_to_create", None)
 
         # Save Intent if present
         if "intent" in result and result["intent"]:

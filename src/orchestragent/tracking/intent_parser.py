@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Intent information parser from Worker response."""
 
 import re
@@ -22,6 +23,17 @@ class IntentParser:
     COMMIT_HASH_PATTERN = re.compile(r'[-*]*\s*\**コミットハッシュ\**[:\s]+([a-f0-9]+)', re.IGNORECASE)
     COMMIT_MSG_PATTERN = re.compile(r'[-*]*\s*\**コミットメッセージ\**[:\s]+(.+)', re.MULTILINE)
     RELATED_ADR_PATTERN = re.compile(r'関連ADR[:\s]+(ADR-)?(\d+)', re.IGNORECASE)
+
+    # New ADR section (when Worker proposes an architecture/design decision)
+    ADR_SECTION_PATTERN = re.compile(
+        r'## 新規ADR.*?(?=\n## |\Z)',
+        re.DOTALL | re.IGNORECASE
+    )
+    ADR_TITLE_PATTERN = re.compile(r'### タイトル\s*\n(.+?)(?=###|$)', re.DOTALL)
+    ADR_CONTEXT_PATTERN = re.compile(r'### コンテキスト\s*\n(.+?)(?=###|$)', re.DOTALL)
+    ADR_DECISION_PATTERN = re.compile(r'### 決定\s*\n(.+?)(?=###|$)', re.DOTALL)
+    ADR_RATIONALE_PATTERN = re.compile(r'### 理由\s*\n(.+?)(?=###|$)', re.DOTALL)
+    ADR_CONSEQUENCES_PATTERN = re.compile(r'### 結果\s*\n(.+?)(?=###|## |$)', re.DOTALL)
 
     @classmethod
     def parse(cls, response: str, task_id: str) -> Optional[Dict[str, Any]]:
@@ -53,9 +65,12 @@ class IntentParser:
         commit_hash = cls._extract_single(cls.COMMIT_HASH_PATTERN, response)
         commit_message = cls._extract_single(cls.COMMIT_MSG_PATTERN, response)
 
-        # Extract related ADR
+        # Extract related ADR (existing ADR reference)
         adr_match = cls.RELATED_ADR_PATTERN.search(response)
         related_adr = adr_match.group(2) if adr_match else None
+
+        # Extract new ADR to create (when Worker reports an architecture/design decision)
+        adr_to_create = cls._parse_new_adr(response)
 
         now = datetime.now().isoformat()
 
@@ -79,6 +94,7 @@ class IntentParser:
                 }
             ] if commit_hash else [],
             "related_adr": related_adr,
+            "adr_to_create": adr_to_create,
         }
 
     @classmethod
@@ -128,6 +144,36 @@ class IntentParser:
                 }
             ],
             "related_adr": None,
+            "adr_to_create": None,
+        }
+
+    @classmethod
+    def _parse_new_adr(cls, response: str) -> Optional[Dict[str, Any]]:
+        """
+        Parse '新規ADR' section from Worker response.
+        Returns a dict with title, context, decision, rationale, consequences for ADRManager.create_adr,
+        or None if section is absent or indicates 'なし'.
+        """
+        section_match = cls.ADR_SECTION_PATTERN.search(response)
+        if not section_match:
+            return None
+        section = section_match.group(0)
+        # Skip if section only says "なし"
+        if re.search(r'^(?:なし|該当しない)\s*$', section.strip(), re.IGNORECASE | re.MULTILINE):
+            return None
+        title = cls._extract_single(cls.ADR_TITLE_PATTERN, section)
+        if not title or not title.strip() or title.strip().lower() == "なし":
+            return None
+        context = cls._extract_single(cls.ADR_CONTEXT_PATTERN, section) or ""
+        decision = cls._extract_single(cls.ADR_DECISION_PATTERN, section) or ""
+        rationale = cls._extract_single(cls.ADR_RATIONALE_PATTERN, section) or ""
+        consequences = cls._extract_single(cls.ADR_CONSEQUENCES_PATTERN, section) or ""
+        return {
+            "title": title.strip(),
+            "context": context.strip(),
+            "decision": decision.strip(),
+            "rationale": rationale.strip(),
+            "consequences": consequences.strip(),
         }
 
     @classmethod
