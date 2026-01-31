@@ -75,6 +75,8 @@ services:
       - ./${STATE_DIR:-state}:/workspace/${STATE_DIR:-state}
       - ./${LOG_DIR:-logs}:/workspace/${LOG_DIR:-logs}
     environment:
+      # orchestragent は src/ 以下にあるため、python -m で見つかるようにする
+      - PYTHONPATH=/workspace/src
       - PROJECT_ROOT=${PROJECT_ROOT:-/target}
       - TARGET_PROJECT=${TARGET_PROJECT:-}
       - STATE_DIR=${STATE_DIR:-state}
