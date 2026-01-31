@@ -3,8 +3,9 @@
 import json
 import re
 from typing import Dict, Any
+
 from .base import BaseAgent
-from utils.models import Task
+from orchestragent.models import Task
 
 
 class PlanJudgeAgent(BaseAgent):
@@ -148,4 +149,3 @@ Please evaluate whether this plan and task list are appropriate.
         from datetime import datetime
 
         return datetime.now().isoformat()
-

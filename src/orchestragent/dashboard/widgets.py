@@ -6,24 +6,25 @@ from textual.containers import Vertical, Horizontal, ScrollableContainer
 from textual import events
 from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from pathlib import Path
+
 import config
-from utils.state_manager import StateManager
-from utils.models import Task
+from orchestragent.state.manager import StateManager
+from orchestragent.models import Task
 
 if TYPE_CHECKING:
-    from utils.intent_manager import IntentManager
-    from utils.adr_manager import ADRManager
-    from utils.git_helper import GitHelper
+    from orchestragent.tracking.intent_manager import IntentManager
+    from orchestragent.tracking.adr_manager import ADRManager
+    from orchestragent.tracking.git_helper import GitHelper
 
 
 class OverviewWidget(ScrollableContainer):
     """Overview tab widget showing project goal, task statistics, and progress."""
-    
+
     def __init__(self, state_manager: StateManager):
         super().__init__()
         self.state_manager = state_manager
         self.id = "overview-widget"
-    
+
     def compose(self):
         """Create overview content."""
         yield Static("[bold]プロジェクト目標[/bold]", classes="section-title")
@@ -36,32 +37,32 @@ class OverviewWidget(ScrollableContainer):
         yield Static("", classes="spacer")
         yield Static("[bold]タスク統計[/bold]", classes="section-title")
         yield Static(id="task-stats", classes="content")
-    
+
     def on_mount(self) -> None:
         """Update content when mounted."""
         self.update_content()
-    
+
     def update_content(self) -> None:
         """Update overview content from state."""
         # Project goal
         goal_widget = self.query_one("#project-goal", Static)
         goal = config.AGENT_CONFIG.get('project_goal', '未設定')
         goal_widget.update(f"[cyan]{goal}[/cyan]")
-        
+
         # Progress info
         progress_widget = self.query_one("#progress-info", Static)
         status = self.state_manager.get_status()
         iteration = status.get('current_iteration', 0)
         max_iterations = config.MAX_ITERATIONS
         should_continue = status.get('should_continue', True)
-        
+
         progress_text = f"""
 イテレーション: [bold]{iteration}[/bold] / {max_iterations}
 継続判定: [{'green' if should_continue else 'red'}]{'継続' if should_continue else '停止'}[/{'green' if should_continue else 'red'}]
 理由: {status.get('reason', 'N/A')}
         """.strip()
         progress_widget.update(progress_text)
-        
+
         # Task statistics
         stats_widget = self.query_one("#task-stats", Static)
         task_stats = self.state_manager.get_task_statistics()
@@ -70,9 +71,9 @@ class OverviewWidget(ScrollableContainer):
         failed = task_stats.failed
         pending = task_stats.pending
         in_progress = task_stats.in_progress
-        
+
         completion_rate = (completed / total * 100) if total > 0 else 0
-        
+
         stats_text = f"""
 総タスク数: [bold]{total}[/bold]
 完了: [green]{completed}[/green]
@@ -86,18 +87,18 @@ class OverviewWidget(ScrollableContainer):
 
 class LogsWidget(RichLog):
     """Logs tab widget showing real-time logs."""
-    
+
     def __init__(self):
         super().__init__(id="logs-widget", max_lines=1000, markup=True)
         self.log_file_path: Optional[Path] = None
-    
+
     def on_mount(self) -> None:
         """Set up log file monitoring and load existing logs."""
         from datetime import datetime
         log_dir = Path(config.LOG_DIR)
         log_file = log_dir / f"execution_{datetime.now().strftime('%Y%m%d')}.log"
         self.log_file_path = log_file
-        
+
         # Load existing log content when tab is opened
         if log_file.exists():
             try:
@@ -110,7 +111,7 @@ class LogsWidget(RichLog):
                             line = line.rstrip('\n\r')
                             if not line:
                                 continue
-                            
+
                             # Remove timestamp prefix for cleaner display
                             parts = line.split(' - ', 2)
                             if len(parts) >= 3:
@@ -127,12 +128,12 @@ class LogsWidget(RichLog):
                                     processed_lines.append(message)
                             else:
                                 processed_lines.append(line)
-                        
+
                         # Write all existing lines
                         if processed_lines and self._parent is not None:
                             for line in processed_lines:
                                 self.write(line)
-                    
+
                     # Set last_position to end of file for future updates
                     f.seek(0, 2)  # Seek to end
                     self.last_position = f.tell()
@@ -140,16 +141,16 @@ class LogsWidget(RichLog):
                 self.last_position = 0
         else:
             self.last_position = 0
-    
+
     def update_logs(self) -> None:
         """Read new log entries from file."""
         # Check if widget is still mounted (has a parent)
         if self._parent is None:
             return
-        
+
         if not self.log_file_path or not self.log_file_path.exists():
             return
-        
+
         try:
             with open(self.log_file_path, 'r', encoding='utf-8') as f:
                 f.seek(self.last_position)
@@ -162,7 +163,7 @@ class LogsWidget(RichLog):
                         line = line.rstrip('\n\r')
                         if not line:
                             continue
-                        
+
                         # Remove timestamp prefix for cleaner display
                         # Format: "2024-01-01 12:00:00 - INFO - message"
                         parts = line.split(' - ', 2)
@@ -181,13 +182,13 @@ class LogsWidget(RichLog):
                         else:
                             # If format doesn't match, just write the line as-is
                             processed_lines.append(line)
-                    
+
                     # Write each line using RichLog.write()
                     # Check again if still mounted before writing
                     if processed_lines and self._parent is not None:
                         for line in processed_lines:
                             self.write(line)
-                    
+
                     self.last_position = f.tell()
         except Exception as e:
             # Silently ignore read errors (including NoActiveAppError)
@@ -196,7 +197,7 @@ class LogsWidget(RichLog):
 
 class TasksWidget(ScrollableContainer):
     """Tasks tab widget showing task list and details."""
-    
+
     def __init__(self, state_manager: StateManager):
         super().__init__()
         self.state_manager = state_manager
@@ -204,19 +205,19 @@ class TasksWidget(ScrollableContainer):
         self.selected_task_id: Optional[str] = None
         self._updating = False
         self._last_task_ids: List[str] = []  # Track task IDs for diff update
-    
+
     def compose(self):
         """Create tasks content."""
         with Horizontal():
             with Vertical(classes="task-list-container"):
                 yield Static("[bold]タスク一覧[/bold]", classes="section-title")
                 yield DataTable(id="task-table")
-            
+
             with Vertical(classes="task-detail-container"):
                 yield Static("[bold]タスク詳細[/bold]", classes="section-title")
                 with ScrollableContainer(id="task-detail-scroll"):
                     yield Static(id="task-detail", classes="content")
-    
+
     def on_mount(self) -> None:
         """Set up task table."""
         table = self.query_one("#task-table", DataTable)
@@ -224,7 +225,7 @@ class TasksWidget(ScrollableContainer):
         table.add_columns("ステータス", "ID", "タイトル", "優先度")
         table.cursor_type = "row"
         self.update_tasks()
-    
+
     def _get_status_colored(self, status: str) -> str:
         """Get colored status text."""
         return {
@@ -233,18 +234,18 @@ class TasksWidget(ScrollableContainer):
             'completed': '[green]完了[/green]',
             'failed': '[red]失敗[/red]'
         }.get(status, status)
-    
+
     def update_tasks(self) -> None:
         """Update task list from state using diff update to preserve cursor position."""
         # Skip update if we're already updating
         if self._updating:
             return
-        
+
         self._updating = True
         try:
             table = self.query_one("#task-table", DataTable)
             all_tasks = self.state_manager.get_all_tasks_from_files()
-            
+
             # Build current task data
             current_task_ids = []
             task_data_map = {}
@@ -256,12 +257,12 @@ class TasksWidget(ScrollableContainer):
                     'status': task.status.value,
                     'priority': task.priority.value
                 }
-            
+
             # Get existing row keys
             existing_keys = set()
             for row_key in table.rows.keys():
                 existing_keys.add(str(row_key.value))
-            
+
             # If table is empty (first load), just add all rows
             if not existing_keys:
                 for task_id in current_task_ids:
@@ -275,7 +276,7 @@ class TasksWidget(ScrollableContainer):
                     )
                 self._last_task_ids = current_task_ids
                 return
-            
+
             # Update existing rows (only status changes are likely)
             for task_id in current_task_ids:
                 if task_id in existing_keys:
@@ -292,7 +293,7 @@ class TasksWidget(ScrollableContainer):
                         table.update_cell(task_id, "優先度", data['priority'])
                     except Exception:
                         pass  # Ignore errors during update
-            
+
             # Add new rows
             new_task_ids = set(current_task_ids) - existing_keys
             for task_id in current_task_ids:
@@ -305,7 +306,7 @@ class TasksWidget(ScrollableContainer):
                         data['priority'],
                         key=task_id
                     )
-            
+
             # Remove deleted rows
             deleted_task_ids = existing_keys - set(current_task_ids)
             for task_id in deleted_task_ids:
@@ -313,22 +314,22 @@ class TasksWidget(ScrollableContainer):
                     table.remove_row(task_id)
                 except Exception:
                     pass  # Ignore errors during removal
-            
+
             self._last_task_ids = current_task_ids
         finally:
             self._updating = False
-    
+
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         """Handle cursor movement - track which row is highlighted."""
         if event.row_key:
             self.selected_task_id = str(event.row_key.value)
-    
+
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle task selection (Enter key)."""
         task_id = event.row_key.value
         self.selected_task_id = task_id
         self._show_task_detail(task_id)
-    
+
     def _show_task_detail(self, task_id: str) -> None:
         """Show task detail."""
         task = self.state_manager.get_task_by_id(task_id)
@@ -365,7 +366,7 @@ class TasksWidget(ScrollableContainer):
 
 class SettingsWidget(ScrollableContainer):
     """Settings tab widget showing configuration and environment info."""
-    
+
     def compose(self):
         """Create settings content."""
         yield Static("[bold]プロジェクト設定[/bold]", classes="section-title")
@@ -383,11 +384,11 @@ class SettingsWidget(ScrollableContainer):
         yield Static("", classes="spacer")
         yield Static("[bold]環境情報[/bold]", classes="section-title")
         yield Static(id="env-info", classes="content")
-    
+
     def on_mount(self) -> None:
         """Update content when mounted."""
         self.update_content()
-    
+
     def update_content(self) -> None:
         """Update settings content."""
         # Project configuration
@@ -401,7 +402,7 @@ class SettingsWidget(ScrollableContainer):
 ログレベル: {config.LOG_LEVEL}
         """.strip()
         project_widget.update(project_text)
-        
+
         # LLM configuration
         llm_widget = self.query_one("#llm-config", Static)
         llm_text = f"""
@@ -410,7 +411,7 @@ class SettingsWidget(ScrollableContainer):
 デフォルトモデル (LLM_MODEL): {config.LLM_MODEL or '(未設定)'}
         """.strip()
         llm_widget.update(llm_text)
-        
+
         # Model configuration (per agent & dynamic selection)
         model_widget = self.query_one("#model-config", Static)
         model_text = f"""
@@ -428,7 +429,7 @@ Judge モデル: {config.JUDGE_MODEL or '(デフォルト)'}
 複雑判定閾値: {config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL}
         """.strip()
         model_widget.update(model_text)
-        
+
         # Main loop configuration
         loop_widget = self.query_one("#loop-config", Static)
         loop_text = f"""
@@ -439,15 +440,16 @@ Judge モデル: {config.JUDGE_MODEL or '(デフォルト)'}
 最大並列Worker数: {config.MAX_PARALLEL_WORKERS if config.ENABLE_PARALLEL_EXECUTION else 'N/A'}
         """.strip()
         loop_widget.update(loop_text)
-        
+
         # Environment information
         env_widget = self.query_one("#env-info", Static)
         import os
-        from main import is_running_in_container, check_cursor_cli
-        
+        from orchestragent.core.environment import is_running_in_container
+        from orchestragent.runner.startup import check_cursor_cli
+
         is_container = is_running_in_container()
         cursor_available = check_cursor_cli()
-        
+
         env_text = f"""
 実行環境: {'コンテナ内' if is_container else 'ホスト環境'}
 Cursor CLI: {'利用可能' if cursor_available else '未検出'}

@@ -1,27 +1,27 @@
 """Task scheduling utilities for parallel execution."""
 
 import re
-from typing import List, Dict, Any, Set, Optional
-from pathlib import Path
-from .file_lock import FileLockManager
-from .state_manager import StateManager
-from .models import Task, TaskPriority
+from typing import List, Set
+
+from orchestragent.state.file_lock import FileLockManager
+from orchestragent.state.manager import StateManager
+from orchestragent.models import Task
 
 
 class TaskScheduler:
     """Schedules tasks for parallel execution while avoiding conflicts."""
-    
+
     def __init__(self, state_manager: StateManager, file_lock_manager: FileLockManager):
         """
         Initialize task scheduler.
-        
+
         Args:
             state_manager: State manager instance
             file_lock_manager: File lock manager instance
         """
         self.state_manager = state_manager
         self.file_lock_manager = file_lock_manager
-    
+
     def get_parallelizable_tasks(self, max_workers: int = 3) -> List[Task]:
         """
         Get list of tasks that can be executed in parallel.
@@ -70,7 +70,7 @@ class TaskScheduler:
                     break
 
         return selected_tasks
-    
+
     def _filter_ready_tasks(self, tasks: List[Task]) -> List[Task]:
         """
         Filter tasks that have all dependencies completed.
@@ -101,7 +101,7 @@ class TaskScheduler:
                 ready_tasks.append(task)
 
         return ready_tasks
-    
+
     def _get_priority_score(self, task: Task) -> int:
         """
         Get priority score for a task (higher is better).
@@ -113,7 +113,7 @@ class TaskScheduler:
             Priority score
         """
         return task.priority.to_score()
-    
+
     def _extract_task_files(self, task: Task) -> List[str]:
         """
         Extract file paths that a task will modify.
@@ -132,23 +132,23 @@ class TaskScheduler:
 
         # Extract from description
         description = task.description
-        
+
         # Look for file patterns
         # Pattern 1: Explicit file mentions (e.g., "file: src/main.py")
         explicit_pattern = r'file:\s*([^\s\n]+\.(py|ts|js|md|json|yml|yaml|txt|html|css))'
         matches = re.findall(explicit_pattern, description, re.IGNORECASE)
         files.extend([m[0] for m in matches])
-        
+
         # Pattern 2: File paths in quotes or backticks
         quoted_pattern = r'["\'`]([^\'"`]+\.(py|ts|js|md|json|yml|yaml|txt|html|css))["\'`]'
         matches = re.findall(quoted_pattern, description, re.IGNORECASE)
         files.extend([m[0] for m in matches])
-        
+
         # Pattern 3: Common file patterns
         common_pattern = r'([\w\-_/]+\.(py|ts|js|md|json|yml|yaml|txt|html|css))'
         matches = re.findall(common_pattern, description)
         files.extend([m[0] for m in matches])
-        
+
         # Normalize and deduplicate
         normalized_files = []
         seen = set()
@@ -157,9 +157,9 @@ class TaskScheduler:
             if normalized and normalized not in seen:
                 normalized_files.append(normalized)
                 seen.add(normalized)
-        
+
         return normalized_files
-    
+
     def can_tasks_run_parallel(self, task1: Task, task2: Task) -> bool:
         """
         Check if two tasks can run in parallel without conflicts.

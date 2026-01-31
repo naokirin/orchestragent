@@ -8,7 +8,7 @@ from datetime import datetime
 class IntentParser:
     """Parse Intent information from Worker agent response."""
 
-    # 正規表現パターン定義
+    # Regular expression pattern definitions
     INTENT_SECTION_PATTERN = re.compile(
         r'## 変更意図 \(Intent\)(.*?)(?=## 実装内容|## 変更したファイル|$)',
         re.DOTALL

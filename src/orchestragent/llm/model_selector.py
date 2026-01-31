@@ -1,12 +1,13 @@
 """Model selection utilities for dynamic model selection based on task complexity."""
 
 from typing import Dict, Any, Optional, Union
-from .models import Task, TaskPriority
+
+from orchestragent.models import Task, TaskPriority
 
 
 class ModelSelector:
     """Selects appropriate model based on task complexity."""
-    
+
     def __init__(
         self,
         enabled: bool = False,
@@ -19,7 +20,7 @@ class ModelSelector:
     ):
         """
         Initialize model selector.
-        
+
         Args:
             enabled: Whether dynamic model selection is enabled
             threshold_light: Complexity threshold for light model (below this)
@@ -36,7 +37,7 @@ class ModelSelector:
         self.model_standard = model_standard
         self.model_powerful = model_powerful
         self.model_default = model_default
-    
+
     def calculate_complexity_score(self, task: Union[Task, Dict[str, Any]]) -> float:
         """
         Calculate complexity score for a task.
@@ -80,7 +81,7 @@ class ModelSelector:
         complexity_score = description_score + file_score + hours_score + priority_score
 
         return complexity_score
-    
+
     def select_model(self, task: Union[Task, Dict[str, Any]]) -> Optional[str]:
         """
         Select appropriate model for a task based on complexity.

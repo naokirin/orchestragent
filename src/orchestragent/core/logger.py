@@ -1,4 +1,4 @@
-"""Logging utilities for the agent system."""
+"""Logging utilities for the orchestragent system."""
 
 import json
 import logging
@@ -13,7 +13,7 @@ import traceback
 
 class AgentLogger:
     """Logger for agent execution."""
-    
+
     def __init__(
         self,
         log_dir: str = "logs",
@@ -24,22 +24,23 @@ class AgentLogger:
     ):
         """
         Initialize logger.
-        
+
         Args:
             log_dir: Directory for log files
             log_level: Log level (DEBUG, INFO, WARNING, ERROR)
             max_bytes: Maximum size of log file before rotation (default: 10MB)
             backup_count: Number of backup files to keep (default: 5)
+            sync: If True, force flush and fsync after each write to JSONL logs.
         """
         self.log_dir = Path(log_dir)
         # If True, force flush and fsync after each write to JSONL logs.
         # Useful when logs need to be visible in (near) real-time on host volumes.
         self.sync = sync
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Setup Python logging with rotation
         log_file = self.log_dir / f"execution_{datetime.now().strftime('%Y%m%d')}.log"
-        
+
         # Use RotatingFileHandler for log rotation
         file_handler = RotatingFileHandler(
             log_file,
@@ -51,20 +52,20 @@ class AgentLogger:
         file_handler.setFormatter(
             logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         )
-        
+
         # Console handler
         console_handler = logging.StreamHandler()
         console_handler.setLevel(getattr(logging, log_level.upper()))
         console_handler.setFormatter(
             logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         )
-        
+
         # Setup logger
         self.logger = logging.getLogger("agent_system")
         self.logger.setLevel(getattr(logging, log_level.upper()))
         self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
-        
+
         # Prevent duplicate logs
         self.logger.propagate = False
 
@@ -79,7 +80,7 @@ class AgentLogger:
             # In some environments (e.g. special filesystems), fsync may not be supported.
             # We ignore such errors to avoid breaking logging entirely.
             pass
-    
+
     def log_agent_run(
         self,
         agent_name: str,
@@ -91,7 +92,7 @@ class AgentLogger:
     ) -> None:
         """
         Log agent execution.
-        
+
         Args:
             agent_name: Name of the agent
             iteration: Iteration number
@@ -109,19 +110,19 @@ class AgentLogger:
             'duration_seconds': round(duration, 3),
             **kwargs
         }
-        
+
         # Log to JSON file
         log_file = self.log_dir / f"execution_{datetime.now().strftime('%Y%m%d')}.jsonl"
         with open(log_file, 'a', encoding='utf-8') as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
             self._flush_and_sync(f)
-        
+
         # Log to standard logger
         self.logger.info(
             f"[{agent_name}] Iteration {iteration} completed in {duration:.2f}s "
             f"(prompt: {len(prompt)} chars, response: {len(response)} chars)"
         )
-    
+
     def log_error_with_traceback(
         self,
         agent_name: str,
@@ -130,7 +131,7 @@ class AgentLogger:
     ) -> None:
         """
         Log error with full traceback and context.
-        
+
         Args:
             agent_name: Name of the agent
             error: Exception that occurred
@@ -144,19 +145,19 @@ class AgentLogger:
             'traceback': traceback.format_exc(),
             'context': context or {}
         }
-        
+
         # Log to JSON file
         log_file = self.log_dir / f"errors_{datetime.now().strftime('%Y%m%d')}.jsonl"
         with open(log_file, 'a', encoding='utf-8') as f:
             f.write(json.dumps(error_entry, ensure_ascii=False) + '\n')
             self._flush_and_sync(f)
-        
+
         # Log to standard logger
         self.logger.error(
             f"[{agent_name}] Error: {type(error).__name__}: {error}"
         )
         self.logger.debug(f"[{agent_name}] Traceback:\n{traceback.format_exc()}")
-    
+
     def log_progress(
         self,
         iteration: int,
@@ -167,7 +168,7 @@ class AgentLogger:
     ) -> None:
         """
         Log progress summary.
-        
+
         Args:
             iteration: Current iteration number
             total_tasks: Total number of tasks
@@ -184,40 +185,40 @@ class AgentLogger:
             'pending_tasks': pending_tasks,
             'completion_rate': round(completed_tasks / total_tasks * 100, 2) if total_tasks > 0 else 0
         }
-        
+
         # Log to JSON file
         log_file = self.log_dir / f"progress_{datetime.now().strftime('%Y%m%d')}.jsonl"
         with open(log_file, 'a', encoding='utf-8') as f:
             f.write(json.dumps(progress_entry, ensure_ascii=False) + '\n')
             self._flush_and_sync(f)
-        
+
         # Log to standard logger
         self.logger.info(
             f"[Progress] Iteration {iteration}: "
             f"{completed_tasks}/{total_tasks} completed, "
             f"{failed_tasks} failed, {pending_tasks} pending"
         )
-    
+
     def info(self, message: str) -> None:
         """Log info message."""
         self.logger.info(message)
-    
+
     def warning(self, message: str) -> None:
         """Log warning message."""
         self.logger.warning(message)
-    
+
     def error(self, message: str) -> None:
         """Log error message."""
         self.logger.error(message)
-    
+
     def debug(self, message: str) -> None:
         """Log debug message."""
         self.logger.debug(message)
-    
+
     def exception(self, message: str, exc_info: bool = True) -> None:
         """Log exception with traceback."""
         self.logger.exception(message, exc_info=exc_info)
-    
+
     def log_agent_command_output(
         self,
         agent_name: str,
@@ -228,18 +229,18 @@ class AgentLogger:
         """
         Log agent command output to individual log file (non-streaming API).
         For streaming use-cases, prefer `start_agent_command_stream`.
-        
+
         Args:
             agent_name: Name of the agent
             stdout: Standard output from the command
             stderr: Standard error output from the command
             command: Command that was executed (optional)
-        
+
         Returns:
             Path to the log file created
         """
         stream = self.start_agent_command_stream(agent_name=agent_name, command=command)
-        
+
         # Write stdout
         if stdout:
             stream.write("=== Standard Output ===\n")
@@ -247,7 +248,7 @@ class AgentLogger:
             if not stdout.endswith('\n'):
                 stream.write('\n')
             stream.write("\n")
-        
+
         # Write stderr
         if stderr:
             stream.write("=== Standard Error ===\n")
@@ -255,14 +256,14 @@ class AgentLogger:
             if not stderr.endswith('\n'):
                 stream.write('\n')
             stream.write("\n")
-        
+
         stream.close()
-        
+
         # Log to standard logger
         self.logger.info(
             f"[{agent_name}] Agent command output logged to: {stream.log_file}"
         )
-        
+
         return stream.log_file
 
     def start_agent_command_stream(
@@ -279,9 +280,9 @@ class AgentLogger:
         safe_agent_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in agent_name)
         log_filename = f"agent_{safe_agent_name}_{timestamp}_{thread_id}.log"
         log_file = self.log_dir / log_filename
-        
+
         stream = _AgentCommandLogStream(log_file=log_file, logger=self)
-        
+
         # Header
         stream.write("Agent Command Output Log\n")
         stream.write(f"{'=' * 60}\n")
@@ -291,25 +292,25 @@ class AgentLogger:
         if command:
             stream.write(f"Command: {command}\n")
         stream.write(f"{'=' * 60}\n\n")
-        
+
         return stream
 
 
 class _AgentCommandLogStream:
     """Streaming writer for agent command log files."""
-    
+
     def __init__(self, log_file: Path, logger: AgentLogger):
         self.log_file = log_file
         self._logger = logger
         self._file = open(log_file, 'w', encoding='utf-8')
         self._closed = False
-    
+
     def write(self, text: str) -> None:
         if self._closed:
             return
         self._file.write(text)
         self._logger._flush_and_sync(self._file)
-    
+
     def close(self) -> None:
         if self._closed:
             return

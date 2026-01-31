@@ -3,19 +3,19 @@
 import json
 import re
 from typing import Dict, Any
+
 from .base import BaseAgent
-from utils.state_manager import StateManager
-from utils.models import Task
+from orchestragent.models import Task
 
 
 class JudgeAgent(BaseAgent):
     """Agent that evaluates progress and decides whether to continue."""
-    
+
     def __init__(self, *args, **kwargs):
         """Initialize judge agent."""
         super().__init__(*args, **kwargs)
         self.mode = "ask"  # Judge uses ask mode (read-only)
-    
+
     def build_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for judge."""
         # Load prompt template
@@ -23,7 +23,7 @@ class JudgeAgent(BaseAgent):
             "prompt_template",
             "prompts/judge.md"
         )
-        
+
         try:
             with open(prompt_template_path, 'r', encoding='utf-8') as f:
                 template = f.read()
@@ -37,17 +37,17 @@ Tasks: {total_tasks} total, {completed_tasks} completed, {pending_tasks} pending
 
 Please evaluate progress and decide whether to continue.
 """
-        
+
         # Get task statistics from individual task files (source of truth)
         task_stats = self.state_manager.get_task_statistics()
         total_tasks = task_stats.total
         completed_tasks = task_stats.completed
         failed_tasks = task_stats.failed
         pending_tasks = task_stats.pending
-        
+
         # Get all tasks from individual files to get completed task results
         all_tasks = self.state_manager.get_all_tasks_from_files()
-        
+
         # Get completed task results
         completed_results = []
         for task in all_tasks:
@@ -59,9 +59,9 @@ Please evaluate progress and decide whether to continue.
                         completed_results.append(f"### {task.id}: {task.title}\n{result_content[:200]}...")
                     except:
                         pass
-        
+
         completed_results_str = "\n\n".join(completed_results) if completed_results else "完了したタスクはありません"
-        
+
         # Format template
         prompt = template.format(
             project_goal=self.config.get("project_goal", "未設定"),
@@ -73,9 +73,9 @@ Please evaluate progress and decide whether to continue.
             completed_task_results=completed_results_str,
             iteration=state.get("status", {}).get("iteration", 0)
         )
-        
+
         return prompt
-    
+
     def parse_response(self, response: str) -> Dict[str, Any]:
         """Parse judge response."""
         # Try to extract JSON from response
@@ -84,12 +84,12 @@ Please evaluate progress and decide whether to continue.
             json_match = re.search(r'```json\n(.*?)\n```', response, re.DOTALL)
             if json_match:
                 return json.loads(json_match.group(1))
-            
+
             # Try to find JSON object directly
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
             if json_match:
                 return json.loads(json_match.group(0))
-            
+
             # If no JSON found, try to extract key information
             should_continue = "継続" in response or "continue" in response.lower() or "true" in response.lower()
             return {
@@ -112,14 +112,14 @@ Please evaluate progress and decide whether to continue.
                 "recommendations": [],
                 "next_iteration_focus": "JSON形式で出力してください"
             }
-    
+
     def update_state(self, result: Dict[str, Any]) -> None:
         """Update state with judge result."""
         should_continue = result.get("should_continue", True)
         reason = result.get("reason", "判定理由がありません")
         progress_score = result.get("progress_score", 0.5)
         drift_detected = result.get("drift_detected", False)
-        
+
         # Update status
         self.state_manager.update_status(
             last_judge_run=self._get_timestamp(),
@@ -129,12 +129,12 @@ Please evaluate progress and decide whether to continue.
             drift_detected=drift_detected,
             last_execution_feedback=result
         )
-        
+
         self.logger.info(f"[Judge] Should continue: {should_continue}, Reason: {reason[:100]}")
-        
+
         if drift_detected:
             self.logger.warning(f"[Judge] Drift detected: {result.get('drift_description', 'N/A')}")
-    
+
     def _get_timestamp(self) -> str:
         """Get current timestamp."""
         from datetime import datetime

@@ -1,28 +1,27 @@
 """Factory for creating LLM clients."""
 
-from typing import Dict, Any
-from .llm_client import LLMClient
-from .cursor_cli_client import CursorCLIClient
+from .client import LLMClient
+from .cursor_cli import CursorCLIClient
 
 
 class LLMClientFactory:
     """Factory for creating LLM clients."""
-    
+
     @staticmethod
     def create(backend: str = "cursor_cli", **kwargs) -> LLMClient:
         """
         Create LLM client based on backend.
-        
+
         Args:
             backend: Backend name
                 - "cursor_cli": Cursor CLI (initial implementation)
                 - "openai": OpenAI API direct call (Phase 4+)
                 - "anthropic": Anthropic API direct call (Phase 4+)
             **kwargs: Backend-specific settings
-        
+
         Returns:
             LLMClient instance
-        
+
         Raises:
             ValueError: If unsupported backend is specified
         """

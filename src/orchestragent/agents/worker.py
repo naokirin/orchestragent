@@ -1,20 +1,19 @@
 """Worker agent implementation."""
 
 import re
-import time
-from typing import Dict, Any, Optional
+from typing import Dict, Any
+
 from .base import BaseAgent
-from utils.state_manager import StateManager
-from utils.model_selector import ModelSelector
-from utils.intent_parser import IntentParser
-from utils.intent_manager import IntentManager
-from utils.models import Task
+from orchestragent.models import Task
+from orchestragent.llm.model_selector import ModelSelector
+from orchestragent.tracking.intent_parser import IntentParser
+from orchestragent.tracking.intent_manager import IntentManager
 import config
 
 
 class WorkerAgent(BaseAgent):
     """Agent that executes tasks."""
-    
+
     def __init__(self, *args, **kwargs):
         """Initialize worker agent."""
         super().__init__(*args, **kwargs)
@@ -34,23 +33,23 @@ class WorkerAgent(BaseAgent):
 
         # Initialize intent manager for tracking change intents
         self.intent_manager = IntentManager(state_dir=config.STATE_DIR)
-    
+
     def build_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for worker."""
         # Get assigned task from current_task_id (set by assign_task)
         if not self.current_task_id:
             raise ValueError("No task assigned to worker. Call assign_task() first.")
-        
+
         task = self.state_manager.get_task_by_id(self.current_task_id)
         if not task:
             raise ValueError(f"Task {self.current_task_id} not found")
-        
+
         # Load prompt template
         prompt_template_path = self.config.get(
             "prompt_template",
             "prompts/worker.md"
         )
-        
+
         try:
             with open(prompt_template_path, 'r', encoding='utf-8') as f:
                 template = f.read()
@@ -64,10 +63,10 @@ Task Description: {task_description}
 
 Please complete this task and report the result.
 """
-        
+
         # Get working directory from config
         working_dir = self.config.get("project_root", ".")
-        
+
         # Format template
         prompt = template.format(
             task_id=task.id,
@@ -76,9 +75,9 @@ Please complete this task and report the result.
             related_files=self._get_related_files(task),
             working_dir=working_dir
         )
-        
+
         return prompt
-    
+
     def _get_related_files(self, task: Task) -> str:
         """Get related files for the task."""
         # Simple implementation: extract file names from description
@@ -88,7 +87,7 @@ Please complete this task and report the result.
         if file_patterns:
             return "\n".join([f"- {f}" for f in set(file_patterns)])
         return "関連ファイルの情報がありません"
-    
+
     def parse_response(self, response: str) -> Dict[str, Any]:
         """Parse worker response including Intent extraction."""
         try:
@@ -149,7 +148,7 @@ Please complete this task and report the result.
                 "task_id": self.current_task_id,
                 "error": str(e)
             }
-    
+
     def update_state(self, result: Dict[str, Any]) -> None:
         """Update state with worker result including Intent saving."""
         # Ensure result is a dictionary
@@ -196,19 +195,19 @@ Please complete this task and report the result.
             last_worker_run=self._get_timestamp(),
             completed_tasks=completed_count
         )
-    
+
     def _get_timestamp(self) -> str:
         """Get current timestamp."""
         from datetime import datetime
         return datetime.now().isoformat()
-    
+
     def assign_task(self, task_id: str) -> bool:
         """
         Assign a task to this worker.
-        
+
         Args:
             task_id: Task ID to assign
-        
+
         Returns:
             True if task was assigned successfully, False otherwise
         """
@@ -216,41 +215,41 @@ Please complete this task and report the result.
         if not task:
             self.logger.error(f"[Worker] Task {task_id} not found")
             return False
-        
+
         if not task.is_pending():
             self.logger.warning(f"[Worker] Task {task_id} is not pending (status: {task.status.value})")
             return False
-        
+
         # Set current_task_id before assigning (used in build_prompt)
         self.current_task_id = task_id
-        
+
         self.state_manager.assign_task(task_id, self.name)
         self.logger.info(f"[Worker] Assigned task {task_id}")
         return True
-    
+
     def _run_internal(self, iteration: int, start_time: float) -> Dict[str, Any]:
         """
         Internal run method with dynamic model selection.
-        
+
         Args:
             iteration: Current iteration number
             start_time: Start time for duration calculation
-        
+
         Returns:
             Result dictionary
         """
         # Get current task for model selection
         if not self.current_task_id:
             raise ValueError("No task assigned to worker. Call assign_task() first.")
-        
+
         task = self.state_manager.get_task_by_id(self.current_task_id)
         if not task:
             raise ValueError(f"Task {self.current_task_id} not found")
-        
+
         # Select model based on task complexity (if enabled)
         original_model = self.config.get("model")
         selected_model = self.model_selector.select_model(task)
-        
+
         if selected_model != original_model:
             # Temporarily update model in config
             self.config["model"] = selected_model
@@ -260,7 +259,7 @@ Please complete this task and report the result.
                 f"[Worker] Model selected: {selected_model} "
                 f"(category: {complexity_category}, score: {complexity_score:.2f})"
             )
-        
+
         try:
             # Call parent's _run_internal() with selected model
             result = super()._run_internal(iteration, start_time)

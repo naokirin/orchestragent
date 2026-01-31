@@ -1,25 +1,18 @@
 """Configuration for the agent system."""
 
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
+
+# Add src to path for package imports
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Load environment variables
 load_dotenv()
 
-
-def is_running_in_container():
-    """Check if running in container."""
-    # Docker environment detection
-    if os.path.exists('/.dockerenv'):
-        return True
-    # cgroup check
-    try:
-        with open('/proc/self/cgroup', 'r') as f:
-            return 'docker' in f.read()
-    except:
-        pass
-    return False
+# Import from new package structure
+from orchestragent.core.environment import is_running_in_container
 
 
 # Project root
