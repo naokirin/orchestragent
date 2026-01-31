@@ -67,7 +67,12 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .status-in_progress { color: #63b3ed; }
     .status-completed { color: #68d391; }
     .status-failed { color: #fc8181; }
-    #logs-container { height: 70vh; overflow: auto; background: #2d3748; padding: 1rem; font-family: ui-monospace, monospace; font-size: 0.8rem; white-space: pre-wrap; }
+    /* Logs tab: .pen design */
+    #pane-logs.tab-pane.active { display: flex; flex-direction: column; gap: 8px; }
+    .logs-section { display: flex; flex-direction: column; gap: 8px; width: 100%; flex: 1; min-height: 0; }
+    .logs-section-title { color: #63b3ed; font-size: 16px; font-weight: normal; margin: 0; font-family: inherit; }
+    .logs-box { background: #2d3748; border-radius: 4px; padding: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+    #logs-container { flex: 1; min-height: 300px; overflow: auto; color: #a0aec0; font-family: Inter, ui-monospace, monospace; font-size: 13px; white-space: pre-wrap; margin: 0; }
     .loading { color: #a0aec0; }
     .error { color: #fc8181; }
   </style>
@@ -121,7 +126,12 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       </div>
     </div>
     <div id="pane-logs" class="tab-pane">
-      <div id="logs-container">読込中…</div>
+      <div class="logs-section">
+        <h3 class="logs-section-title">ログ</h3>
+        <div class="logs-box">
+          <div id="logs-container">読込中…</div>
+        </div>
+      </div>
     </div>
     <div id="pane-tasks" class="tab-pane">
       <div class="task-list">
