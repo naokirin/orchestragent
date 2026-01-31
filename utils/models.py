@@ -189,40 +189,6 @@ class Task:
         """Check if task is failed."""
         return self.status == TaskStatus.FAILED
 
-    def get(self, key: str, default: Any = None) -> Any:
-        """
-        Get attribute by key (for backward compatibility with dict interface).
-
-        Args:
-            key: Attribute name
-            default: Default value if attribute not found
-
-        Returns:
-            Attribute value or default
-        """
-        if hasattr(self, key):
-            value = getattr(self, key)
-            # Convert enum values to their string representation
-            if isinstance(value, TaskStatus):
-                return value.value
-            if isinstance(value, TaskPriority):
-                return value.value
-            if isinstance(value, TaskResult):
-                return value.to_dict()
-            return value
-        return default
-
-    def __getitem__(self, key: str) -> Any:
-        """Support dict-like access: task['id']."""
-        value = self.get(key)
-        if value is None and not hasattr(self, key):
-            raise KeyError(key)
-        return value
-
-    def __contains__(self, key: str) -> bool:
-        """Support 'in' operator: 'id' in task."""
-        return hasattr(self, key) and getattr(self, key) is not None
-
 
 @dataclass
 class TaskIndex:
