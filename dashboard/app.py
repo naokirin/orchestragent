@@ -281,7 +281,8 @@ class DashboardApp(App):
         content = self.query_one("#content", Container)
         intent_manager = IntentManager(state_dir=config.STATE_DIR)
         adr_manager = ADRManager(adr_dir=getattr(config, 'ADR_DIR', 'docs/adr'))
-        git_helper = GitHelper(repo_path=getattr(config, 'TARGET_PROJECT', '.'))
+        # Use WORKING_DIR which is properly set for both container and host environments
+        git_helper = GitHelper(repo_path=str(config.WORKING_DIR) if config.WORKING_DIR else '.')
         intents = IntentsWidget(intent_manager, adr_manager, git_helper)
         content.mount(intents)
         self.intents_widget = intents  # Store reference for updates

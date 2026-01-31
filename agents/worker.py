@@ -101,13 +101,22 @@ Please complete this task and report the result.
                 report = response
 
             # Try to extract commit info
+            # Support formats: "コミットハッシュ: xxx" and "- **コミットハッシュ:** xxx"
             commit_hash = None
             commit_message = None
-            commit_match = re.search(r'コミットハッシュ[:\s]+([a-f0-9]+)', response, re.IGNORECASE)
+            commit_match = re.search(
+                r'[-*]*\s*\**コミットハッシュ[:\*\s]+`?([a-f0-9]+)`?',
+                response,
+                re.IGNORECASE
+            )
             if commit_match:
                 commit_hash = commit_match.group(1)
 
-            msg_match = re.search(r'コミットメッセージ[:\s]+(.+)', response, re.MULTILINE)
+            msg_match = re.search(
+                r'[-*]*\s*\**コミットメッセージ[:\*\s]+`?(.+)`?',
+                response,
+                re.MULTILINE
+            )
             if msg_match:
                 commit_message = msg_match.group(1).strip()
 
@@ -164,6 +173,17 @@ Please complete this task and report the result.
             try:
                 filepath = self.intent_manager.save_intent(result["intent"])
                 self.logger.info(f"[Worker] Intent saved for task {task_id}: {filepath}")
+
+                # Add commit info to Intent if present
+                commit_hash = result.get("commit_hash")
+                commit_message = result.get("commit_message")
+                if commit_hash:
+                    self.intent_manager.add_commit_to_intent(
+                        task_id,
+                        commit_hash,
+                        commit_message or ""
+                    )
+                    self.logger.info(f"[Worker] Commit {commit_hash[:8]} added to Intent {task_id}")
             except Exception as e:
                 self.logger.warning(f"[Worker] Failed to save intent: {e}")
 

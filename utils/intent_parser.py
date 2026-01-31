@@ -18,8 +18,9 @@ class IntentParser:
     EXPECTED_CHANGE_PATTERN = re.compile(r'### 期待される変更 \(Expected Change\)\s*\n(.+?)(?=###|$)', re.DOTALL)
     NON_GOALS_PATTERN = re.compile(r'### 非目標 \(Non-Goals\)\s*\n(.+?)(?=###|$)', re.DOTALL)
     RISK_PATTERN = re.compile(r'### リスク \(Risk\)\s*\n(.+?)(?=###|##|$)', re.DOTALL)
-    COMMIT_HASH_PATTERN = re.compile(r'コミットハッシュ[:\s]+([a-f0-9]+)', re.IGNORECASE)
-    COMMIT_MSG_PATTERN = re.compile(r'コミットメッセージ[:\s]+(.+)', re.MULTILINE)
+    # Support formats: "コミットハッシュ: xxx" and "- **コミットハッシュ:** xxx"
+    COMMIT_HASH_PATTERN = re.compile(r'[-*]*\s*\**コミットハッシュ\**[:\s]+([a-f0-9]+)', re.IGNORECASE)
+    COMMIT_MSG_PATTERN = re.compile(r'[-*]*\s*\**コミットメッセージ\**[:\s]+(.+)', re.MULTILINE)
     RELATED_ADR_PATTERN = re.compile(r'関連ADR[:\s]+(ADR-)?(\d+)', re.IGNORECASE)
 
     @classmethod
