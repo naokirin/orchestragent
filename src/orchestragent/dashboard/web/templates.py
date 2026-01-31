@@ -57,16 +57,45 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .section { margin-bottom: 1rem; }
     .section h3 { color: #63b3ed; margin: 0 0 0.5rem 0; font-size: 1rem; }
     .section pre, .section .text { background: #2d3748; padding: 0.75rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; font-size: 0.85rem; }
+    /* Tasks tab: .pen design */
+    #pane-tasks.tab-pane.active { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+    .tasks-left, .tasks-right { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .tasks-section-title { color: #63b3ed; font-size: 16px; font-weight: normal; margin: 0 0 0 0; font-family: inherit; }
+    .task-table-wrap { background: #2d3748; border-radius: 4px; overflow: hidden; }
+    .task-table { width: 100%; border-collapse: collapse; font-family: inherit; font-size: 12px; }
+    .task-table thead { background: #2d3748; border-bottom: 1px solid #4a5568; }
+    .task-table th { padding: 6px 8px; text-align: left; color: #e0e0e0; font-weight: normal; }
+    .task-table td { padding: 6px 8px; text-align: left; color: #e0e0e0; border-bottom: 1px solid #4a5568; }
+    .task-table tbody tr { height: 36px; }
+    .task-table tbody tr.selected { background: #2c5282; }
+    .task-table tbody tr:hover { background: #2d3748; cursor: pointer; }
+    .task-table .status-pending { color: #ecc94b; }
+    .task-table .status-in_progress { color: #63b3ed; }
+    .task-table .status-completed { color: #68d391; }
+    .task-table .status-failed { color: #fc8181; }
+    .task-detail-box { background: #2d3748; border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 120px; }
+    .task-detail-placeholder { color: #a0aec0; font-size: 13px; margin: 0; }
+    .task-detail-content { display: none; flex-direction: column; gap: 12px; }
+    .task-detail-content.visible { display: flex; }
+    .task-detail-header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .task-detail-id-badge { background: #4a5568; border-radius: 4px; padding: 4px 8px; font-size: 12px; font-weight: bold; color: #e0e0e0; }
+    .task-detail-title { font-size: 16px; font-weight: bold; color: #e0e0e0; margin: 0; }
+    .task-detail-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .task-detail-badge { border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: bold; color: #1a1a1a; }
+    .task-detail-badge.status-pending { background: #ecc94b; }
+    .task-detail-badge.status-in_progress { background: #63b3ed; }
+    .task-detail-badge.status-completed { background: #68d391; }
+    .task-detail-badge.status-failed { background: #fc8181; }
+    .task-detail-badge.priority-high { background: #fc8181; }
+    .task-detail-badge.priority-medium { background: #ecc94b; }
+    .task-detail-badge.priority-low { background: #68d391; }
+    .task-detail-desc-row, .task-detail-files-row { display: flex; flex-direction: column; gap: 4px; }
+    .task-detail-desc-label, .task-detail-files-label { color: #a0aec0; font-size: 12px; margin: 0; }
+    .task-detail-desc-text { color: #e0e0e0; font-size: 13px; white-space: pre-wrap; margin: 0; }
+    .task-detail-files-text { color: #63b3ed; font-size: 12px; margin: 0; }
+    /* バッジ内の文字は常に暗色（テーブル用 .status-* の color がバッジに効かないよう上書き） */
+    .task-detail-content .task-detail-badge { color: #1a1a1a; }
     .task-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .task-table { width: 100%; border-collapse: collapse; }
-    .task-table th, .task-table td { padding: 0.4rem 0.6rem; text-align: left; border-bottom: 1px solid #4a5568; }
-    .task-table tr.selected { background: #2c5282; }
-    .task-table tr:hover { background: #2d3748; }
-    .task-detail { background: #2d3748; padding: 1rem; border-radius: 4px; }
-    .status-pending { color: #ecc94b; }
-    .status-in_progress { color: #63b3ed; }
-    .status-completed { color: #68d391; }
-    .status-failed { color: #fc8181; }
     /* Logs tab: .pen design */
     #pane-logs.tab-pane.active { display: flex; flex-direction: column; gap: 8px; }
     .logs-section { display: flex; flex-direction: column; gap: 8px; width: 100%; flex: 1; min-height: 0; }
@@ -134,9 +163,35 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       </div>
     </div>
     <div id="pane-tasks" class="tab-pane">
-      <div class="task-list">
-        <div><h3>タスク一覧</h3><div id="task-table-wrap"><table class="task-table"><thead><tr><th>ステータス</th><th>ID</th><th>タイトル</th><th>優先度</th></tr></thead><tbody id="task-tbody"></tbody></table></div></div>
-        <div><h3>タスク詳細</h3><div id="task-detail" class="task-detail">一覧から選択してください</div></div>
+      <div class="tasks-left">
+        <h3 class="tasks-section-title">タスク一覧</h3>
+        <div id="task-table-wrap" class="task-table-wrap">
+          <table class="task-table"><thead><tr><th>ステータス</th><th>ID</th><th>タイトル</th><th>優先度</th></tr></thead><tbody id="task-tbody"></tbody></table>
+        </div>
+      </div>
+      <div class="tasks-right">
+        <h3 class="tasks-section-title">タスク詳細</h3>
+        <div id="task-detail" class="task-detail-box">
+          <p id="task-detail-placeholder" class="task-detail-placeholder">一覧から選択してください</p>
+          <div id="task-detail-content" class="task-detail-content">
+            <div class="task-detail-header">
+              <span id="task-detail-id" class="task-detail-id-badge"></span>
+              <h4 id="task-detail-title" class="task-detail-title"></h4>
+            </div>
+            <div class="task-detail-badges">
+              <span id="task-detail-status" class="task-detail-badge"></span>
+              <span id="task-detail-priority" class="task-detail-badge"></span>
+            </div>
+            <div class="task-detail-desc-row">
+              <span class="task-detail-desc-label">説明</span>
+              <p id="task-detail-description" class="task-detail-desc-text"></p>
+            </div>
+            <div class="task-detail-files-row">
+              <span class="task-detail-files-label">対象ファイル</span>
+              <p id="task-detail-files" class="task-detail-files-text"></p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div id="pane-intents" class="tab-pane">
@@ -236,23 +291,37 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           if (selectedTaskId && tasks.some(function(t) { return t.id === selectedTaskId; })) {
             fetchTaskDetail(selectedTaskId);
           } else {
-            document.getElementById('task-detail').textContent = selectedTaskId ? 'タスクが見つかりません' : '一覧から選択してください';
+            showTaskDetailPlaceholder(selectedTaskId ? 'タスクが見つかりません' : '一覧から選択してください');
           }
         }).catch(function(e) {
           document.getElementById('task-tbody').innerHTML = '<tr><td colspan="4" class="error">取得失敗: ' + e.message + '</td></tr>';
         });
       }
 
+      function showTaskDetailPlaceholder(msg) {
+        document.getElementById('task-detail-placeholder').textContent = msg;
+        document.getElementById('task-detail-placeholder').style.display = '';
+        document.getElementById('task-detail-content').classList.remove('visible');
+      }
+
       function fetchTaskDetail(id) {
         fetch('/api/tasks/' + encodeURIComponent(id)).then(function(r) { return r.json(); }).then(function(t) {
-          var el = document.getElementById('task-detail');
-          if (!t.id) { el.textContent = 'タスクが見つかりません'; return; }
-          var s = 'ID: ' + t.id + '\\nタイトル: ' + (t.title || '') + '\\nステータス: ' + (t.status || '') + '\\n優先度: ' + (t.priority || '') + '\\n作成: ' + (t.created_at || '') + '\\n更新: ' + (t.updated_at || '') + '\\n\\n説明: ' + (t.description || '') + '\\n\\nファイル: ' + (t.files && t.files.length ? t.files.join(', ') : 'なし');
-          if (t.result && t.result.report) s += '\\n\\n結果: ' + t.result.report;
-          if (t.error) s += '\\n\\nエラー: ' + t.error;
-          el.textContent = s;
+          if (!t.id) { showTaskDetailPlaceholder('タスクが見つかりません'); return; }
+          document.getElementById('task-detail-placeholder').style.display = 'none';
+          document.getElementById('task-detail-content').classList.add('visible');
+          document.getElementById('task-detail-id').textContent = t.id;
+          document.getElementById('task-detail-title').textContent = t.title || '';
+          var statusEl = document.getElementById('task-detail-status');
+          statusEl.textContent = t.status || '';
+          statusEl.className = 'task-detail-badge status-' + (t.status || '');
+          var priorEl = document.getElementById('task-detail-priority');
+          priorEl.textContent = t.priority || '';
+          priorEl.className = 'task-detail-badge priority-' + ((t.priority === 'high' || t.priority === 'medium' || t.priority === 'low') ? t.priority : 'low');
+          document.getElementById('task-detail-description').textContent =
+            (t.description || '') + (t.result && t.result.report ? '\\n\\n結果: ' + t.result.report : '') + (t.error ? '\\n\\nエラー: ' + t.error : '');
+          document.getElementById('task-detail-files').textContent = t.files && t.files.length ? t.files.join(', ') : 'なし';
         }).catch(function(e) {
-          document.getElementById('task-detail').textContent = '取得失敗: ' + e.message;
+          showTaskDetailPlaceholder('取得失敗: ' + e.message);
         });
       }
 
