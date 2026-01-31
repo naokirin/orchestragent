@@ -5,8 +5,20 @@ import os
 import shutil
 import time
 from pathlib import Path
-from typing import Dict, Any, Optional, Callable, List
+from typing import Dict, Any, Optional, Callable, List, Union
 from datetime import datetime
+
+from .models import (
+    Task,
+    TaskIndex,
+    TasksFile,
+    TaskStatistics,
+    TaskStatus,
+    TaskPriority,
+    TaskResult,
+    CheckpointMetadata,
+    ValidationResult,
+)
 
 
 class StateManager:
@@ -178,11 +190,23 @@ class StateManager:
     
     def get_tasks(self) -> Dict[str, Any]:
         """
-        Get current tasks index (read-only).
+        Get current tasks index as dictionary (read-only, for backward compatibility).
         This is a lightweight index for ID and metadata only.
         Status and other dynamic fields are stored in individual task files.
         """
         return self.load_json("tasks.json")
+
+    def get_tasks_file(self) -> TasksFile:
+        """
+        Get current tasks index as TasksFile object (read-only).
+        This is a lightweight index for ID and metadata only.
+        Status and other dynamic fields are stored in individual task files.
+
+        Returns:
+            TasksFile object containing task index entries
+        """
+        data = self.load_json("tasks.json")
+        return TasksFile.from_dict(data)
     
     def _get_task_file_path(self, task_id: str) -> Path:
         """Get path to individual task state file."""
@@ -210,47 +234,50 @@ class StateManager:
             f.flush()
             os.fsync(f.fileno())  # Force write to disk
     
-    def add_task(self, task: Dict[str, Any]) -> str:
+    def add_task(self, task: Union[Task, Dict[str, Any]]) -> str:
         """
         Add a new task.
         Creates both index entry and individual task file.
-        
+
         Args:
-            task: Task dictionary
-        
+            task: Task object or dictionary
+
         Returns:
             Task ID
         """
+        # Convert dict to Task if needed
+        task_dict = task.to_dict() if isinstance(task, Task) else task.copy()
+
         def update(data: Dict[str, Any]) -> Dict[str, Any]:
             if 'tasks' not in data:
                 data['tasks'] = []
             if 'next_task_id' not in data:
                 data['next_task_id'] = 1
-            
+
             task_id = f"task_{data['next_task_id']:03d}"
-            task['id'] = task_id
-            task['status'] = 'pending'
-            task['created_at'] = datetime.now().isoformat()
-            
+            task_dict['id'] = task_id
+            task_dict['status'] = TaskStatus.PENDING.value
+            task_dict['created_at'] = datetime.now().isoformat()
+
             # Add to index (lightweight metadata only - ID and index info only)
             # Status is stored in individual task files, not in index
-            index_entry = {
-                'id': task_id,
-                'title': task.get('title', 'No title'),
-                'priority': task.get('priority', 'medium'),
-                'created_at': task['created_at']
-            }
-            data['tasks'].append(index_entry)
+            index_entry = TaskIndex(
+                id=task_id,
+                title=task_dict.get('title', 'No title'),
+                priority=TaskPriority.from_string(task_dict.get('priority', 'medium')),
+                created_at=task_dict['created_at']
+            )
+            data['tasks'].append(index_entry.to_dict())
             data['next_task_id'] += 1
             return data
-        
+
         # Update index
         updated = self.update_json("tasks.json", update)
-        task_id = task['id']
-        
+        task_id = task_dict['id']
+
         # Save full task data to individual file
-        self._save_task_state(task_id, task)
-        
+        self._save_task_state(task_id, task_dict)
+
         return task_id
     
     def get_plan(self) -> str:
@@ -261,105 +288,92 @@ class StateManager:
         """Save plan."""
         self.save_text("plan.md", plan)
     
-    def get_pending_tasks(self) -> List[Dict[str, Any]]:
+    def get_pending_tasks(self) -> List[Task]:
         """
         Get all pending tasks.
         Loads full task data from individual files.
+
+        Returns:
+            List of Task objects with pending status
         """
-        tasks_index = self.get_tasks()
+        tasks_file = self.get_tasks_file()
         pending = []
-        
-        for task_index in tasks_index.get("tasks", []):
-            task_id = task_index.get("id")
-            if not task_id:
-                continue
-            
-            # Load full task state
-            task = self.get_task_by_id(task_id)
-            if task and task.get("status") == "pending":
+
+        for task_index in tasks_file.tasks:
+            task = self.get_task_by_id(task_index.id)
+            if task and task.is_pending():
                 pending.append(task)
-        
+
         return pending
     
-    def get_all_tasks_from_files(self) -> List[Dict[str, Any]]:
+    def get_all_tasks_from_files(self) -> List[Task]:
         """
         Get all tasks by loading from individual task files.
         This is the source of truth for task status.
-        
+
         Returns:
-            List of all tasks with their current status from individual files
+            List of all Task objects with their current status from individual files
         """
-        tasks_index = self.get_tasks()
+        tasks_file = self.get_tasks_file()
         all_tasks = []
-        
-        for task_index in tasks_index.get("tasks", []):
-            task_id = task_index.get("id")
-            if not task_id:
-                continue
-            
-            # Load full task state from individual file
-            task = self.get_task_by_id(task_id)
+
+        for task_index in tasks_file.tasks:
+            task = self.get_task_by_id(task_index.id)
             if task:
                 all_tasks.append(task)
             else:
-                # If individual file doesn't exist, use index data
-                all_tasks.append(task_index.copy())
-        
+                # If individual file doesn't exist, create Task from index data
+                all_tasks.append(Task(
+                    id=task_index.id,
+                    title=task_index.title,
+                    priority=task_index.priority,
+                    created_at=task_index.created_at,
+                ))
+
         return all_tasks
     
-    def get_task_statistics(self) -> Dict[str, int]:
+    def get_task_statistics(self) -> TaskStatistics:
         """
         Get task statistics by loading from individual task files.
         This ensures accurate counts based on actual task states.
-        
+
         Returns:
-            Dictionary with counts: total, completed, failed, pending, in_progress
+            TaskStatistics object with counts
         """
         all_tasks = self.get_all_tasks_from_files()
-        
-        total = len(all_tasks)
-        completed = len([t for t in all_tasks if t.get("status") == "completed"])
-        failed = len([t for t in all_tasks if t.get("status") == "failed"])
-        pending = len([t for t in all_tasks if t.get("status") == "pending"])
-        in_progress = len([t for t in all_tasks if t.get("status") == "in_progress"])
-        
-        return {
-            "total": total,
-            "completed": completed,
-            "failed": failed,
-            "pending": pending,
-            "in_progress": in_progress
-        }
+        return TaskStatistics.from_tasks(all_tasks)
     
-    def get_task_by_id(self, task_id: str) -> Optional[Dict[str, Any]]:
+    def get_task_by_id(self, task_id: str) -> Optional[Task]:
         """
         Get task by ID (loads from individual task file only).
         Index is only used to verify task exists.
-        
+
         Args:
             task_id: Task ID
-        
+
         Returns:
-            Task data from individual file, or None if not found
+            Task object from individual file, or None if not found
         """
         # Check if task exists in index (quick check)
-        tasks = self.get_tasks()
-        task_exists = any(t.get("id") == task_id for t in tasks.get("tasks", []))
-        
-        if not task_exists:
+        tasks_file = self.get_tasks_file()
+        task_index = tasks_file.get_task_index(task_id)
+
+        if not task_index:
             return None
-        
+
         # Load from individual task file (source of truth)
         task_state = self._load_task_state(task_id)
-        
-        # If task file doesn't exist but is in index, return basic info from index
+
+        # If task file doesn't exist but is in index, return basic Task from index
         if not task_state:
-            for task in tasks.get("tasks", []):
-                if task.get("id") == task_id:
-                    return task.copy()
-            return None
-        
-        return task_state
+            return Task(
+                id=task_index.id,
+                title=task_index.title,
+                priority=task_index.priority,
+                created_at=task_index.created_at,
+            )
+
+        return Task.from_dict(task_state)
     
     def update_task(self, task_id: str, updates: Dict[str, Any]) -> None:
         """
@@ -385,31 +399,38 @@ class StateManager:
     def assign_task(self, task_id: str, worker_id: str = "worker") -> None:
         """Assign task to worker."""
         self.update_task(task_id, {
-            "status": "in_progress",
+            "status": TaskStatus.IN_PROGRESS.value,
             "assigned_to": worker_id,
             "started_at": datetime.now().isoformat()
         })
     
-    def complete_task(self, task_id: str, result: Dict[str, Any]) -> None:
+    def complete_task(self, task_id: str, result: Union[TaskResult, Dict[str, Any]]) -> None:
         """
         Mark task as completed with result.
         Updates only the individual task file (no conflict).
+
+        Args:
+            task_id: Task ID
+            result: TaskResult object or dictionary with result data
         """
+        # Convert to dict if TaskResult
+        result_dict = result.to_dict() if isinstance(result, TaskResult) else result
+
         result_file = f"results/{task_id}.md"
-        self.save_text(result_file, result.get("report", ""))
-        
+        self.save_text(result_file, result_dict.get("report", ""))
+
         # Update individual task file only
         self.update_task(task_id, {
-            "status": "completed",
+            "status": TaskStatus.COMPLETED.value,
             "completed_at": datetime.now().isoformat(),
             "result_file": result_file,
-            "result": result  # Store full result in task file
+            "result": result_dict  # Store full result in task file
         })
     
     def fail_task(self, task_id: str, error: str) -> None:
         """Mark task as failed."""
         self.update_task(task_id, {
-            "status": "failed",
+            "status": TaskStatus.FAILED.value,
             "failed_at": datetime.now().isoformat(),
             "error": error
         })
@@ -428,41 +449,39 @@ class StateManager:
         all_tasks = self.get_all_tasks_from_files()
 
         for task in all_tasks:
-            if task.get("status") == "in_progress":
-                task_id = task.get("id")
-                if task_id:
-                    self.update_task(task_id, {
-                        "status": "pending",
-                        "recovered_at": datetime.now().isoformat(),
-                        "recovery_reason": "System restart - task was in_progress"
-                    })
-                    recovered.append(task_id)
+            if task.is_in_progress():
+                self.update_task(task.id, {
+                    "status": TaskStatus.PENDING.value,
+                    "recovered_at": datetime.now().isoformat(),
+                    "recovery_reason": "System restart - task was in_progress"
+                })
+                recovered.append(task.id)
 
         return recovered
     
     def create_checkpoint(self, checkpoint_name: Optional[str] = None) -> str:
         """
         Create a checkpoint of current state.
-        
+
         Args:
             checkpoint_name: Optional checkpoint name (default: timestamp-based)
-        
+
         Returns:
             Checkpoint directory path
         """
         if checkpoint_name is None:
             checkpoint_name = f"checkpoint_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        
+
         checkpoint_dir = self.state_dir / "checkpoints" / checkpoint_name
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Copy all state files
         state_files = ["plan.md", "tasks.json", "status.json"]
         for filename in state_files:
             source = self.state_dir / filename
             if source.exists():
                 shutil.copy2(source, checkpoint_dir / filename)
-        
+
         # Copy individual task files directory
         tasks_source = self.state_dir / "tasks"
         if tasks_source.exists():
@@ -470,7 +489,7 @@ class StateManager:
             if tasks_dest.exists():
                 shutil.rmtree(tasks_dest)
             shutil.copytree(tasks_source, tasks_dest)
-        
+
         # Copy results directory
         results_source = self.state_dir / "results"
         if results_source.exists():
@@ -478,16 +497,16 @@ class StateManager:
             if results_dest.exists():
                 shutil.rmtree(results_dest)
             shutil.copytree(results_source, results_dest)
-        
+
         # Save checkpoint metadata
-        metadata = {
-            "checkpoint_name": checkpoint_name,
-            "created_at": datetime.now().isoformat(),
-            "files": state_files
-        }
+        metadata = CheckpointMetadata(
+            checkpoint_name=checkpoint_name,
+            created_at=datetime.now().isoformat(),
+            files=state_files
+        )
         with open(checkpoint_dir / "metadata.json", 'w', encoding='utf-8') as f:
-            json.dump(metadata, f, indent=2, ensure_ascii=False)
-        
+            json.dump(metadata.to_dict(), f, indent=2, ensure_ascii=False)
+
         return str(checkpoint_dir)
     
     def restore_checkpoint(self, checkpoint_name: str) -> None:
@@ -584,91 +603,85 @@ class StateManager:
         
         return str(backup_path)
     
-    def list_checkpoints(self) -> List[Dict[str, Any]]:
+    def list_checkpoints(self) -> List[CheckpointMetadata]:
         """
         List all available checkpoints.
-        
+
         Returns:
-            List of checkpoint metadata dictionaries
+            List of CheckpointMetadata objects
         """
         checkpoints = []
         checkpoints_dir = self.state_dir / "checkpoints"
-        
+
         if not checkpoints_dir.exists():
             return checkpoints
-        
+
         for checkpoint_dir in checkpoints_dir.iterdir():
             if checkpoint_dir.is_dir():
                 metadata_file = checkpoint_dir / "metadata.json"
                 if metadata_file.exists():
                     try:
                         with open(metadata_file, 'r', encoding='utf-8') as f:
-                            metadata = json.load(f)
-                            checkpoints.append(metadata)
+                            metadata_dict = json.load(f)
+                            checkpoints.append(CheckpointMetadata.from_dict(metadata_dict))
                     except Exception:
                         # Skip corrupted checkpoints
                         continue
-        
+
         # Sort by creation time (newest first)
-        checkpoints.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        checkpoints.sort(key=lambda x: x.created_at, reverse=True)
         return checkpoints
     
-    def validate_state(self) -> Dict[str, Any]:
+    def validate_state(self) -> ValidationResult:
         """
         Validate state files for integrity.
-        
+
         Returns:
-            Dictionary with validation results
+            ValidationResult object with validation results
         """
-        validation_result = {
-            "valid": True,
-            "errors": [],
-            "warnings": []
-        }
-        
+        result = ValidationResult()
+
         # Check required files
         required_files = ["tasks.json", "status.json"]
         for filename in required_files:
             filepath = self.state_dir / filename
             if not filepath.exists():
-                validation_result["warnings"].append(f"File not found: {filename}")
+                result.add_warning(f"File not found: {filename}")
                 continue
-            
+
             # Try to load JSON
             try:
                 data = self.load_json(filename)
                 if filename == "tasks.json":
                     # Validate tasks structure
                     if "tasks" not in data:
-                        validation_result["errors"].append("tasks.json missing 'tasks' key")
-                        validation_result["valid"] = False
+                        result.add_error("tasks.json missing 'tasks' key")
             except Exception as e:
                 from .exceptions import StateCorruptionError
                 if isinstance(e, StateCorruptionError):
-                    validation_result["errors"].append(f"Corrupted file: {filename} - {e}")
+                    result.add_error(f"Corrupted file: {filename} - {e}")
                 else:
-                    validation_result["errors"].append(f"Error loading {filename}: {e}")
-                validation_result["valid"] = False
-        
-        return validation_result
+                    result.add_error(f"Error loading {filename}: {e}")
+
+        return result
     
     def recover_from_corruption(self) -> bool:
         """
         Attempt to recover from state corruption.
-        
+
         Returns:
             True if recovery was successful, False otherwise
         """
         # Try to restore from latest checkpoint
         checkpoints = self.list_checkpoints()
         if checkpoints:
-            latest_checkpoint = checkpoints[0]["checkpoint_name"]
+            latest_checkpoint = checkpoints[0].checkpoint_name
             try:
                 self.restore_checkpoint(latest_checkpoint)
                 return True
             except Exception:
                 pass
-        
+
         # Try to restore from latest backup
         backup_dir = self.backup_dir
         if backup_dir.exists():
@@ -688,5 +701,5 @@ class StateManager:
                     return True
                 except Exception:
                     pass
-        
+
         return False

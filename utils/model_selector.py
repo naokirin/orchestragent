@@ -1,6 +1,7 @@
 """Model selection utilities for dynamic model selection based on task complexity."""
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
+from .models import Task, TaskPriority
 
 
 class ModelSelector:
@@ -36,60 +37,67 @@ class ModelSelector:
         self.model_powerful = model_powerful
         self.model_default = model_default
     
-    def calculate_complexity_score(self, task: Dict[str, Any]) -> float:
+    def calculate_complexity_score(self, task: Union[Task, Dict[str, Any]]) -> float:
         """
         Calculate complexity score for a task.
-        
+
         Args:
-            task: Task dictionary with description, files, estimated_hours, priority
-        
+            task: Task object or dictionary with description, files, estimated_hours, priority
+
         Returns:
             Complexity score (higher = more complex)
         """
+        # Handle both Task objects and dictionaries
+        if isinstance(task, Task):
+            description = task.description
+            files = task.files
+            estimated_hours = task.estimated_hours
+            priority = task.priority
+        else:
+            description = task.get("description", "")
+            files = task.get("files", [])
+            estimated_hours = task.get("estimated_hours", 0)
+            priority = TaskPriority.from_string(task.get("priority", "medium"))
+
         # Description length (normalized)
-        description = task.get("description", "")
         description_length = len(description) if description else 0
         description_score = description_length / 1000.0
-        
+
         # Number of related files
-        files = task.get("files", [])
         file_count = len(files) if files else 0
         file_score = file_count * 2.0
-        
+
         # Estimated hours
-        estimated_hours = task.get("estimated_hours", 0)
         if isinstance(estimated_hours, (int, float)):
             hours_score = float(estimated_hours) * 5.0
         else:
             hours_score = 0.0
-        
+
         # Priority score
-        priority = task.get("priority", "medium")
-        priority_map = {"high": 3, "medium": 2, "low": 1}
-        priority_score = float(priority_map.get(priority.lower(), 2))
-        
+        priority_score = float(priority.to_score())
+
         # Total complexity score
         complexity_score = description_score + file_score + hours_score + priority_score
-        
+
         return complexity_score
     
-    def select_model(self, task: Dict[str, Any]) -> Optional[str]:
+    def select_model(self, task: Union[Task, Dict[str, Any]]) -> Optional[str]:
         """
         Select appropriate model for a task based on complexity.
-        
+
         Args:
-            task: Task dictionary
-        
+            task: Task object or dictionary
+
         Returns:
             Selected model name, or None to use default
         """
         # If selection is disabled, use default
         if not self.enabled:
             return self.model_default
-        
+
         # Calculate complexity score
         complexity_score = self.calculate_complexity_score(task)
-        
+
         # Select model based on complexity
         if complexity_score < self.threshold_light:
             # Simple task - use light model
@@ -100,24 +108,24 @@ class ModelSelector:
         else:
             # Standard task - use standard model
             selected_model = self.model_standard or self.model_default
-        
+
         return selected_model
-    
-    def get_complexity_category(self, task: Dict[str, Any]) -> str:
+
+    def get_complexity_category(self, task: Union[Task, Dict[str, Any]]) -> str:
         """
         Get complexity category for a task (for logging/debugging).
-        
+
         Args:
-            task: Task dictionary
-        
+            task: Task object or dictionary
+
         Returns:
             Category name: "light", "standard", or "powerful"
         """
         if not self.enabled:
             return "default"
-        
+
         complexity_score = self.calculate_complexity_score(task)
-        
+
         if complexity_score < self.threshold_light:
             return "light"
         elif complexity_score >= self.threshold_powerful:
