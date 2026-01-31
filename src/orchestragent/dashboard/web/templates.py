@@ -147,7 +147,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     #intent-pane-diff.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
     .intent-card { background: #2a2a2a; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
     .intent-card-header { color: #a0aec0; font-size: 14px; font-weight: bold; margin: 0; }
-    .intent-card-body { color: #e0e0e0; font-size: 14px; white-space: pre-wrap; margin: 0; }
+    .intent-card-body { color: #e0e0e0; font-size: 14px; margin: 0; }
     /* Diff タブ: .pen の codePanel / codeArea に準拠 */
     .intent-diff-wrapper { background: #1a1a1a; border-radius: 8px; overflow: hidden; display: flex; flex-direction: row; flex: 1; min-height: 0; }
     /* ファイルツリー（左側） */
@@ -334,10 +334,10 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         </div>
         <div class="intent-detail-content">
           <div id="intent-pane-detail" class="intent-detail-pane active">
-            <div class="intent-card"><h4 class="intent-card-header">変更意図</h4><p id="intent-detail-goal" class="intent-card-body"></p></div>
-            <div class="intent-card"><h4 class="intent-card-header">理由</h4><p id="intent-detail-rationale" class="intent-card-body"></p></div>
-            <div class="intent-card"><h4 class="intent-card-header">期待される変更</h4><p id="intent-detail-expected" class="intent-card-body"></p></div>
-            <div class="intent-card"><h4 class="intent-card-header">コミット</h4><p id="intent-detail-commits" class="intent-card-body"></p></div>
+            <div class="intent-card"><h4 class="intent-card-header">変更意図</h4><div id="intent-detail-goal" class="intent-card-body md-content"></div></div>
+            <div class="intent-card"><h4 class="intent-card-header">理由</h4><div id="intent-detail-rationale" class="intent-card-body md-content"></div></div>
+            <div class="intent-card"><h4 class="intent-card-header">期待される変更</h4><div id="intent-detail-expected" class="intent-card-body md-content"></div></div>
+            <div class="intent-card"><h4 class="intent-card-header">コミット</h4><div id="intent-detail-commits" class="intent-card-body md-content"></div></div>
           </div>
           <div id="intent-pane-diff" class="intent-detail-pane">
             <div class="intent-diff-wrapper">
@@ -354,7 +354,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
             </div>
           </div>
           <div id="intent-pane-adr" class="intent-detail-pane">
-            <div class="intent-card"><h4 class="intent-card-header">関連ADR</h4><p id="intent-adr-content" class="intent-card-body"></p></div>
+            <div class="intent-card"><h4 class="intent-card-header">関連ADR</h4><div id="intent-adr-content" class="intent-card-body md-content"></div></div>
           </div>
         </div>
       </div>
@@ -855,19 +855,40 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         });
       }
 
+      function arrayToMarkdownList(arr) {
+        if (!arr || !Array.isArray(arr) || arr.length === 0) return '';
+        return arr.map(function(item) { return '- ' + item; }).join('\\n');
+      }
+
       function renderIntentDetailPanels(d) {
         if (!d || !d.task_id) return;
         var i = d.intent || {};
-        var ec = (i.expected_change && Array.isArray(i.expected_change)) ? i.expected_change.join(', ') : (i.expected_change || '');
+
+        // expected_change を箇条書き形式に変換
+        var ecText = '';
+        if (i.expected_change && Array.isArray(i.expected_change) && i.expected_change.length > 0) {
+          ecText = arrayToMarkdownList(i.expected_change);
+        } else if (i.expected_change) {
+          ecText = i.expected_change;
+        }
+
+        // commits を箇条書き形式に変換
+        var commitsText = '';
+        if (d.commits && Array.isArray(d.commits) && d.commits.length > 0) {
+          var commitLines = d.commits.map(function(c) {
+            return '`' + (c.hash || '').slice(0, 7) + '` ' + (c.message || '');
+          });
+          commitsText = arrayToMarkdownList(commitLines);
+        }
+
         document.getElementById('intent-detail-id-badge').textContent = d.task_id;
         document.getElementById('intent-detail-title').textContent = (i.goal || '').slice(0, 60);
-        document.getElementById('intent-detail-goal').textContent = i.goal || '（なし）';
-        document.getElementById('intent-detail-rationale').textContent = i.rationale || '（なし）';
-        document.getElementById('intent-detail-expected').textContent = ec || '（なし）';
-        var commits = (d.commits || []).map(function(c) { return (c.hash || '').slice(0, 7) + ' ' + (c.message || ''); }).join('\\n');
-        document.getElementById('intent-detail-commits').textContent = commits || '（なし）';
+        document.getElementById('intent-detail-goal').innerHTML = renderMarkdown(i.goal) || '<p>（なし）</p>';
+        document.getElementById('intent-detail-rationale').innerHTML = renderMarkdown(i.rationale) || '<p>（なし）</p>';
+        document.getElementById('intent-detail-expected').innerHTML = renderMarkdown(ecText) || '<p>（なし）</p>';
+        document.getElementById('intent-detail-commits').innerHTML = renderMarkdown(commitsText) || '<p>（なし）</p>';
         renderDiffPane(d.diff_text);
-        document.getElementById('intent-adr-content').textContent = d.related_adr || '（なし）';
+        document.getElementById('intent-adr-content').innerHTML = renderMarkdown(d.related_adr) || '<p>（なし）</p>';
       }
 
       function fetchIntents() {
