@@ -8,6 +8,7 @@ from utils.state_manager import StateManager
 from utils.model_selector import ModelSelector
 from utils.intent_parser import IntentParser
 from utils.intent_manager import IntentManager
+from utils.models import Task
 import config
 
 
@@ -69,19 +70,19 @@ Please complete this task and report the result.
         
         # Format template
         prompt = template.format(
-            task_id=task.get("id", "unknown"),
-            task_title=task.get("title", "No title"),
-            task_description=task.get("description", "No description"),
+            task_id=task.id,
+            task_title=task.title,
+            task_description=task.description,
             related_files=self._get_related_files(task),
             working_dir=working_dir
         )
         
         return prompt
     
-    def _get_related_files(self, task: Dict[str, Any]) -> str:
+    def _get_related_files(self, task: Task) -> str:
         """Get related files for the task."""
         # Simple implementation: extract file names from description
-        description = task.get("description", "")
+        description = task.description
         # Look for file patterns in description
         file_patterns = re.findall(r'[\w\-_/]+\.(py|ts|js|md|json|yml|yaml)', description)
         if file_patterns:
@@ -189,7 +190,7 @@ Please complete this task and report the result.
 
         # Update status (use task statistics from individual task files)
         task_stats = self.state_manager.get_task_statistics()
-        completed_count = task_stats.get("completed", 0)
+        completed_count = task_stats.completed
 
         self.state_manager.update_status(
             last_worker_run=self._get_timestamp(),
@@ -216,8 +217,8 @@ Please complete this task and report the result.
             self.logger.error(f"[Worker] Task {task_id} not found")
             return False
         
-        if task.get("status") != "pending":
-            self.logger.warning(f"[Worker] Task {task_id} is not pending (status: {task.get('status')})")
+        if not task.is_pending():
+            self.logger.warning(f"[Worker] Task {task_id} is not pending (status: {task.status.value})")
             return False
         
         # Set current_task_id before assigning (used in build_prompt)

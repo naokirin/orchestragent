@@ -252,16 +252,16 @@ def run_main_loop():
     
     # Validate state and attempt recovery if needed
     validation = state_manager.validate_state()
-    if not validation["valid"]:
+    if not validation.valid:
         print("\n[警告] 状態ファイルに問題が検出されました")
-        for error in validation["errors"]:
+        for error in validation.errors:
             print(f"  エラー: {error}")
         print("\n[復元] 最新のチェックポイントから復元を試みます...")
         if state_manager.recover_from_corruption():
             print("[復元] 復元に成功しました")
             # Re-validate
             validation = state_manager.validate_state()
-            if not validation["valid"]:
+            if not validation.valid:
                 print("[警告] 復元後も問題が残っています。手動での確認を推奨します。")
         else:
             print("[復元] 復元に失敗しました。初期状態から開始します。")
@@ -448,9 +448,9 @@ def run_main_loop():
                 else:
                     print(f"[Worker] {len(parallelizable_tasks)}個のタスクを並列実行します")
                     
-                    def run_worker_task(task_data: Dict[str, Any]) -> Dict[str, Any]:
+                    def run_worker_task(task_data) -> Dict[str, Any]:
                         """Run a single worker task."""
-                        task_id = task_data.get("id")
+                        task_id = task_data.id
                         worker_instance = WorkerAgent(
                             name=f"Worker-{task_id}",
                             llm_client=llm_client,
@@ -525,12 +525,12 @@ def run_main_loop():
                         
                         for future in as_completed(future_to_task):
                             task = future_to_task[future]
-                            task_id = task.get("id")
+                            task_id = task.id
                             try:
                                 result = future.result()
                                 if result["success"]:
                                     completed_count += 1
-                                    print(f"[Worker] タスク {task_id} 完了: {task.get('title', 'No title')}")
+                                    print(f"[Worker] タスク {task_id} 完了: {task.title}")
                                 else:
                                     failed_count += 1
                                     print(f"[Worker] タスク {task_id} 失敗: {result.get('error', 'Unknown error')}")
@@ -552,14 +552,14 @@ def run_main_loop():
             else:
                 # Sequential execution mode (original behavior)
                 pending_tasks = state_manager.get_pending_tasks()
-                
+
                 if not pending_tasks:
                     print("[Worker] 保留中のタスクがありません")
                 else:
                     # 最初の保留タスクを実行
                     task = pending_tasks[0]
-                    task_id = task.get("id")
-                    print(f"[Worker] タスク {task_id} を実行: {task.get('title', 'No title')}")
+                    task_id = task.id
+                    print(f"[Worker] タスク {task_id} を実行: {task.title}")
                     
                     if worker.assign_task(task_id):
                         try:
@@ -609,17 +609,17 @@ def run_main_loop():
             
             # 進捗ログ（個別タスクファイルから正確な状態を取得）
             task_stats = state_manager.get_task_statistics()
-            total_tasks = task_stats["total"]
-            completed_tasks = task_stats["completed"]
-            failed_tasks = task_stats["failed"]
-            pending_tasks = task_stats["pending"]
+            total_tasks = task_stats.total
+            completed_tasks = task_stats.completed
+            failed_tasks = task_stats.failed
+            pending_tasks_count = task_stats.pending
             
             logger.log_progress(
                 iteration=iteration,
                 total_tasks=total_tasks,
                 completed_tasks=completed_tasks,
                 failed_tasks=failed_tasks,
-                pending_tasks=pending_tasks
+                pending_tasks=pending_tasks_count
             )
             
             print(f"\n[判定] 継続判定: {should_continue}")
@@ -660,13 +660,13 @@ def run_main_loop():
         # Get accurate statistics from individual task files
         task_stats = state_manager.get_task_statistics()
         status = state_manager.get_status()
-        
+
         print(f"総イテレーション: {iteration}")
-        print(f"総タスク数: {task_stats.get('total', 0)}")
-        print(f"完了タスク: {task_stats.get('completed', 0)}")
-        print(f"失敗タスク: {task_stats.get('failed', 0)}")
-        print(f"保留中タスク: {task_stats.get('pending', 0)}")
-        print(f"実行中タスク: {task_stats.get('in_progress', 0)}")
+        print(f"総タスク数: {task_stats.total}")
+        print(f"完了タスク: {task_stats.completed}")
+        print(f"失敗タスク: {task_stats.failed}")
+        print(f"保留中タスク: {task_stats.pending}")
+        print(f"実行中タスク: {task_stats.in_progress}")
         
     except KeyboardInterrupt:
         print("\n\n[中断] ユーザーによって中断されました")

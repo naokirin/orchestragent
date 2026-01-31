@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from pathlib import Path
 import config
 from utils.state_manager import StateManager
+from utils.models import Task
 
 if TYPE_CHECKING:
     from utils.intent_manager import IntentManager
@@ -64,11 +65,11 @@ class OverviewWidget(ScrollableContainer):
         # Task statistics
         stats_widget = self.query_one("#task-stats", Static)
         task_stats = self.state_manager.get_task_statistics()
-        total = task_stats.get('total', 0)
-        completed = task_stats.get('completed', 0)
-        failed = task_stats.get('failed', 0)
-        pending = task_stats.get('pending', 0)
-        in_progress = task_stats.get('in_progress', 0)
+        total = task_stats.total
+        completed = task_stats.completed
+        failed = task_stats.failed
+        pending = task_stats.pending
+        in_progress = task_stats.in_progress
         
         completion_rate = (completed / total * 100) if total > 0 else 0
         
@@ -248,12 +249,12 @@ class TasksWidget(ScrollableContainer):
             current_task_ids = []
             task_data_map = {}
             for task in all_tasks:
-                task_id = task.get('id', 'N/A')
+                task_id = task.id
                 current_task_ids.append(task_id)
                 task_data_map[task_id] = {
-                    'title': task.get('title', 'No title')[:30],
-                    'status': task.get('status', 'unknown'),
-                    'priority': task.get('priority', 'medium')
+                    'title': task.title[:30],
+                    'status': task.status.value,
+                    'priority': task.priority.value
                 }
             
             # Get existing row keys
@@ -333,30 +334,32 @@ class TasksWidget(ScrollableContainer):
         task = self.state_manager.get_task_by_id(task_id)
         if not task:
             return
-        
+
         detail_widget = self.query_one("#task-detail", Static)
-        
-        updated_at = task.get('updated_at', task.get('completed_at', task.get('failed_at', 'N/A')))
+
+        updated_at = task.updated_at or task.completed_at or task.failed_at or 'N/A'
+        files_str = ', '.join(task.files) if task.files else 'なし'
         detail_text = f"""
-[bold]ID:[/bold] {task.get('id', 'N/A')}
-[bold]タイトル:[/bold] {task.get('title', 'No title')}
-[bold]ステータス:[/bold] {task.get('status', 'unknown')}
-[bold]優先度:[/bold] {task.get('priority', 'medium')}
-[bold]作成日時:[/bold] {task.get('created_at', 'N/A')}
+[bold]ID:[/bold] {task.id}
+[bold]タイトル:[/bold] {task.title}
+[bold]ステータス:[/bold] {task.status.value}
+[bold]優先度:[/bold] {task.priority.value}
+[bold]作成日時:[/bold] {task.created_at or 'N/A'}
 [bold]更新日時:[/bold] {updated_at}
 
 [bold]説明:[/bold]
-{task.get('description', '説明なし')}
+{task.description or '説明なし'}
 
 [bold]ファイル:[/bold]
-{', '.join(task.get('files', [])) if task.get('files') else 'なし'}
+{files_str}
         """.strip()
-        
-        if task.get('status') == 'completed' and task.get('result'):
-            detail_text += f"\n\n[bold]結果:[/bold]\n{task.get('result', {}).get('report', 'N/A')}"
-        elif task.get('status') == 'failed' and task.get('error'):
-            detail_text += f"\n\n[bold]エラー:[/bold]\n[red]{task.get('error', 'N/A')}[/red]"
-        
+
+        if task.is_completed() and task.result:
+            result_report = task.result.report if hasattr(task.result, 'report') else task.result.get('report', 'N/A')
+            detail_text += f"\n\n[bold]結果:[/bold]\n{result_report}"
+        elif task.is_failed() and task.error:
+            detail_text += f"\n\n[bold]エラー:[/bold]\n[red]{task.error}[/red]"
+
         detail_widget.update(detail_text)
 
 

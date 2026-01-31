@@ -4,6 +4,7 @@ import json
 import re
 from typing import Dict, Any
 from .base import BaseAgent
+from utils.models import Task
 
 
 class PlanJudgeAgent(BaseAgent):
@@ -56,8 +57,8 @@ Please evaluate whether this plan and task list are appropriate.
                 except Exception:
                     task = None
                 if task:
-                    task_status = task.get("status", "unknown")
-                    priority = task.get("priority", task_index.get("priority", "medium"))
+                    task_status = task.status.value
+                    priority = task.priority.value
                 else:
                     task_status = "unknown"
                     priority = task_index.get("priority", "medium")

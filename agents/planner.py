@@ -5,6 +5,7 @@ import re
 from typing import Dict, Any
 from .base import BaseAgent
 from utils.state_manager import StateManager
+from utils.models import Task
 
 
 class PlannerAgent(BaseAgent):
@@ -52,7 +53,7 @@ Please create a plan and new tasks in JSON format.
                 # Load full task data to get current status
                 task = self.state_manager.get_task_by_id(task_id)
                 if task:
-                    task_status = task.get("status", "unknown")
+                    task_status = task.status.value
                 else:
                     # Fallback to index data if individual file doesn't exist
                     task_status = "unknown"

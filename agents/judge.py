@@ -5,6 +5,7 @@ import re
 from typing import Dict, Any
 from .base import BaseAgent
 from utils.state_manager import StateManager
+from utils.models import Task
 
 
 class JudgeAgent(BaseAgent):
@@ -39,10 +40,10 @@ Please evaluate progress and decide whether to continue.
         
         # Get task statistics from individual task files (source of truth)
         task_stats = self.state_manager.get_task_statistics()
-        total_tasks = task_stats["total"]
-        completed_tasks = task_stats["completed"]
-        failed_tasks = task_stats["failed"]
-        pending_tasks = task_stats["pending"]
+        total_tasks = task_stats.total
+        completed_tasks = task_stats.completed
+        failed_tasks = task_stats.failed
+        pending_tasks = task_stats.pending
         
         # Get all tasks from individual files to get completed task results
         all_tasks = self.state_manager.get_all_tasks_from_files()
@@ -50,12 +51,12 @@ Please evaluate progress and decide whether to continue.
         # Get completed task results
         completed_results = []
         for task in all_tasks:
-            if task.get("status") == "completed":
-                result_file = task.get("result_file")
+            if task.is_completed():
+                result_file = task.result_file
                 if result_file:
                     try:
                         result_content = self.state_manager.load_text(result_file)
-                        completed_results.append(f"### {task.get('id')}: {task.get('title')}\n{result_content[:200]}...")
+                        completed_results.append(f"### {task.id}: {task.title}\n{result_content[:200]}...")
                     except:
                         pass
         
