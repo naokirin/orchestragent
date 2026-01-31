@@ -61,6 +61,51 @@ services:
     stdin_open: true
     tty: true
 
+  # Web ダッシュボード（main.py を起動せず、state/log のみ参照）
+  # 設定タブで agent と同じ項目を表示するため、config が参照する環境変数を agent と揃えている
+  web-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # DockerHub 利用時: image: your-username/cursor-scage:latest
+    command: python -m orchestragent.dashboard.web
+    volumes:
+      - .:/workspace
+      - ${TARGET_PROJECT:-.}:/target
+      - ./${STATE_DIR:-state}:/workspace/${STATE_DIR:-state}
+      - ./${LOG_DIR:-logs}:/workspace/${LOG_DIR:-logs}
+    environment:
+      - PROJECT_ROOT=${PROJECT_ROOT:-/target}
+      - TARGET_PROJECT=${TARGET_PROJECT:-}
+      - STATE_DIR=${STATE_DIR:-state}
+      - LOG_DIR=${LOG_DIR:-logs}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PROJECT_GOAL=${PROJECT_GOAL:-プロジェクトの目標を設定してください}
+      - ADR_DIR=${ADR_DIR:-docs/adr}
+      - LLM_BACKEND=${LLM_BACKEND:-cursor_cli}
+      - LLM_OUTPUT_FORMAT=${LLM_OUTPUT_FORMAT:-text}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - PLANNER_MODEL=${PLANNER_MODEL:-}
+      - WORKER_MODEL=${WORKER_MODEL:-}
+      - JUDGE_MODEL=${JUDGE_MODEL:-}
+      - WORKER_MODEL_LIGHT=${WORKER_MODEL_LIGHT:-}
+      - WORKER_MODEL_STANDARD=${WORKER_MODEL_STANDARD:-}
+      - WORKER_MODEL_POWERFUL=${WORKER_MODEL_POWERFUL:-}
+      - MODEL_SELECTION_ENABLED=${MODEL_SELECTION_ENABLED:-false}
+      - MODEL_COMPLEXITY_THRESHOLD_LIGHT=${MODEL_COMPLEXITY_THRESHOLD_LIGHT:-10.0}
+      - MODEL_COMPLEXITY_THRESHOLD_POWERFUL=${MODEL_COMPLEXITY_THRESHOLD_POWERFUL:-30.0}
+      - WAIT_TIME_SECONDS=${WAIT_TIME_SECONDS:-60}
+      - MAX_ITERATIONS=${MAX_ITERATIONS:-100}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - MAX_PARALLEL_WORKERS=${MAX_PARALLEL_WORKERS:-3}
+      - ENABLE_PARALLEL_EXECUTION=${ENABLE_PARALLEL_EXECUTION:-true}
+      - WEB_DASHBOARD_PORT=8765
+      - WEB_DASHBOARD_HOST=0.0.0.0
+    working_dir: /workspace
+    ports:
+      - "8765:8765"
+    restart: unless-stopped
+
 volumes:
   cursor-config:
     # Cursor CLIの認証情報を永続化（/root/.cursor）

@@ -163,8 +163,18 @@ PYTHONPATH=src python -m orchestragent.dashboard.web
 
 #### Docker で Web のみ起動（状態だけ参照）
 
+**方法 A: `web-dashboard` サービスを使う（推奨）**
+
 ```bash
-# 既存 agent イメージで Web サーバーのみ起動（main.py は動かさない）
+# Web ダッシュボードだけ起動（エージェントは起動しない）
+docker compose up web-dashboard
+```
+
+ブラウザで http://localhost:8765 を開きます。エージェントと同時に使う場合: `docker compose up agent web-dashboard`。
+
+**方法 B: agent イメージで Web コマンドだけ実行**
+
+```bash
 docker compose run --rm -p 8765:8765 -e WEB_DASHBOARD_HOST=0.0.0.0 agent python -m orchestragent.dashboard.web
 ```
 
