@@ -413,6 +413,32 @@ class StateManager:
             "failed_at": datetime.now().isoformat(),
             "error": error
         })
+
+    def recover_in_progress_tasks(self) -> List[str]:
+        """
+        Recover tasks that are stuck in 'in_progress' state.
+
+        This is typically called at system startup to reset tasks that were
+        interrupted due to system crash, user interruption, or other failures.
+
+        Returns:
+            List of task IDs that were recovered (reset to 'pending')
+        """
+        recovered = []
+        all_tasks = self.get_all_tasks_from_files()
+
+        for task in all_tasks:
+            if task.get("status") == "in_progress":
+                task_id = task.get("id")
+                if task_id:
+                    self.update_task(task_id, {
+                        "status": "pending",
+                        "recovered_at": datetime.now().isoformat(),
+                        "recovery_reason": "System restart - task was in_progress"
+                    })
+                    recovered.append(task_id)
+
+        return recovered
     
     def create_checkpoint(self, checkpoint_name: Optional[str] = None) -> str:
         """

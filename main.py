@@ -265,6 +265,13 @@ def run_main_loop():
                 print("[警告] 復元後も問題が残っています。手動での確認を推奨します。")
         else:
             print("[復元] 復元に失敗しました。初期状態から開始します。")
+
+    # Recover tasks that were stuck in 'in_progress' state
+    recovered_tasks = state_manager.recover_in_progress_tasks()
+    if recovered_tasks:
+        print(f"\n[復元] {len(recovered_tasks)}個の中断されたタスクを再実行可能にしました:")
+        for task_id in recovered_tasks:
+            print(f"  - {task_id}")
     
     logger = AgentLogger(
         log_dir=config.LOG_DIR,
