@@ -20,8 +20,8 @@ class IntentParser:
     NON_GOALS_PATTERN = re.compile(r'### 非目標 \(Non-Goals\)\s*\n(.+?)(?=###|$)', re.DOTALL)
     RISK_PATTERN = re.compile(r'### リスク \(Risk\)\s*\n(.+?)(?=###|##|$)', re.DOTALL)
     # Support formats: "コミットハッシュ: xxx" and "- **コミットハッシュ:** xxx"
-    COMMIT_HASH_PATTERN = re.compile(r'[-*]*\s*\**コミットハッシュ\**[:\s]+([a-f0-9]+)', re.IGNORECASE)
-    COMMIT_MSG_PATTERN = re.compile(r'[-*]*\s*\**コミットメッセージ\**[:\s]+(.+)', re.MULTILINE)
+    COMMIT_HASH_PATTERN = re.compile(r'[-*]*\s*\**コミットハッシュ[:\*\s]+`?([a-f0-9]+)`?', re.IGNORECASE)
+    COMMIT_MSG_PATTERN = re.compile(r'[-*]*\s*\**コミットメッセージ[:\*\s]+`?(.+)`?', re.MULTILINE)
     RELATED_ADR_PATTERN = re.compile(r'関連ADR[:\s]+(ADR-)?(\d+)', re.IGNORECASE)
 
     # New ADR section (when Worker proposes an architecture/design decision)
@@ -61,9 +61,8 @@ class IntentParser:
         non_goals = cls._extract_list(cls.NON_GOALS_PATTERN, intent_section)
         risk = cls._extract_list(cls.RISK_PATTERN, intent_section)
 
-        # Extract commit info from full response
-        commit_hash = cls._extract_single(cls.COMMIT_HASH_PATTERN, response)
-        commit_message = cls._extract_single(cls.COMMIT_MSG_PATTERN, response)
+        # Extract commit info from full response (supports multiple commits)
+        commits = cls._extract_commits(response)
 
         # Extract related ADR (existing ADR reference)
         adr_match = cls.RELATED_ADR_PATTERN.search(response)
@@ -86,13 +85,7 @@ class IntentParser:
                 "non_goals": non_goals,
                 "risk": risk,
             },
-            "commits": [
-                {
-                    "hash": commit_hash,
-                    "message": commit_message,
-                    "timestamp": now,
-                }
-            ] if commit_hash else [],
+            "commits": commits,
             "related_adr": related_adr,
             "adr_to_create": adr_to_create,
         }
@@ -110,12 +103,11 @@ class IntentParser:
         Returns:
             Intent dictionary with partial data or None
         """
-        # Extract commit info
-        commit_hash = cls._extract_single(cls.COMMIT_HASH_PATTERN, response)
-        commit_message = cls._extract_single(cls.COMMIT_MSG_PATTERN, response)
+        # Extract commit info (supports multiple commits)
+        commits = cls._extract_commits(response)
 
-        # If we have at least commit info, create a minimal intent record
-        if not commit_hash:
+        # If we have at least one commit, create a minimal intent record
+        if not commits:
             return None
 
         now = datetime.now().isoformat()
@@ -136,13 +128,7 @@ class IntentParser:
                 "non_goals": [],
                 "risk": [],
             },
-            "commits": [
-                {
-                    "hash": commit_hash,
-                    "message": commit_message,
-                    "timestamp": now,
-                }
-            ],
+            "commits": commits,
             "related_adr": None,
             "adr_to_create": None,
         }
@@ -175,6 +161,30 @@ class IntentParser:
             "rationale": rationale.strip(),
             "consequences": consequences.strip(),
         }
+
+    @classmethod
+    def _extract_all(cls, pattern: re.Pattern, text: str) -> List[str]:
+        """Extract all values from pattern matches (findall)."""
+        return [m.strip() for m in pattern.findall(text)]
+
+    @classmethod
+    def _extract_commits(cls, response: str) -> List[Dict[str, Any]]:
+        """
+        Extract all commit hash/message pairs from response.
+        Pairs by order: first hash with first message, second hash with second message, etc.
+        """
+        hashes = cls._extract_all(cls.COMMIT_HASH_PATTERN, response)
+        messages = cls._extract_all(cls.COMMIT_MSG_PATTERN, response)
+        now = datetime.now().isoformat()
+        commits = []
+        for i, h in enumerate(hashes):
+            msg = messages[i].strip() if i < len(messages) else ""
+            commits.append({
+                "hash": h,
+                "message": msg,
+                "timestamp": now,
+            })
+        return commits
 
     @classmethod
     def _extract_single(cls, pattern: re.Pattern, text: str) -> Optional[str]:

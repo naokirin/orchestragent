@@ -103,39 +103,49 @@ Please complete this task and report the result.
                 # If no structured report, use entire response
                 report = response
 
-            # Try to extract commit info
-            # Support formats: "コミットハッシュ: xxx" and "- **コミットハッシュ:** xxx"
-            commit_hash = None
-            commit_message = None
-            commit_match = re.search(
-                r'[-*]*\s*\**コミットハッシュ[:\*\s]+`?([a-f0-9]+)`?',
-                response,
-                re.IGNORECASE
-            )
-            if commit_match:
-                commit_hash = commit_match.group(1)
+            # Extract Intent information from response (includes commits list)
+            intent_data = IntentParser.parse(response, self.current_task_id)
 
-            msg_match = re.search(
-                r'[-*]*\s*\**コミットメッセージ[:\*\s]+`?(.+)`?',
-                response,
-                re.MULTILINE
-            )
-            if msg_match:
-                commit_message = msg_match.group(1).strip()
+            # Build commits list: use intent_data["commits"] if present, else extract with regex
+            commits = []
+            if intent_data and intent_data.get("commits"):
+                commits = [
+                    {"hash": c["hash"], "message": c.get("message", "") or ""}
+                    for c in intent_data["commits"]
+                ]
+            else:
+                # Fallback: extract all commit hashes and messages by regex
+                hash_matches = re.findall(
+                    r'[-*]*\s*\**コミットハッシュ[:\*\s]+`?([a-f0-9]+)`?',
+                    response,
+                    re.IGNORECASE
+                )
+                msg_matches = re.findall(
+                    r'[-*]*\s*\**コミットメッセージ[:\*\s]+`?(.+)`?',
+                    response,
+                    re.MULTILINE
+                )
+                for i, h in enumerate(hash_matches):
+                    msg = msg_matches[i].strip() if i < len(msg_matches) else ""
+                    commits.append({"hash": h, "message": msg})
 
             result = {
                 "report": report,
-                "commit_hash": commit_hash,
-                "commit_message": commit_message,
+                "commits": commits,
                 "task_id": self.current_task_id
             }
+            # Backward compat: first commit as commit_hash / commit_message
+            if commits:
+                result["commit_hash"] = commits[0]["hash"]
+                result["commit_message"] = commits[0]["message"]
+            else:
+                result["commit_hash"] = None
+                result["commit_message"] = None
 
             # Ensure task_id is set
             if not result.get("task_id"):
                 result["task_id"] = self.current_task_id
 
-            # Extract Intent information from response
-            intent_data = IntentParser.parse(response, self.current_task_id)
             if intent_data:
                 result["intent"] = intent_data
                 self.logger.info(f"[Worker] Intent extracted for task {self.current_task_id}")
@@ -146,6 +156,7 @@ Please complete this task and report the result.
             # Return a safe fallback result
             return {
                 "report": response[:1000] if response else "No response",
+                "commits": [],
                 "commit_hash": None,
                 "commit_message": None,
                 "task_id": self.current_task_id,
@@ -201,16 +212,16 @@ Please complete this task and report the result.
                 filepath = self.intent_manager.save_intent(result["intent"])
                 self.logger.info(f"[Worker] Intent saved for task {task_id}: {filepath}")
 
-                # Add commit info to Intent if present
-                commit_hash = result.get("commit_hash")
-                commit_message = result.get("commit_message")
-                if commit_hash:
-                    self.intent_manager.add_commit_to_intent(
-                        task_id,
-                        commit_hash,
-                        commit_message or ""
-                    )
-                    self.logger.info(f"[Worker] Commit {commit_hash[:8]} added to Intent {task_id}")
+                # Add all commits to Intent (intent_data already has commits; add_commit dedupes)
+                for c in result.get("commits", []):
+                    ch = c.get("hash")
+                    if ch:
+                        self.intent_manager.add_commit_to_intent(
+                            task_id,
+                            ch,
+                            c.get("message") or ""
+                        )
+                        self.logger.info(f"[Worker] Commit {ch[:8]} added to Intent {task_id}")
             except Exception as e:
                 self.logger.warning(f"[Worker] Failed to save intent: {e}")
 
