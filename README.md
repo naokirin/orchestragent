@@ -28,6 +28,7 @@ Cursorブログ記事「[長時間稼働する自律型コーディングをス�
 - **[抽象化レイヤーの設計](./docs/dev/ARCHITECTURE_DESIGN.md)**: 後からLLM APIに差し替え可能な設計
 - **[実行環境の設計](./docs/dev/EXECUTION_ENVIRONMENT.md)**: Sandbox/DevContainerでの実行方法
 - **[実装前チェックリスト](./docs/dev/IMPLEMENTATION_CHECKLIST.md)**: 実装開始前の確認項目
+- **[Web ダッシュボード計画](./docs/dev/WEB_DASHBOARD_PLAN.md)**: ブラウザで状態確認する Web ダッシュボードの要件・設計・Stateful UI
 - **[ADR（Architecture Decision Records）](./docs/adr/)**: アーキテクチャ決定の記録
 
 ## クイックスタート
@@ -139,6 +140,39 @@ docker compose up
 TARGET_PROJECT=/path/to/my-project
 PROJECT_GOAL=REST APIを実装する
 ```
+
+### Web ダッシュボード（main.py と独立）
+
+エージェント（main.py）を起動せずに、永続化された状態（state / logs）だけをブラウザで参照する Web ダッシュボードを利用できます。概要・ログ・タスク・Intent・設定を 5 秒ごとのポーリングで更新し、タブ・選択行・ログのスクロール位置は維持されます。
+
+#### ローカルで起動
+
+```bash
+# プロジェクトルートで実行（依存: fastapi, uvicorn, jinja2）
+pip install -r requirements.txt
+PYTHONPATH=src python -m orchestragent.dashboard.web
+```
+
+ブラウザで http://127.0.0.1:8765 を開きます。
+
+環境変数（任意）:
+
+- `WEB_DASHBOARD_PORT`: ポート（デフォルト: 8765）
+- `WEB_DASHBOARD_HOST`: バインド先（デフォルト: 127.0.0.1。外部公開時は 0.0.0.0 に変更し、リバースプロキシ＋認証を推奨）
+- `WEB_DASHBOARD_RELOAD`: 開発時のみ `true` でオートリロード
+
+#### Docker で Web のみ起動（状態だけ参照）
+
+```bash
+# 既存 agent イメージで Web サーバーのみ起動（main.py は動かさない）
+docker compose run --rm -p 8765:8765 -e WEB_DASHBOARD_HOST=0.0.0.0 agent python -m orchestragent.dashboard.web
+```
+
+ホストの state / logs がボリュームでマウントされているため、エージェント未起動でも同じ state を参照できます。
+
+#### ドキュメント
+
+- 要件・技術選定・設計・Stateful UI（ポーリング時のタブ・選択・スクロール維持）: [docs/dev/WEB_DASHBOARD_PLAN.md](./docs/dev/WEB_DASHBOARD_PLAN.md)
 
 ### 環境変数の詳細
 
