@@ -239,6 +239,11 @@ var s = 'Task ID: ' + d.task_id + '\\n目標: ' + (i.goal || '') + '\\n理由: '
             lines.push('  Cursor CLI: ' + d.environment.cursor_cli_available);
             lines.push('  Python: ' + d.environment.python_version);
           }
+          if (d.git) {
+            lines.push('【Git】');
+            lines.push('  user_name: ' + (d.git.user_name || '(未設定)'));
+            lines.push('  user_email: ' + (d.git.user_email || '(未設定)'));
+          }
           document.querySelector('#settings-content .text').textContent = lines.join('\\n');
         }).catch(function(e) {
           document.querySelector('#settings-content .text').textContent = '取得失敗: ' + e.message;

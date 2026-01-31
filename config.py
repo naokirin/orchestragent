@@ -84,6 +84,10 @@ STATE_DIR = os.getenv("STATE_DIR", "state")
 # ADR (Architecture Decision Records) Configuration
 ADR_DIR = os.getenv("ADR_DIR", "docs/adr")
 
+# Git configuration (used by agents for commits)
+GIT_USER_NAME = os.getenv("GIT_USER_NAME", "")
+GIT_USER_EMAIL = os.getenv("GIT_USER_EMAIL", "")
+
 # Logging Configuration
 LOG_DIR = os.getenv("LOG_DIR", "logs")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

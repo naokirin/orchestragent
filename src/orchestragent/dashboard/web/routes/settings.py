@@ -55,4 +55,8 @@ def get_settings(state=Depends(get_state_manager)):
             "cursor_cli_available": cursor_available,
             "python_version": sys.version.split()[0],
         },
+        "git": {
+            "user_name": getattr(config, "GIT_USER_NAME", "") or "(未設定)",
+            "user_email": getattr(config, "GIT_USER_EMAIL", "") or "(未設定)",
+        },
     }
