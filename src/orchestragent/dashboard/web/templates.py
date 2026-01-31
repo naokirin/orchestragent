@@ -92,8 +92,27 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .task-detail-badge.priority-low { background: #68d391; }
     .task-detail-desc-row, .task-detail-files-row { display: flex; flex-direction: column; gap: 4px; }
     .task-detail-desc-label, .task-detail-files-label { color: #a0aec0; font-size: 12px; margin: 0; }
-    .task-detail-desc-text { color: #e0e0e0; font-size: 13px; white-space: pre-wrap; margin: 0; }
+    .task-detail-desc-text { color: #e0e0e0; font-size: 13px; margin: 0; }
     .task-detail-files-text { color: #63b3ed; font-size: 12px; margin: 0; }
+    /* Markdown rendering styles */
+    .md-content { line-height: 1.6; }
+    .md-content h1 { font-size: 1.4em; font-weight: bold; color: #63b3ed; margin: 16px 0 8px 0; border-bottom: 1px solid #4a5568; padding-bottom: 4px; }
+    .md-content h2 { font-size: 1.2em; font-weight: bold; color: #63b3ed; margin: 14px 0 6px 0; }
+    .md-content h3 { font-size: 1.1em; font-weight: bold; color: #63b3ed; margin: 12px 0 4px 0; }
+    .md-content h4, .md-content h5, .md-content h6 { font-size: 1em; font-weight: bold; color: #a0aec0; margin: 10px 0 4px 0; }
+    .md-content p { margin: 8px 0; }
+    .md-content strong { font-weight: bold; color: #ffffff; }
+    .md-content em { font-style: italic; color: #e2e8f0; }
+    .md-content code { background: #1a1a1a; color: #f6ad55; padding: 2px 6px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 0.9em; }
+    .md-content pre { background: #0d1117; border-radius: 6px; padding: 12px; margin: 8px 0; overflow-x: auto; }
+    .md-content pre code { background: none; padding: 0; color: #c9d1d9; display: block; white-space: pre; }
+    .md-content ul, .md-content ol { margin: 8px 0; padding-left: 24px; }
+    .md-content li { margin: 4px 0; }
+    .md-content blockquote { border-left: 3px solid #4a5568; padding-left: 12px; margin: 8px 0; color: #a0aec0; font-style: italic; }
+    .md-content hr { border: none; border-top: 1px solid #4a5568; margin: 16px 0; }
+    .md-content a { color: #63b3ed; text-decoration: underline; }
+    .md-content .md-section { margin-top: 16px; padding-top: 12px; border-top: 1px solid #4a5568; }
+    .md-content .md-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
     /* バッジ内の文字は常に暗色（テーブル用 .status-* の color がバッジに効かないよう上書き） */
     .task-detail-content .task-detail-badge { color: #1a1a1a; }
     .task-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -280,7 +299,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
             </div>
             <div class="task-detail-desc-row">
               <span class="task-detail-desc-label">説明</span>
-              <p id="task-detail-description" class="task-detail-desc-text"></p>
+              <div id="task-detail-description" class="task-detail-desc-text md-content"></div>
             </div>
             <div class="task-detail-files-row">
               <span class="task-detail-files-label">対象ファイル</span>
@@ -510,8 +529,14 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           var priorEl = document.getElementById('task-detail-priority');
           priorEl.textContent = t.priority || '';
           priorEl.className = 'task-detail-badge priority-' + ((t.priority === 'high' || t.priority === 'medium' || t.priority === 'low') ? t.priority : 'low');
-          document.getElementById('task-detail-description').textContent =
-            (t.description || '') + (t.result && t.result.report ? '\\n\\n結果: ' + t.result.report : '') + (t.error ? '\\n\\nエラー: ' + t.error : '');
+          var descHtml = renderMarkdown(t.description || '');
+          if (t.result && t.result.report) {
+            descHtml += '<div class="md-section"><h3>結果</h3>' + renderMarkdown(t.result.report) + '</div>';
+          }
+          if (t.error) {
+            descHtml += '<div class="md-section"><h3>エラー</h3>' + renderMarkdown(t.error) + '</div>';
+          }
+          document.getElementById('task-detail-description').innerHTML = descHtml || '<p>（説明なし）</p>';
           document.getElementById('task-detail-files').textContent = t.files && t.files.length ? t.files.join(', ') : 'なし';
         }).catch(function(e) {
           showTaskDetailPlaceholder('取得失敗: ' + e.message);
@@ -573,6 +598,121 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
 
       function escapeHtml(s) {
         return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      function renderMarkdown(text) {
+        if (!text) return '';
+        var escaped = escapeHtml(text);
+        var lines = escaped.split('\\n');
+        var html = [];
+        var inCodeBlock = false;
+        var codeBlockContent = [];
+        var inList = false;
+        var listItems = [];
+
+        function flushList() {
+          if (inList && listItems.length > 0) {
+            html.push('<ul>' + listItems.join('') + '</ul>');
+            listItems = [];
+            inList = false;
+          }
+        }
+
+        function processInline(line) {
+          // Bold: **text** or __text__
+          line = line.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');
+          line = line.replace(/__(.+?)__/g, '<strong>$1</strong>');
+          // Italic: *text* or _text_
+          line = line.replace(/\\*([^*]+)\\*/g, '<em>$1</em>');
+          line = line.replace(/_([^_]+)_/g, '<em>$1</em>');
+          // Inline code: `code`
+          line = line.replace(/`([^`]+)`/g, '<code>$1</code>');
+          // Links: [text](url)
+          line = line.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+          return line;
+        }
+
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+
+          // Code block (```)
+          if (line.indexOf('```') === 0) {
+            if (inCodeBlock) {
+              html.push('<pre><code>' + codeBlockContent.join('\\n') + '</code></pre>');
+              codeBlockContent = [];
+              inCodeBlock = false;
+            } else {
+              flushList();
+              inCodeBlock = true;
+            }
+            continue;
+          }
+
+          if (inCodeBlock) {
+            codeBlockContent.push(line);
+            continue;
+          }
+
+          // Horizontal rule
+          if (/^---+$/.test(line.trim()) || /^\\*\\*\\*+$/.test(line.trim())) {
+            flushList();
+            html.push('<hr>');
+            continue;
+          }
+
+          // Headers (# ## ### etc.)
+          var headerMatch = line.match(/^(#{1,6})\\s+(.+)$/);
+          if (headerMatch) {
+            flushList();
+            var level = headerMatch[1].length;
+            html.push('<h' + level + '>' + processInline(headerMatch[2]) + '</h' + level + '>');
+            continue;
+          }
+
+          // Blockquote (>)
+          var quoteMatch = line.match(/^>\\s*(.*)$/);
+          if (quoteMatch) {
+            flushList();
+            html.push('<blockquote>' + processInline(quoteMatch[1]) + '</blockquote>');
+            continue;
+          }
+
+          // Unordered list (- or *)
+          var listMatch = line.match(/^[\\-\\*]\\s+(.+)$/);
+          if (listMatch) {
+            inList = true;
+            listItems.push('<li>' + processInline(listMatch[1]) + '</li>');
+            continue;
+          }
+
+          // Ordered list (1. 2. etc.)
+          var orderedListMatch = line.match(/^\\d+\\.\\s+(.+)$/);
+          if (orderedListMatch) {
+            if (!inList) {
+              inList = true;
+            }
+            listItems.push('<li>' + processInline(orderedListMatch[1]) + '</li>');
+            continue;
+          }
+
+          // Empty line
+          if (line.trim() === '') {
+            flushList();
+            continue;
+          }
+
+          // Regular paragraph
+          flushList();
+          html.push('<p>' + processInline(line) + '</p>');
+        }
+
+        // Handle unclosed code block
+        if (inCodeBlock && codeBlockContent.length > 0) {
+          html.push('<pre><code>' + codeBlockContent.join('\\n') + '</code></pre>');
+        }
+        flushList();
+
+        return html.join('');
       }
 
       function buildFileTree(files) {
