@@ -522,11 +522,29 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         return tree;
       }
 
-      function renderFileTreeNode(tree, depth) {
+      function collectFileOrder(tree, orderList) {
+        var folders = [];
+        var fileItems = [];
+        Object.keys(tree).sort().forEach(function(k) {
+          if (tree[k].__file) {
+            fileItems.push({ name: k, data: tree[k] });
+          } else {
+            folders.push({ name: k, children: tree[k].__children });
+          }
+        });
+        folders.forEach(function(folder) {
+          collectFileOrder(folder.children, orderList);
+        });
+        fileItems.forEach(function(item) {
+          orderList.push(item.data.__index);
+        });
+      }
+
+      function renderFileTreeNode(tree, depth, displayIdx) {
         var html = '';
         var folders = [];
         var fileItems = [];
-        Object.keys(tree).forEach(function(k) {
+        Object.keys(tree).sort().forEach(function(k) {
           if (tree[k].__file) {
             fileItems.push({ name: k, data: tree[k] });
           } else {
@@ -535,11 +553,11 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         });
         folders.forEach(function(folder) {
           html += '<div class="diff-folder-header" style="padding-left:' + (12 + depth * 16) + 'px"><span class="diff-folder-icon">▼</span><span class="diff-folder-name">' + escapeHtml(folder.name) + '/</span></div>';
-          html += '<div class="diff-folder-children">' + renderFileTreeNode(folder.children, depth + 1) + '</div>';
+          html += '<div class="diff-folder-children">' + renderFileTreeNode(folder.children, depth + 1, displayIdx) + '</div>';
         });
         fileItems.forEach(function(item) {
           var f = item.data.__file;
-          var idx = item.data.__index;
+          var currentDisplayIdx = displayIdx.current++;
           var nameClass = f.isDeleted ? 'diff-file-name deleted' : 'diff-file-name';
           var badge = '';
           if (f.isNew) {
@@ -549,15 +567,16 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           } else {
             badge = '<span class="diff-file-badge"><span class="diff-file-add">+' + f.adds + '</span><span class="diff-file-del">-' + f.dels + '</span></span>';
           }
-          html += '<div class="diff-file-item" data-file-idx="' + idx + '" style="padding-left:' + (12 + depth * 16) + 'px"><span class="diff-file-icon">📄</span><span class="' + nameClass + '">' + escapeHtml(item.name) + '</span>' + badge + '</div>';
+          html += '<div class="diff-file-item" data-file-idx="' + currentDisplayIdx + '" style="padding-left:' + (12 + depth * 16) + 'px"><span class="diff-file-icon">📄</span><span class="' + nameClass + '">' + escapeHtml(item.name) + '</span>' + badge + '</div>';
         });
         return html;
       }
 
-      function renderDiffCodePanel(files) {
+      function renderDiffCodePanel(files, fileOrder) {
         var html = '';
-        files.forEach(function(f, fidx) {
-          var isFirst = fidx === 0;
+        fileOrder.forEach(function(origIdx, displayIdx) {
+          var f = files[origIdx];
+          var isFirst = displayIdx === 0;
           var headerClass = isFirst ? 'diff-file-header' : 'diff-file-header continued';
           var pathClass = f.isDeleted ? 'diff-file-header-path deleted' : 'diff-file-header-path';
           var tagHtml = '';
@@ -569,7 +588,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           var statsHtml = '';
           if (f.adds > 0) statsHtml += '<span class="diff-file-header-add">+' + f.adds + ' 追加</span>';
           if (f.dels > 0) statsHtml += '<span class="diff-file-header-del">-' + f.dels + ' 削除</span>';
-          html += '<div class="diff-code-section" id="diff-section-' + fidx + '">';
+          html += '<div class="diff-code-section" id="diff-section-' + displayIdx + '">';
           html += '<div class="' + headerClass + '"><div class="diff-file-header-left"><span class="' + pathClass + '">' + escapeHtml(f.path) + '</span>' + tagHtml + '</div><div class="diff-file-header-stats">' + statsHtml + '</div></div>';
           html += '<div class="diff-code-area">';
           var lineNum = 1;
@@ -597,7 +616,6 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         var fileTreeList = document.getElementById('diff-file-tree-list');
         var codePanel = document.getElementById('diff-code-panel');
         var fileCount = document.getElementById('diff-file-count');
-        var emptyState = document.getElementById('diff-empty-state');
         if (!diffText) {
           fileTreeList.innerHTML = '';
           codePanel.innerHTML = '<div class="diff-empty-state">（Diff なし）</div>';
@@ -612,8 +630,11 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           return;
         }
         var tree = buildFileTree(files);
-        fileTreeList.innerHTML = renderFileTreeNode(tree, 0);
-        codePanel.innerHTML = renderDiffCodePanel(files);
+        var fileOrder = [];
+        collectFileOrder(tree, fileOrder);
+        var displayIdx = { current: 0 };
+        fileTreeList.innerHTML = renderFileTreeNode(tree, 0, displayIdx);
+        codePanel.innerHTML = renderDiffCodePanel(files, fileOrder);
         fileTreeList.querySelectorAll('.diff-file-item').forEach(function(el) {
           el.addEventListener('click', function() {
             var idx = el.getAttribute('data-file-idx');
