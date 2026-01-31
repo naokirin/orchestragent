@@ -17,14 +17,15 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; }
-    body { font-family: Inter, system-ui, sans-serif; margin: 0; background: #1a1a1a; color: #e0e0e0; }
-    #header { background: #2d3748; padding: 8px 16px; height: 48px; display: flex; align-items: center; justify-content: center; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: Inter, system-ui, sans-serif; background: #1a1a1a; color: #e0e0e0; display: flex; flex-direction: column; }
+    #header { background: #2d3748; padding: 8px 16px; height: 48px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     #header .header-title { color: #e0e0e0; font-size: 16px; font-weight: normal; margin: 0; }
-    #tabs { display: flex; align-items: flex-end; gap: 0; background: #2d3748; padding: 0 16px; height: 44px; border-bottom: 1px solid #4a5568; }
+    #tabs { display: flex; align-items: flex-end; gap: 0; background: #2d3748; padding: 0 16px; height: 44px; border-bottom: 1px solid #4a5568; flex-shrink: 0; }
     #tabs button { background: none; border: none; color: #a0aec0; padding: 10px 16px; cursor: pointer; font-size: 0.9rem; height: 40px; display: flex; align-items: center; justify-content: center; font-family: inherit; }
     #tabs button:hover { color: #e2e8f0; }
     #tabs button.active { color: #63b3ed; border-bottom: 2px solid #63b3ed; margin-bottom: -1px; }
-    #content { padding: 16px; max-width: 1200px; margin: 0 auto; }
+    #content { padding: 16px; max-width: 1200px; margin: 0 auto; flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; }
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
     /* Overview tab: .pen design (flex only when active so .tab-pane display:none wins when inactive) */
@@ -96,12 +97,12 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     /* バッジ内の文字は常に暗色（テーブル用 .status-* の color がバッジに効かないよう上書き） */
     .task-detail-content .task-detail-badge { color: #1a1a1a; }
     .task-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    /* Logs tab: .pen design */
-    #pane-logs.tab-pane.active { display: flex; flex-direction: column; gap: 8px; }
+    /* Logs tab: .pen design — 高さはビューポートに合わせ、ログはインラインでスクロール */
+    #pane-logs.tab-pane.active { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
     .logs-section { display: flex; flex-direction: column; gap: 8px; width: 100%; flex: 1; min-height: 0; }
-    .logs-section-title { color: #63b3ed; font-size: 16px; font-weight: normal; margin: 0; font-family: inherit; }
+    .logs-section-title { color: #63b3ed; font-size: 16px; font-weight: normal; margin: 0; font-family: inherit; flex-shrink: 0; }
     .logs-box { background: #2d3748; border-radius: 4px; padding: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-    #logs-container { flex: 1; min-height: 300px; overflow: auto; color: #a0aec0; font-family: Inter, ui-monospace, monospace; font-size: 13px; white-space: pre-wrap; margin: 0; }
+    #logs-container { flex: 1; min-height: 0; overflow: auto; color: #a0aec0; font-family: Inter, ui-monospace, monospace; font-size: 13px; white-space: pre-wrap; margin: 0; }
     /* Intent tab: .pen design, list-only then detail with sub-tabs */
     #pane-intents.tab-pane.active { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
     #intent-list-view { display: flex; flex-direction: column; gap: 12px; width: 100%; }
