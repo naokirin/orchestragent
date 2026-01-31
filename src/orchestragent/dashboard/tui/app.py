@@ -236,7 +236,7 @@ class DashboardApp(App):
 
     def _show_overview(self) -> None:
         """Show overview tab content."""
-        from orchestragent.dashboard.widgets import OverviewWidget
+        from orchestragent.dashboard.tui.widgets import OverviewWidget
         from orchestragent.state.manager import StateManager
         import config
 
@@ -247,7 +247,7 @@ class DashboardApp(App):
 
     def _show_logs(self) -> None:
         """Show logs tab content."""
-        from orchestragent.dashboard.widgets import LogsWidget
+        from orchestragent.dashboard.tui.widgets import LogsWidget
 
         content = self.query_one("#content", Container)
         log_widget = LogsWidget()
@@ -256,7 +256,7 @@ class DashboardApp(App):
 
     def _show_tasks(self) -> None:
         """Show tasks tab content."""
-        from orchestragent.dashboard.widgets import TasksWidget
+        from orchestragent.dashboard.tui.widgets import TasksWidget
         from orchestragent.state.manager import StateManager
         import config
 
@@ -268,7 +268,7 @@ class DashboardApp(App):
 
     def _show_intents(self) -> None:
         """Show intents tab content."""
-        from orchestragent.dashboard.widgets import IntentsWidget
+        from orchestragent.dashboard.tui.widgets import IntentsWidget
         from orchestragent.tracking.intent_manager import IntentManager
         from orchestragent.tracking.adr_manager import ADRManager
         from orchestragent.tracking.git_helper import GitHelper
@@ -285,7 +285,7 @@ class DashboardApp(App):
 
     def _show_settings(self) -> None:
         """Show settings tab content."""
-        from orchestragent.dashboard.widgets import SettingsWidget
+        from orchestragent.dashboard.tui.widgets import SettingsWidget
 
         content = self.query_one("#content", Container)
         settings = SettingsWidget()

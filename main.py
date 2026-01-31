@@ -33,7 +33,7 @@ def main():
     if args.dashboard:
         # ダッシュボードモード
         try:
-            from orchestragent.dashboard.app import DashboardApp
+            from orchestragent.dashboard.tui.app import DashboardApp
             app = DashboardApp()
             app.run()
         except ImportError as e:

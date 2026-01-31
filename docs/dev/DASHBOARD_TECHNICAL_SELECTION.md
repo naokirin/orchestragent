@@ -149,7 +149,7 @@ main.py
 ```python
 # main.py
 import argparse
-from dashboard.app import DashboardApp
+from orchestragent.dashboard.tui.app import DashboardApp
 
 def run_main_loop():
     """既存のメインループロジック（print文ベース）"""

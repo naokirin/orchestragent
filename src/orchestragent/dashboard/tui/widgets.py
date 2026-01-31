@@ -1,4 +1,4 @@
-"""Dashboard widgets for each tab."""
+"""TUI dashboard widgets for each tab."""
 
 import sys
 from textual.widgets import Static, DataTable, RichLog, TabbedContent, TabPane
