@@ -4,12 +4,10 @@ import os
 import sys
 from pathlib import Path
 
-# Ensure project root and src are on path when run as __main__
+# Ensure project root is on path so config loads (when run with PYTHONPATH=src)
 _repo_root = Path(__file__).resolve().parent.parent.parent.parent.parent
-_src = _repo_root / "src"
-for p in (_repo_root, _src):
-    if p.exists() and str(p) not in sys.path:
-        sys.path.insert(0, str(p))
+if _repo_root.exists() and str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(_repo_root))
 
 if __name__ == "__main__":
     import uvicorn
