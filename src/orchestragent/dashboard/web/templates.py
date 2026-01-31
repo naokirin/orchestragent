@@ -182,6 +182,23 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .diff-empty-state { color: #a0aec0; font-size: 14px; text-align: center; padding: 40px; }
     .loading { color: #a0aec0; }
     .error { color: #fc8181; }
+    /* Settings tab: .pen design */
+    #pane-settings.tab-pane.active { display: flex; flex-direction: column; gap: 16px; }
+    .settings-pane { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+    .settings-card { background: #2d3748; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .settings-card-title { color: #63b3ed; font-size: 14px; font-weight: bold; margin: 0; }
+    .settings-grid { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+    .settings-row { display: flex; gap: 8px; width: 100%; }
+    .settings-label { color: #a0aec0; font-size: 13px; min-width: 140px; }
+    .settings-value { color: #e0e0e0; font-size: 13px; }
+    .settings-value.highlight { color: #63b3ed; }
+    .settings-value.success { color: #68d391; }
+    .settings-goal-box { background: #1a1a1a; border-radius: 4px; padding: 8px; width: 100%; }
+    .settings-goal-text { color: #e0e0e0; font-size: 12px; white-space: pre-wrap; margin: 0; }
+    .settings-two-col { display: flex; gap: 32px; width: 100%; }
+    .settings-col { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .settings-bottom-row { display: flex; gap: 16px; width: 100%; }
+    .settings-bottom-row .settings-card { flex: 1; }
   </style>
 </head>
 <body>
@@ -323,7 +340,58 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       </div>
     </div>
     <div id="pane-settings" class="tab-pane">
-      <div id="settings-content" class="section"><div class="text loading">読込中…</div></div>
+      <div class="settings-pane">
+        <div id="settings-project-card" class="settings-card">
+          <h4 class="settings-card-title">プロジェクト</h4>
+          <div class="settings-grid">
+            <div class="settings-row"><span class="settings-label">project_root</span><span id="settings-project-root" class="settings-value">—</span></div>
+            <div class="settings-row"><span class="settings-label">target_project</span><span id="settings-target-project" class="settings-value">—</span></div>
+            <div class="settings-row"><span class="settings-label">state_dir</span><span id="settings-state-dir" class="settings-value">—</span></div>
+            <div class="settings-row"><span class="settings-label">log_dir</span><span id="settings-log-dir" class="settings-value">—</span></div>
+            <div class="settings-row"><span class="settings-label">log_level</span><span id="settings-log-level" class="settings-value">—</span></div>
+            <div class="settings-row" style="flex-direction: column; gap: 4px;"><span class="settings-label">project_goal</span><div class="settings-goal-box"><p id="settings-project-goal" class="settings-goal-text">—</p></div></div>
+          </div>
+        </div>
+        <div id="settings-llm-card" class="settings-card">
+          <h4 class="settings-card-title">LLM</h4>
+          <div class="settings-grid">
+            <div class="settings-row"><span class="settings-label">backend</span><span id="settings-llm-backend" class="settings-value">—</span></div>
+            <div class="settings-row"><span class="settings-label">output_format</span><span id="settings-llm-format" class="settings-value">—</span></div>
+            <div class="settings-row"><span class="settings-label">default_model</span><span id="settings-llm-model" class="settings-value">—</span></div>
+          </div>
+        </div>
+        <div id="settings-loop-card" class="settings-card">
+          <h4 class="settings-card-title">メインループ</h4>
+          <div class="settings-two-col">
+            <div class="settings-col">
+              <div class="settings-row"><span class="settings-label">wait_time_seconds</span><span id="settings-loop-wait" class="settings-value">—</span></div>
+              <div class="settings-row"><span class="settings-label">max_iterations</span><span id="settings-loop-iter" class="settings-value">—</span></div>
+              <div class="settings-row"><span class="settings-label">max_retries</span><span id="settings-loop-retries" class="settings-value">—</span></div>
+            </div>
+            <div class="settings-col">
+              <div class="settings-row"><span class="settings-label">enable_parallel</span><span id="settings-loop-parallel" class="settings-value">—</span></div>
+              <div class="settings-row"><span class="settings-label">max_parallel_workers</span><span id="settings-loop-workers" class="settings-value">—</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-bottom-row">
+          <div id="settings-env-card" class="settings-card">
+            <h4 class="settings-card-title">環境</h4>
+            <div class="settings-grid">
+              <div class="settings-row"><span class="settings-label">コンテナ</span><span id="settings-env-container" class="settings-value">—</span></div>
+              <div class="settings-row"><span class="settings-label">Cursor CLI</span><span id="settings-env-cursor" class="settings-value">—</span></div>
+              <div class="settings-row"><span class="settings-label">Python</span><span id="settings-env-python" class="settings-value">—</span></div>
+            </div>
+          </div>
+          <div id="settings-git-card" class="settings-card">
+            <h4 class="settings-card-title">Git</h4>
+            <div class="settings-grid">
+              <div class="settings-row"><span class="settings-label">user_name</span><span id="settings-git-name" class="settings-value">—</span></div>
+              <div class="settings-row"><span class="settings-label">user_email</span><span id="settings-git-email" class="settings-value">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <script>
@@ -708,35 +776,46 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         });
       }
 
+      function setSettingsValue(id, value, isHighlight, isSuccess) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = value != null ? value : '—';
+        el.classList.remove('highlight', 'success');
+        if (isSuccess) el.classList.add('success');
+        else if (isHighlight) el.classList.add('highlight');
+      }
+
       function fetchSettings() {
         fetch('/api/settings').then(function(r) { return r.json(); }).then(function(d) {
-          var lines = [];
-          if (d.project) {
-            lines.push('【プロジェクト】');
-            Object.keys(d.project).forEach(function(k) { lines.push('  ' + k + ': ' + d.project[k]); });
-          }
-          if (d.llm) {
-            lines.push('【LLM】');
-            Object.keys(d.llm).forEach(function(k) { lines.push('  ' + k + ': ' + d.llm[k]); });
-          }
-          if (d.loop) {
-            lines.push('【メインループ】');
-            Object.keys(d.loop).forEach(function(k) { lines.push('  ' + k + ': ' + d.loop[k]); });
-          }
-          if (d.environment) {
-            lines.push('【環境】');
-            lines.push('  コンテナ: ' + d.environment.running_in_container);
-            lines.push('  Cursor CLI: ' + d.environment.cursor_cli_available);
-            lines.push('  Python: ' + d.environment.python_version);
-          }
-          if (d.git) {
-            lines.push('【Git】');
-            lines.push('  user_name: ' + (d.git.user_name || '(未設定)'));
-            lines.push('  user_email: ' + (d.git.user_email || '(未設定)'));
-          }
-          document.querySelector('#settings-content .text').textContent = lines.join('\\n');
+          var p = d.project || {};
+          setSettingsValue('settings-project-root', p.project_root);
+          setSettingsValue('settings-target-project', p.target_project);
+          setSettingsValue('settings-state-dir', p.state_dir);
+          setSettingsValue('settings-log-dir', p.log_dir);
+          var logLevel = p.log_level || '';
+          setSettingsValue('settings-log-level', logLevel, false, logLevel === 'DEBUG');
+          document.getElementById('settings-project-goal').textContent = p.project_goal || '未設定';
+          var l = d.llm || {};
+          setSettingsValue('settings-llm-backend', l.backend);
+          setSettingsValue('settings-llm-format', l.output_format);
+          var model = l.default_model || '';
+          setSettingsValue('settings-llm-model', model, model === 'auto' || model.indexOf('auto') >= 0);
+          var lp = d.loop || {};
+          setSettingsValue('settings-loop-wait', lp.wait_time_seconds);
+          setSettingsValue('settings-loop-iter', lp.max_iterations);
+          setSettingsValue('settings-loop-retries', lp.max_retries);
+          var parallel = lp.enable_parallel_execution;
+          setSettingsValue('settings-loop-parallel', parallel != null ? String(parallel) : '—', false, parallel === true);
+          setSettingsValue('settings-loop-workers', lp.max_parallel_workers);
+          var e = d.environment || {};
+          setSettingsValue('settings-env-container', e.running_in_container != null ? String(e.running_in_container) : '—', false, e.running_in_container === true);
+          setSettingsValue('settings-env-cursor', e.cursor_cli_available != null ? String(e.cursor_cli_available) : '—', false, e.cursor_cli_available === true);
+          setSettingsValue('settings-env-python', e.python_version);
+          var g = d.git || {};
+          setSettingsValue('settings-git-name', g.user_name || '(未設定)');
+          setSettingsValue('settings-git-email', g.user_email || '(未設定)');
         }).catch(function(e) {
-          document.querySelector('#settings-content .text').textContent = '取得失敗: ' + e.message;
+          console.error('Settings fetch failed:', e);
         });
       }
 
