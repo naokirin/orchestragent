@@ -368,6 +368,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
             <div class="settings-row"><span class="settings-label">target_project</span><span id="settings-target-project" class="settings-value">—</span></div>
             <div class="settings-row"><span class="settings-label">state_dir</span><span id="settings-state-dir" class="settings-value">—</span></div>
             <div class="settings-row"><span class="settings-label">log_dir</span><span id="settings-log-dir" class="settings-value">—</span></div>
+            <div class="settings-row"><span class="settings-label">adr_dir</span><span id="settings-adr-dir" class="settings-value">—</span></div>
             <div class="settings-row"><span class="settings-label">log_level</span><span id="settings-log-level" class="settings-value">—</span></div>
             <div class="settings-row" style="flex-direction: column; gap: 4px;"><span class="settings-label">project_goal</span><div class="settings-goal-box"><p id="settings-project-goal" class="settings-goal-text">—</p></div></div>
           </div>
@@ -954,6 +955,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           setSettingsValue('settings-target-project', p.target_project);
           setSettingsValue('settings-state-dir', p.state_dir);
           setSettingsValue('settings-log-dir', p.log_dir);
+          setSettingsValue('settings-adr-dir', p.adr_dir);
           var logLevel = p.log_level || '';
           setSettingsValue('settings-log-level', logLevel, false, logLevel === 'DEBUG');
           document.getElementById('settings-project-goal').textContent = p.project_goal || '未設定';

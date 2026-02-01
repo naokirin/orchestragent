@@ -1,96 +1,46 @@
-# 開発用: リポジトリをカレントにして実行します。
-# .env の読み込みは Compose v1/v2 で挙動が異なるため、明示する場合は以下を推奨:
-#   docker compose --env-file .env up
-#   docker-compose -f docker-compose.yml --env-file .env up
+# docker-compose.exec.yml
+# リポジトリ外の任意のディレクトリでエージェントシステムを実行するための設定です。
+#
+# 【使い方】
+# 1. リポジトリでイメージをビルド: docker build -t orchestragent:latest .
+#    または Docker Hub などから image を利用する場合は ORCHESTRAGENT_IMAGE を設定
+# 2. 作業したいプロジェクトのディレクトリに移動: cd /path/to/your/project
+# 3. 起動（.env を使う場合は --env-file を推奨）:
+#    docker-compose -f /path/to/orchestragent/docker-compose.exec.yml --env-file .env up -d
+#    カレントディレクトリが「作業対象プロジェクト」として /target にマウントされます。
+#
+# 【state / logs / docs/adr の保存先】
+# コンテナ内では常に /workspace/state, /workspace/logs, /workspace/docs/adr を使用します。
+# ホスト側のパスは ORCHESTRAGENT_STATE_DIR / ORCHESTRAGENT_LOG_DIR / ORCHESTRAGENT_ADR_DIR で指定します。
+# Compose v2 で -f を使うと相対パスは compose ファイルのあるディレクトリ基準になるため、
+# リポジトリ外で実行する場合は絶対パス指定を推奨します（例: .env に記載）:
+#   ORCHESTRAGENT_STATE_DIR=/path/to/your/project/state
+#   ORCHESTRAGENT_LOG_DIR=/path/to/your/project/logs
+#   ORCHESTRAGENT_ADR_DIR=/path/to/your/project/docs/adr
+#
+# 【.env について】Compose の v1 / v2 や -f の有無で .env の読み込み場所が異なります。
+# 確実に読み込ませるため、--env-file .env の指定を推奨します（.env が無い場合は省略可）。
+#
+# 【開発用】リポジトリ内で開発する場合は docker-compose.yml を使用してください。
 
 services:
   agent:
-    # ローカルでビルドする場合
-    build:
-      context: .
-      dockerfile: Dockerfile
-    # DockerHubからpullする場合は、以下の行のコメントを外して、build: をコメントアウト
-    # image: your-username/cursor-scage:latest
+    image: ${ORCHESTRAGENT_IMAGE:-orchestragent:latest}
     volumes:
-      # エージェントシステム自体のコードをマウント
-      - .:/workspace
-      # 作業対象のプロジェクトディレクトリをマウント
-      # TARGET_PROJECT環境変数で指定（未指定の場合は現在のディレクトリ）
+      # 作業対象のプロジェクトディレクトリをマウント（実行時のカレントディレクトリ）
       - ${TARGET_PROJECT:-.}:/target
-      # 状態ファイルを永続化（コンテナ内は常に /workspace/state, /workspace/logs）
-      - ./state:/workspace/state
-      - ./logs:/workspace/logs
-      # ADR を永続化（コンテナ内は常に /workspace/docs/adr）
-      - ./docs/adr:/workspace/docs/adr
+      # 状態ファイルを永続化（ホスト側は絶対パス指定可。コンテナ内は常に /workspace/state, /workspace/logs, /workspace/docs/adr）
+      - ${ORCHESTRAGENT_STATE_DIR:-./state}:/workspace/state
+      - ${ORCHESTRAGENT_LOG_DIR:-./logs}:/workspace/logs
+      - ${ORCHESTRAGENT_ADR_DIR:-./docs/adr}:/workspace/docs/adr
       # Cursor CLIの認証情報を永続化（重要）
-      # 認証情報は /root/.cursor と /root/.config/cursor の両方に保存される
       - cursor-config:/root/.cursor
       - cursor-config-config:/root/.config/cursor
     environment:
-      # 作業対象プロジェクトのルート（TARGET_PROJECTが設定されている場合は/target、未設定の場合は/workspace）
       - PROJECT_ROOT=${PROJECT_ROOT:-/target}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - PROJECT_GOAL=${PROJECT_GOAL:-プロジェクトの目標を設定してください}
-      # ダッシュボードモード（true/1/onで有効化）
       - DASHBOARD=${DASHBOARD:-false}
-      # .envファイルから環境変数を読み込む
-      - LLM_BACKEND=${LLM_BACKEND:-cursor_cli}
-      - LLM_OUTPUT_FORMAT=${LLM_OUTPUT_FORMAT:-text}
-      - LLM_MODEL=${LLM_MODEL:-}
-      # Agent-specific model configuration
-      - PLANNER_MODEL=${PLANNER_MODEL:-}
-      - WORKER_MODEL=${WORKER_MODEL:-}
-      - JUDGE_MODEL=${JUDGE_MODEL:-}
-      # Dynamic model selection for workers
-      - WORKER_MODEL_LIGHT=${WORKER_MODEL_LIGHT:-}
-      - WORKER_MODEL_STANDARD=${WORKER_MODEL_STANDARD:-}
-      - WORKER_MODEL_POWERFUL=${WORKER_MODEL_POWERFUL:-}
-      # Model selection configuration
-      - MODEL_SELECTION_ENABLED=${MODEL_SELECTION_ENABLED:-false}
-      - MODEL_COMPLEXITY_THRESHOLD_LIGHT=${MODEL_COMPLEXITY_THRESHOLD_LIGHT:-10.0}
-      - MODEL_COMPLEXITY_THRESHOLD_POWERFUL=${MODEL_COMPLEXITY_THRESHOLD_POWERFUL:-30.0}
-      - WAIT_TIME_SECONDS=${WAIT_TIME_SECONDS:-60}
-      - MAX_ITERATIONS=${MAX_ITERATIONS:-100}
-      - MAX_RETRIES=${MAX_RETRIES:-3}
-      - MAX_PARALLEL_WORKERS=${MAX_PARALLEL_WORKERS:-3}
-      - ENABLE_PARALLEL_EXECUTION=${ENABLE_PARALLEL_EXECUTION:-true}
-      # ダッシュボード設定タブでホスト側パスを表示するため（未設定時は ${PWD}/state 等）
-      - HOST_STATE_DIR=${HOST_STATE_DIR:-${PWD}/state}
-      - HOST_LOG_DIR=${HOST_LOG_DIR:-${PWD}/logs}
-      - HOST_ADR_DIR=${HOST_ADR_DIR:-${PWD}/docs/adr}
-      # Git configuration used by agents inside the container
-      - GIT_USER_NAME=${GIT_USER_NAME:-}
-      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-}
-    working_dir: /workspace
-    # ネットワークアクセスを許可（API呼び出し用）
-    network_mode: bridge
-    # 長時間実行を許可
-    restart: unless-stopped
-    # インタラクティブモードで実行（初回認証用）
-    stdin_open: true
-    tty: true
-
-  # Web ダッシュボード（main.py を起動せず、state/log のみ参照）
-  # 設定タブで agent と同じ項目を表示するため、config が参照する環境変数を agent と揃えている
-  web-dashboard:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    # DockerHub 利用時: image: your-username/cursor-scage:latest
-    command: python -m orchestragent.dashboard.web
-    volumes:
-      - .:/workspace
-      - ${TARGET_PROJECT:-.}:/target
-      - ./state:/workspace/state
-      - ./logs:/workspace/logs
-      - ./docs/adr:/workspace/docs/adr
-    environment:
-      # orchestragent は src/ 以下にあるため、python -m で見つかるようにする
-      - PYTHONPATH=/workspace/src
-      - PROJECT_ROOT=${PROJECT_ROOT:-/target}
-      - TARGET_PROJECT=${TARGET_PROJECT:-}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - PROJECT_GOAL=${PROJECT_GOAL:-プロジェクトの目標を設定してください}
       - LLM_BACKEND=${LLM_BACKEND:-cursor_cli}
       - LLM_OUTPUT_FORMAT=${LLM_OUTPUT_FORMAT:-text}
       - LLM_MODEL=${LLM_MODEL:-}
@@ -109,9 +59,52 @@ services:
       - MAX_PARALLEL_WORKERS=${MAX_PARALLEL_WORKERS:-3}
       - ENABLE_PARALLEL_EXECUTION=${ENABLE_PARALLEL_EXECUTION:-true}
       # ダッシュボード設定タブでホスト側パスを表示するため
-      - HOST_STATE_DIR=${HOST_STATE_DIR:-${PWD}/state}
-      - HOST_LOG_DIR=${HOST_LOG_DIR:-${PWD}/logs}
-      - HOST_ADR_DIR=${HOST_ADR_DIR:-${PWD}/docs/adr}
+      - HOST_STATE_DIR=${ORCHESTRAGENT_STATE_DIR:-./state}
+      - HOST_LOG_DIR=${ORCHESTRAGENT_LOG_DIR:-./logs}
+      - HOST_ADR_DIR=${ORCHESTRAGENT_ADR_DIR:-./docs/adr}
+      - GIT_USER_NAME=${GIT_USER_NAME:-}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-}
+    working_dir: /workspace
+    network_mode: bridge
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  web-dashboard:
+    image: ${ORCHESTRAGENT_IMAGE:-orchestragent:latest}
+    command: python -m orchestragent.dashboard.web
+    volumes:
+      - ${TARGET_PROJECT:-.}:/target
+      - ${ORCHESTRAGENT_STATE_DIR:-./state}:/workspace/state
+      - ${ORCHESTRAGENT_LOG_DIR:-./logs}:/workspace/logs
+      - ${ORCHESTRAGENT_ADR_DIR:-./docs/adr}:/workspace/docs/adr
+    environment:
+      - PYTHONPATH=/workspace/src
+      - PROJECT_ROOT=${PROJECT_ROOT:-/target}
+      - TARGET_PROJECT=${TARGET_PROJECT:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PROJECT_GOAL=${PROJECT_GOAL:-プロジェクトの目標を設定してください}
+      # ダッシュボード設定タブでホスト側パスを表示するため
+      - HOST_STATE_DIR=${ORCHESTRAGENT_STATE_DIR:-./state}
+      - HOST_LOG_DIR=${ORCHESTRAGENT_LOG_DIR:-./logs}
+      - HOST_ADR_DIR=${ORCHESTRAGENT_ADR_DIR:-./docs/adr}
+      - LLM_BACKEND=${LLM_BACKEND:-cursor_cli}
+      - LLM_OUTPUT_FORMAT=${LLM_OUTPUT_FORMAT:-text}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - PLANNER_MODEL=${PLANNER_MODEL:-}
+      - WORKER_MODEL=${WORKER_MODEL:-}
+      - JUDGE_MODEL=${JUDGE_MODEL:-}
+      - WORKER_MODEL_LIGHT=${WORKER_MODEL_LIGHT:-}
+      - WORKER_MODEL_STANDARD=${WORKER_MODEL_STANDARD:-}
+      - WORKER_MODEL_POWERFUL=${WORKER_MODEL_POWERFUL:-}
+      - MODEL_SELECTION_ENABLED=${MODEL_SELECTION_ENABLED:-false}
+      - MODEL_COMPLEXITY_THRESHOLD_LIGHT=${MODEL_COMPLEXITY_THRESHOLD_LIGHT:-10.0}
+      - MODEL_COMPLEXITY_THRESHOLD_POWERFUL=${MODEL_COMPLEXITY_THRESHOLD_POWERFUL:-30.0}
+      - WAIT_TIME_SECONDS=${WAIT_TIME_SECONDS:-60}
+      - MAX_ITERATIONS=${MAX_ITERATIONS:-100}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - MAX_PARALLEL_WORKERS=${MAX_PARALLEL_WORKERS:-3}
+      - ENABLE_PARALLEL_EXECUTION=${ENABLE_PARALLEL_EXECUTION:-true}
       - GIT_USER_NAME=${GIT_USER_NAME:-}
       - GIT_USER_EMAIL=${GIT_USER_EMAIL:-}
       - WEB_DASHBOARD_PORT=8765
@@ -123,6 +116,4 @@ services:
 
 volumes:
   cursor-config:
-    # Cursor CLIの認証情報を永続化（/root/.cursor）
   cursor-config-config:
-    # Cursor CLIの認証情報を永続化（/root/.config/cursor）

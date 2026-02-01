@@ -397,8 +397,9 @@ class SettingsWidget(ScrollableContainer):
         project_text = f"""
 プロジェクトルート: {config.PROJECT_ROOT}
 プロジェクト目標: {config.AGENT_CONFIG.get('project_goal', '未設定')}{target_project_info}
-状態ディレクトリ: {config.STATE_DIR}
-ログディレクトリ: {config.LOG_DIR}
+状態ディレクトリ: {config.DISPLAY_STATE_DIR}
+ログディレクトリ: {config.DISPLAY_LOG_DIR}
+ADRディレクトリ: {config.DISPLAY_ADR_DIR}
 ログレベル: {config.LOG_LEVEL}
         """.strip()
         project_widget.update(project_text)

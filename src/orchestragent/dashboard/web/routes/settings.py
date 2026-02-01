@@ -23,8 +23,9 @@ def get_settings(state=Depends(get_state_manager)):
             "project_root": str(config.PROJECT_ROOT),
             "project_goal": config.AGENT_CONFIG.get("project_goal", "未設定"),
             "target_project": str(config.TARGET_PROJECT) if config.TARGET_PROJECT else None,
-            "state_dir": config.STATE_DIR,
-            "log_dir": config.LOG_DIR,
+            "state_dir": config.DISPLAY_STATE_DIR,
+            "log_dir": config.DISPLAY_LOG_DIR,
+            "adr_dir": config.DISPLAY_ADR_DIR,
             "log_level": config.LOG_LEVEL,
         },
         "llm": {

@@ -78,18 +78,47 @@ AGENT_CONFIG = {
     "prompt_template": "prompts/planner.md"
 }
 
-# State Configuration
-STATE_DIR = os.getenv("STATE_DIR", "state")
+# State / Log Configuration
+# コンテナ内では常に /workspace/state, /workspace/logs に固定。
+# ホストで実行する場合はカレントディレクトリ基準の state, logs を絶対パスに解決する。
+if is_running_in_container():
+    STATE_DIR = "/workspace/state"
+    LOG_DIR = "/workspace/logs"
+else:
+    STATE_DIR = str(Path("state").resolve())
+    LOG_DIR = str(Path("logs").resolve())
 
 # ADR (Architecture Decision Records) Configuration
-ADR_DIR = os.getenv("ADR_DIR", "docs/adr")
+# コンテナ内では常に /workspace/docs/adr に固定。ホストではカレント基準の docs/adr を絶対パスに解決。
+if is_running_in_container():
+    ADR_DIR = "/workspace/docs/adr"
+else:
+    ADR_DIR = str(Path("docs/adr").resolve())
+
+# ダッシュボード表示用: state / logs / adr のホスト側パス。
+# コンテナ内では HOST_STATE_DIR / HOST_LOG_DIR / HOST_ADR_DIR が compose から渡されていればそれを表示、
+# 未設定ならコンテナ内パス（STATE_DIR 等）を表示。ホスト実行時は STATE_DIR 等＝ホストパスをそのまま表示。
+def _display_dir(env_key: str, fallback: str) -> str:
+    host_path = os.getenv(env_key)
+    if host_path:
+        return host_path
+    return fallback
+
+
+if is_running_in_container():
+    DISPLAY_STATE_DIR = _display_dir("HOST_STATE_DIR", STATE_DIR)
+    DISPLAY_LOG_DIR = _display_dir("HOST_LOG_DIR", LOG_DIR)
+    DISPLAY_ADR_DIR = _display_dir("HOST_ADR_DIR", ADR_DIR)
+else:
+    DISPLAY_STATE_DIR = STATE_DIR
+    DISPLAY_LOG_DIR = LOG_DIR
+    DISPLAY_ADR_DIR = ADR_DIR
 
 # Git configuration (used by agents for commits)
 GIT_USER_NAME = os.getenv("GIT_USER_NAME", "")
 GIT_USER_EMAIL = os.getenv("GIT_USER_EMAIL", "")
 
 # Logging Configuration
-LOG_DIR = os.getenv("LOG_DIR", "logs")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FSYNC = os.getenv("LOG_FSYNC", "false").lower() == "true"
 

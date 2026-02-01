@@ -37,7 +37,17 @@ Cursorブログ記事「[長時間稼働する自律型コーディングをス�
 
 **DockerHubにイメージを公開すれば、docker-compose.ymlと.envファイルだけで実行可能です。詳細は[DOCKERHUB.md](./DOCKERHUB.md)を参照してください。**
 
-### 基本的な実行手順（ローカルビルド）
+### どの compose ファイルを使うか
+
+| 用途 | ファイル | 実行場所 |
+|------|----------|----------|
+| **開発用**（リポジトリ内でコードを編集しながら動かす） | `docker-compose.yml` | リポジトリのルート（`cd orchestragent`） |
+| **実行用**（別ディレクトリのプロジェクトを対象に動かす） | `docker-compose.exec.yml` | 作業対象プロジェクトのディレクトリ（任意） |
+
+- **開発用**: リポジトリを `.:/workspace` でマウントするため、ソース変更がそのまま反映されます。state / logs はリポジトリ内の `./state`, `./logs` に保存されます。
+- **実行用**: イメージのみ使いリポジトリはマウントしません。作業対象のディレクトリが `/target` にマウントされます。state / logs / docs/adr のホスト側パスは **`ORCHESTRAGENT_STATE_DIR`** / **`ORCHESTRAGENT_LOG_DIR`** / **`ORCHESTRAGENT_ADR_DIR`** で指定します（絶対パス推奨）。コンテナ内では常に `/workspace/state`, `/workspace/logs`, `/workspace/docs/adr` を使用します。
+
+### 基本的な実行手順（開発用・リポジトリ内）
 
 ```bash
 git clone <repository-url>
@@ -47,6 +57,22 @@ docker compose run --rm -it agent python main.py --dashboard
 ```
 
 初回実行時に`.env`ファイルの作成や必要なディレクトリの作成が自動的に行われます。
+
+### リポジトリ外での実行（実行用）
+
+別のディレクトリでエージェントを動かす場合は `docker-compose.exec.yml` を使います。
+
+1. **イメージを用意する**（リポジトリで1回だけ）
+   ```bash
+   cd /path/to/orchestragent
+   docker build -t orchestragent:latest .
+   ```
+2. **作業対象プロジェクトのディレクトリで起動**
+   ```bash
+   cd /path/to/your/target-project
+   docker-compose -f /path/to/orchestragent/docker-compose.exec.yml --env-file .env up -d
+   ```
+   `.env` を使う場合は `--env-file .env` を指定することを推奨します。Compose v2 で `-f` を使うと相対パスは compose ファイルのあるディレクトリ基準になるため、**state / logs / docs/adr を任意の場所に置く場合は `.env` で `ORCHESTRAGENT_STATE_DIR` / `ORCHESTRAGENT_LOG_DIR` / `ORCHESTRAGENT_ADR_DIR` に絶対パスを指定**してください（例: `ORCHESTRAGENT_STATE_DIR=/path/to/your/project/state`）。このときのカレントディレクトリが作業対象として `/target` にマウントされます。イメージ名を変えたい場合は `ORCHESTRAGENT_IMAGE=myimage:tag` を指定してください。
 
 ## 前提条件
 
@@ -68,7 +94,7 @@ Mac上でDockerを実行する際、ホストのファイルシステムにア�
 
 ### 最小限の手順で実行する
 
-このシステムは、Dockerイメージとdocker-compose.yml、少数の設定ファイルだけで実行可能です。
+このシステムは、Dockerイメージと docker-compose ファイル、少数の設定ファイルだけで実行可能です。リポジトリ内で開発する場合は `docker-compose.yml`、別ディレクトリから実行する場合は `docker-compose.exec.yml` を使います（[どの compose ファイルを使うか](#どの-compose-ファイルを使うか)を参照）。
 
 #### 1. リポジトリをクローン（初回のみ）
 
@@ -97,6 +123,8 @@ nano .env  # またはお好みのエディタ
 
 ```bash
 docker compose up
+# .env を確実に読み込ませる場合（Compose v1/v2 で読み込み場所が異なるため推奨）:
+# docker compose --env-file .env up
 ```
 
 初回実行時は、以下の処理が自動的に行われます：
@@ -186,12 +214,15 @@ docker compose run --rm -p 8765:8765 -e WEB_DASHBOARD_HOST=0.0.0.0 agent python 
 
 ### 環境変数の詳細
 
-主要な環境変数（`.env`ファイルまたは`docker-compose.yml`で設定可能）：
+主要な環境変数（`.env`ファイルまたは`docker-compose.yml`で設定可能）。Compose の v1/v2 で `.env` の読み込み場所が異なるため、確実に読み込ませるには **`--env-file .env`** の指定を推奨します（例: `docker compose --env-file .env up`、`docker-compose -f ... --env-file .env up`）。
 
 | 変数名                      | 説明                                                 | デフォルト値                           |
 | --------------------------- | ---------------------------------------------------- | -------------------------------------- |
 | `PROJECT_GOAL`              | プロジェクトの目標（必須）                           | `プロジェクトの目標を設定してください` |
 | `TARGET_PROJECT`            | 作業対象のプロジェクトディレクトリ（絶対パス推奨）   | `.`（リポジトリ自体）                  |
+| `ORCHESTRAGENT_STATE_DIR`   | **実行用のみ** ホスト側の state ディレクトリ（絶対パス推奨）。コンテナ内は常に `/workspace/state` | `./state` |
+| `ORCHESTRAGENT_LOG_DIR`     | **実行用のみ** ホスト側の logs ディレクトリ（絶対パス推奨）。コンテナ内は常に `/workspace/logs` | `./logs` |
+| `ORCHESTRAGENT_ADR_DIR`     | **実行用のみ** ホスト側の ADR ディレクトリ（絶対パス推奨）。コンテナ内は常に `/workspace/docs/adr` | `./docs/adr` |
 | `PROJECT_ROOT`              | コンテナ内での作業対象ディレクトリ（通常は変更不要） | `/target` または `/workspace`          |
 | `LOG_LEVEL`                 | ログレベル                                           | `INFO`                                 |
 | `WAIT_TIME_SECONDS`         | エージェント間の待機時間（秒）                       | `60`                                   |
@@ -203,7 +234,8 @@ docker compose run --rm -p 8765:8765 -e WEB_DASHBOARD_HOST=0.0.0.0 agent python 
 
 - `TARGET_PROJECT`には**絶対パス**を指定することを推奨します
 - 指定されたディレクトリはコンテナ内の`/target`にマウントされます
-- エージェントシステム自体のコードは`/workspace`にマウントされ、状態ファイル（`state/`、`logs/`）はリポジトリ内に保存されます
+- **docker-compose.yml（開発用）**: エージェントシステムのコードは`/workspace`にマウントされ、状態ファイル（`state/`、`logs/`、`docs/adr/`）はリポジトリ内に保存されます
+- **docker-compose.exec.yml（実行用）**: コードはイメージに含まれマウントしません。状態ファイル・ADR のホスト側パスは **`ORCHESTRAGENT_STATE_DIR`** / **`ORCHESTRAGENT_LOG_DIR`** / **`ORCHESTRAGENT_ADR_DIR`** で指定（絶対パス推奨）。コンテナ内では常に `/workspace/state`、`/workspace/logs`、`/workspace/docs/adr` を使用します
 - Cursor CLIの認証情報はDockerボリュームに永続化されます（`cursor-config`、`cursor-config-config`）
 
 ### ⚠️ セキュリティ警告
@@ -414,7 +446,7 @@ cat logs/errors_$(date +%Y%m%d).jsonl | jq .
 
 ### 注意事項
 
-- ログファイルは`LOG_DIR`環境変数で指定されたディレクトリに保存されます（デフォルト: `logs/`）
+- ログファイルはコンテナ内では `/workspace/logs`、ホスト実行時はカレントディレクトリの `logs/` に保存されます
 - エージェントコマンドログは、並行実行時でもスレッドIDとタイムスタンプにより一意のファイル名が生成されます
 - ログファイルは自動的にローテーションされ、古いログは自動的に削除されます（実行ログのみ、10MBごとに最大5世代保持）
 
