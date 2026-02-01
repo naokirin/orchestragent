@@ -58,11 +58,12 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .section { margin-bottom: 1rem; }
     .section h3 { color: #63b3ed; margin: 0 0 0.5rem 0; font-size: 1rem; }
     .section pre, .section .text { background: #2d3748; padding: 0.75rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; font-size: 0.85rem; }
-    /* Tasks tab: .pen design */
-    #pane-tasks.tab-pane.active { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
-    .tasks-left, .tasks-right { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-    .tasks-section-title { color: #63b3ed; font-size: 16px; font-weight: normal; margin: 0 0 0 0; font-family: inherit; }
-    .task-table-wrap { background: #2d3748; border-radius: 4px; overflow: hidden; }
+    /* Tasks tab: .pen design — 高さはビューポートに合わせ、詳細はインラインでスクロール */
+    #pane-tasks.tab-pane.active { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; flex: 1; min-height: 0; }
+    .tasks-left, .tasks-right { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+    .tasks-right { flex: 1; }
+    .tasks-section-title { color: #63b3ed; font-size: 16px; font-weight: normal; margin: 0 0 0 0; font-family: inherit; flex-shrink: 0; }
+    .task-table-wrap { background: #2d3748; border-radius: 4px; overflow: hidden; flex: 1; min-height: 0; }
     .task-table { width: 100%; border-collapse: collapse; font-family: inherit; font-size: 12px; }
     .task-table thead { background: #2d3748; border-bottom: 1px solid #4a5568; }
     .task-table th { padding: 6px 8px; text-align: left; color: #e0e0e0; font-weight: normal; }
@@ -74,10 +75,11 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .task-table .status-in_progress { color: #63b3ed; }
     .task-table .status-completed { color: #68d391; }
     .task-table .status-failed { color: #fc8181; }
-    .task-detail-box { background: #2d3748; border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 120px; }
+    .task-detail-box { background: #2d3748; border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 0; flex: 1; min-height: 0; overflow: hidden; }
     .task-detail-placeholder { color: #a0aec0; font-size: 13px; margin: 0; }
-    .task-detail-content { display: none; flex-direction: column; gap: 12px; }
+    .task-detail-content { display: none; flex-direction: column; gap: 0; flex: 1; min-height: 0; overflow: hidden; }
     .task-detail-content.visible { display: flex; }
+    .task-detail-fixed { flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #4a5568; }
     .task-detail-header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .task-detail-id-badge { background: #4a5568; border-radius: 4px; padding: 4px 8px; font-size: 12px; font-weight: bold; color: #e0e0e0; }
     .task-detail-title { font-size: 16px; font-weight: bold; color: #e0e0e0; margin: 0; }
@@ -90,6 +92,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .task-detail-badge.priority-high { background: #fc8181; }
     .task-detail-badge.priority-medium { background: #ecc94b; }
     .task-detail-badge.priority-low { background: #68d391; }
+    .task-detail-scroll { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding-top: 12px; }
     .task-detail-desc-row, .task-detail-files-row { display: flex; flex-direction: column; gap: 4px; }
     .task-detail-desc-label, .task-detail-files-label { color: #a0aec0; font-size: 12px; margin: 0; }
     .task-detail-desc-text { color: #e0e0e0; font-size: 13px; margin: 0; }
@@ -289,21 +292,25 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         <div id="task-detail" class="task-detail-box">
           <p id="task-detail-placeholder" class="task-detail-placeholder">一覧から選択してください</p>
           <div id="task-detail-content" class="task-detail-content">
-            <div class="task-detail-header">
-              <span id="task-detail-id" class="task-detail-id-badge"></span>
-              <h4 id="task-detail-title" class="task-detail-title"></h4>
+            <div class="task-detail-fixed">
+              <div class="task-detail-header">
+                <span id="task-detail-id" class="task-detail-id-badge"></span>
+                <h4 id="task-detail-title" class="task-detail-title"></h4>
+              </div>
+              <div class="task-detail-badges">
+                <span id="task-detail-status" class="task-detail-badge"></span>
+                <span id="task-detail-priority" class="task-detail-badge"></span>
+              </div>
             </div>
-            <div class="task-detail-badges">
-              <span id="task-detail-status" class="task-detail-badge"></span>
-              <span id="task-detail-priority" class="task-detail-badge"></span>
-            </div>
-            <div class="task-detail-desc-row">
-              <span class="task-detail-desc-label">説明</span>
-              <div id="task-detail-description" class="task-detail-desc-text md-content"></div>
-            </div>
-            <div class="task-detail-files-row">
-              <span class="task-detail-files-label">対象ファイル</span>
-              <p id="task-detail-files" class="task-detail-files-text"></p>
+            <div class="task-detail-scroll">
+              <div class="task-detail-desc-row">
+                <span class="task-detail-desc-label">説明</span>
+                <div id="task-detail-description" class="task-detail-desc-text md-content"></div>
+              </div>
+              <div class="task-detail-files-row">
+                <span class="task-detail-files-label">対象ファイル</span>
+                <p id="task-detail-files" class="task-detail-files-text"></p>
+              </div>
             </div>
           </div>
         </div>
