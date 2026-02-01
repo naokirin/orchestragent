@@ -102,18 +102,6 @@ class TaskScheduler:
 
         return ready_tasks
 
-    def _get_priority_score(self, task: Task) -> int:
-        """
-        Get priority score for a task (higher is better).
-
-        Args:
-            task: Task object
-
-        Returns:
-            Priority score
-        """
-        return task.priority.to_score()
-
     def _extract_task_files(self, task: Task) -> List[str]:
         """
         Extract file paths that a task will modify.

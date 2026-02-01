@@ -306,26 +306,3 @@ class TestCanTasksRunParallel:
         assert result is True
 
 
-class TestGetPriorityScore:
-    """Tests for _get_priority_score method."""
-
-    @pytest.fixture
-    def scheduler(self):
-        mock_state_manager = MagicMock()
-        mock_file_lock_manager = MagicMock()
-        return TaskScheduler(mock_state_manager, mock_file_lock_manager)
-
-    def test_high_priority(self, scheduler):
-        """Test high priority score."""
-        task = Task(id="task-001", title="Test", priority=TaskPriority.HIGH)
-        assert scheduler._get_priority_score(task) == 3
-
-    def test_medium_priority(self, scheduler):
-        """Test medium priority score."""
-        task = Task(id="task-001", title="Test", priority=TaskPriority.MEDIUM)
-        assert scheduler._get_priority_score(task) == 2
-
-    def test_low_priority(self, scheduler):
-        """Test low priority score."""
-        task = Task(id="task-001", title="Test", priority=TaskPriority.LOW)
-        assert scheduler._get_priority_score(task) == 1
