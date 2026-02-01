@@ -1,14 +1,16 @@
 """Main loop logic for the agent system."""
 
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import config
 from orchestragent.core.environment import is_running_in_container
 from orchestragent.core.exceptions import AgentError
 from orchestragent.core.logger import AgentLogger
+from orchestragent.llm.client import LLMClient
 from orchestragent.llm.factory import LLMClientFactory
 from orchestragent.state.manager import StateManager
 from orchestragent.state.file_lock import FileLockManager
@@ -26,20 +28,40 @@ from .startup import (
 )
 
 
-def run_main_loop() -> None:
+@dataclass
+class LoopContext:
+    """コンテキスト: セッション初期化で作成されるコンポーネント。"""
+
+    state_manager: StateManager
+    logger: AgentLogger
+    llm_client: LLMClient
+    file_lock_manager: FileLockManager
+    task_scheduler: TaskScheduler
+
+
+@dataclass
+class AgentContext:
+    """コンテキスト: エージェントセットアップで作成されるエージェントと設定。"""
+
+    planner: PlannerAgent
+    worker: WorkerAgent
+    judge: JudgeAgent
+    plan_judge: PlanJudgeAgent
+    worker_config: Dict[str, Any]
+
+
+def initialize_session() -> LoopContext:
     """
-    Run the main agent loop.
-    This function contains the original main loop logic.
+    環境チェック・認証・StateManager/Logger/LLM/FileLock/TaskScheduler を初期化する。
+    個別にテスト可能な単位。
     """
     print("=" * 60)
     print("orchestragent")
     print("Phase 1: 動作確認")
     print("=" * 60)
 
-    # Print configuration at the start
     print_configuration()
 
-    # Environment check
     if not is_running_in_container():
         print("\n[警告] コンテナ外で実行されています。Docker/DevContainerでの実行を推奨します。")
 
@@ -49,7 +71,6 @@ def run_main_loop() -> None:
             "Please run in Docker container or install Cursor CLI."
         )
 
-    # Auth check (with warning if check fails but continue if config exists)
     auth_status = check_cursor_auth()
     if not auth_status:
         print("\n[警告] 認証状態の確認に失敗しました。")
@@ -65,10 +86,8 @@ def run_main_loop() -> None:
         else:
             authenticate_cursor()
 
-    # Initialize components
     print("\n[初期化] コンポーネントを初期化しています...")
 
-    # Use WORKING_DIR which is already determined based on container/host environment
     llm_client = LLMClientFactory.create(
         backend=config.LLM_BACKEND,
         project_root=str(config.WORKING_DIR),
@@ -77,7 +96,6 @@ def run_main_loop() -> None:
 
     state_manager = StateManager(state_dir=config.STATE_DIR)
 
-    # Validate state and attempt recovery if needed
     validation = state_manager.validate_state()
     if not validation.valid:
         print("\n[警告] 状態ファイルに問題が検出されました")
@@ -86,14 +104,12 @@ def run_main_loop() -> None:
         print("\n[復元] 最新のチェックポイントから復元を試みます...")
         if state_manager.recover_from_corruption():
             print("[復元] 復元に成功しました")
-            # Re-validate
             validation = state_manager.validate_state()
             if not validation.valid:
                 print("[警告] 復元後も問題が残っています。手動での確認を推奨します。")
         else:
             print("[復元] 復元に失敗しました。初期状態から開始します。")
 
-    # Recover tasks that were stuck in 'in_progress' state
     recovered_tasks = state_manager.recover_in_progress_tasks()
     if recovered_tasks:
         print(f"\n[復元] {len(recovered_tasks)}個の中断されたタスクを再実行可能にしました:")
@@ -106,20 +122,32 @@ def run_main_loop() -> None:
         sync=config.LOG_FSYNC,
     )
 
-    # Initialize file lock manager and task scheduler for parallel execution
     file_lock_manager = FileLockManager(lock_dir=f"{config.STATE_DIR}/locks")
     task_scheduler = TaskScheduler(state_manager, file_lock_manager)
 
-    # Initialize agents
+    return LoopContext(
+        state_manager=state_manager,
+        logger=logger,
+        llm_client=llm_client,
+        file_lock_manager=file_lock_manager,
+        task_scheduler=task_scheduler,
+    )
+
+
+def setup_agents(ctx: LoopContext) -> AgentContext:
+    """
+    エージェント（Planner / Worker / Judge / Plan_Judge）をセットアップする。
+    個別にテスト可能な単位。
+    """
     planner_config = config.AGENT_CONFIG.copy()
     planner_config["mode"] = "plan"
     planner_config["model"] = config.PLANNER_MODEL
 
     planner = PlannerAgent(
         name="Planner",
-        llm_client=llm_client,
-        state_manager=state_manager,
-        logger=logger,
+        llm_client=ctx.llm_client,
+        state_manager=ctx.state_manager,
+        logger=ctx.logger,
         config=planner_config
     )
 
@@ -130,9 +158,9 @@ def run_main_loop() -> None:
 
     worker = WorkerAgent(
         name="Worker",
-        llm_client=llm_client,
-        state_manager=state_manager,
-        logger=logger,
+        llm_client=ctx.llm_client,
+        state_manager=ctx.state_manager,
+        logger=ctx.logger,
         config=worker_config
     )
 
@@ -143,9 +171,9 @@ def run_main_loop() -> None:
 
     judge = JudgeAgent(
         name="Judge",
-        llm_client=llm_client,
-        state_manager=state_manager,
-        logger=logger,
+        llm_client=ctx.llm_client,
+        state_manager=ctx.state_manager,
+        logger=ctx.logger,
         config=judge_config
     )
 
@@ -156,15 +184,262 @@ def run_main_loop() -> None:
 
     plan_judge = PlanJudgeAgent(
         name="Plan_Judge",
-        llm_client=llm_client,
-        state_manager=state_manager,
-        logger=logger,
+        llm_client=ctx.llm_client,
+        state_manager=ctx.state_manager,
+        logger=ctx.logger,
         config=plan_judge_config,
     )
 
     print("[初期化] 完了")
+    return AgentContext(
+        planner=planner,
+        worker=worker,
+        judge=judge,
+        plan_judge=plan_judge,
+        worker_config=worker_config,
+    )
 
-    # Phase 2: Main loop
+
+def run_plan_phase(
+    ctx: LoopContext,
+    agents: AgentContext,
+    iteration: int,
+) -> bool:
+    """
+    Planner ↔ Plan_Judge フェーズを実行する。
+    計画が受理された場合 True、失敗または最大再計画で受理されなかった場合 False を返す。
+    """
+    print("\n[1/3] Planner / Plan_Judge フェーズを開始します...")
+    plan_loop_failed = False
+    decision: Optional[str] = None
+
+    for plan_attempt in range(1, config.MAX_PLAN_REVISIONS + 1):
+        print(f"\n[1/3] Planner実行中... (attempt {plan_attempt}/{config.MAX_PLAN_REVISIONS})")
+        try:
+            agents.planner.run(iteration=iteration, max_retries=config.MAX_RETRIES)
+            print("[Planner] 完了")
+        except AgentError as e:
+            ctx.logger.log_error_with_traceback(
+                "Planner", e, context={"iteration": iteration, "attempt": plan_attempt}
+            )
+            print(f"[Planner] エラー: {e}")
+            plan_loop_failed = True
+            break
+        except Exception as e:
+            ctx.logger.log_error_with_traceback(
+                "Planner", e, context={"iteration": iteration, "attempt": plan_attempt}
+            )
+            print(f"[Planner] 予期しないエラー: {e}")
+            plan_loop_failed = True
+            break
+
+        print("\n[1/3] Plan_Judge実行中...")
+        try:
+            plan_judge_result = agents.plan_judge.run(
+                iteration=iteration, max_retries=config.MAX_RETRIES
+            )
+            decision = plan_judge_result.get("decision", "accept")
+            print(f"[Plan_Judge] 完了 (decision: {decision})")
+
+            if decision != "revise":
+                break
+            print("[Plan_Judge] 計画の再検討が必要と判断されました。Planner を再実行します...")
+        except AgentError as e:
+            ctx.logger.log_error_with_traceback(
+                "Plan_Judge", e, context={"iteration": iteration, "attempt": plan_attempt}
+            )
+            print(f"[Plan_Judge] エラー: {e}")
+            plan_loop_failed = True
+            break
+        except Exception as e:
+            ctx.logger.log_error_with_traceback(
+                "Plan_Judge", e, context={"iteration": iteration, "attempt": plan_attempt}
+            )
+            print(f"[Plan_Judge] 予期しないエラー: {e}")
+            plan_loop_failed = True
+            break
+
+    if plan_loop_failed or (decision is not None and decision == "revise"):
+        return False
+    return True
+
+
+def run_work_phase(
+    ctx: LoopContext,
+    agents: AgentContext,
+    iteration: int,
+) -> None:
+    """
+    Worker フェーズを実行する（並列/直列は設定に従う）。
+    """
+    print("\n[2/3] Worker実行中...")
+
+    if config.ENABLE_PARALLEL_EXECUTION:
+        parallelizable_tasks = ctx.task_scheduler.get_parallelizable_tasks(
+            max_workers=config.MAX_PARALLEL_WORKERS
+        )
+
+        if not parallelizable_tasks:
+            print("[Worker] 並列実行可能なタスクがありません")
+        else:
+            print(f"[Worker] {len(parallelizable_tasks)}個のタスクを並列実行します")
+
+            def run_worker_task(task_data) -> Dict[str, Any]:
+                task_id = task_data.id
+                worker_instance = WorkerAgent(
+                    name=f"Worker-{task_id}",
+                    llm_client=ctx.llm_client,
+                    state_manager=ctx.state_manager,
+                    logger=ctx.logger,
+                    config=agents.worker_config
+                )
+
+                result: Dict[str, Any] = {
+                    "task_id": task_id,
+                    "success": False,
+                    "error": None
+                }
+
+                try:
+                    task_files = ctx.task_scheduler._extract_task_files(task_data)
+                    locks_acquired = []
+                    for filepath in task_files:
+                        if ctx.file_lock_manager.acquire_lock(filepath, task_id, timeout=10.0):
+                            locks_acquired.append(filepath)
+                        else:
+                            for locked_file in locks_acquired:
+                                ctx.file_lock_manager.release_lock(locked_file)
+                            result["error"] = f"Failed to acquire lock for {filepath}"
+                            return result
+
+                    if worker_instance.assign_task(task_id):
+                        try:
+                            worker_instance.run(
+                                iteration=iteration,
+                                max_retries=config.MAX_RETRIES
+                            )
+                            result["success"] = True
+                            ctx.logger.info(f"[Worker-{task_id}] Task completed")
+                        except Exception as e:
+                            result["error"] = str(e)
+                            ctx.state_manager.fail_task(task_id, str(e))
+                            ctx.logger.log_error_with_traceback(
+                                f"Worker-{task_id}",
+                                e,
+                                context={"iteration": iteration, "task_id": task_id}
+                            )
+                    else:
+                        result["error"] = "Failed to assign task"
+
+                    for filepath in locks_acquired:
+                        ctx.file_lock_manager.release_lock(filepath)
+
+                except Exception as e:
+                    result["error"] = str(e)
+                    ctx.logger.log_error_with_traceback(
+                        f"Worker-{task_id}",
+                        e,
+                        context={"iteration": iteration, "task_id": task_id}
+                    )
+
+                return result
+
+            with ThreadPoolExecutor(max_workers=config.MAX_PARALLEL_WORKERS) as executor:
+                future_to_task = {
+                    executor.submit(run_worker_task, task): task
+                    for task in parallelizable_tasks
+                }
+
+                completed_count = 0
+                failed_count = 0
+
+                for future in as_completed(future_to_task):
+                    task = future_to_task[future]
+                    task_id = task.id
+                    try:
+                        result = future.result()
+                        if result["success"]:
+                            completed_count += 1
+                            print(f"[Worker] タスク {task_id} 完了: {task.title}")
+                        else:
+                            failed_count += 1
+                            print(f"[Worker] タスク {task_id} 失敗: {result.get('error', 'Unknown error')}")
+                    except Exception as e:
+                        failed_count += 1
+                        ctx.logger.log_error_with_traceback(
+                            f"Worker-{task_id}",
+                            e,
+                            context={"iteration": iteration, "task_id": task_id}
+                        )
+                        print(f"[Worker] タスク {task_id} 例外: {e}")
+
+                print(f"[Worker] 並列実行完了: {completed_count}成功, {failed_count}失敗")
+
+            stale_locks = ctx.file_lock_manager.cleanup_stale_locks(timeout=300.0)
+            if stale_locks > 0:
+                ctx.logger.info(f"Cleaned up {stale_locks} stale locks")
+    else:
+        pending_tasks = ctx.state_manager.get_pending_tasks()
+
+        if not pending_tasks:
+            print("[Worker] 保留中のタスクがありません")
+        else:
+            task = pending_tasks[0]
+            task_id = task.id
+            print(f"[Worker] タスク {task_id} を実行: {task.title}")
+
+            if agents.worker.assign_task(task_id):
+                try:
+                    agents.worker.run(iteration=iteration, max_retries=config.MAX_RETRIES)
+                    print(f"[Worker] タスク {task_id} 完了")
+                except AgentError as e:
+                    ctx.logger.log_error_with_traceback(
+                        "Worker",
+                        e,
+                        context={"iteration": iteration, "task_id": task_id}
+                    )
+                    ctx.state_manager.fail_task(task_id, str(e))
+                    print(f"[Worker] エラー: {e}")
+                except Exception as e:
+                    ctx.logger.log_error_with_traceback(
+                        "Worker",
+                        e,
+                        context={"iteration": iteration, "task_id": task_id}
+                    )
+                    ctx.state_manager.fail_task(task_id, str(e))
+                    print(f"[Worker] 予期しないエラー: {e}")
+            else:
+                print(f"[Worker] タスク {task_id} の割り当てに失敗")
+
+
+def run_judge_phase(
+    ctx: LoopContext,
+    agents: AgentContext,
+    iteration: int,
+) -> None:
+    """
+    Judge フェーズを実行する。
+    """
+    print("\n[3/3] Judge実行中...")
+    try:
+        agents.judge.run(iteration=iteration, max_retries=config.MAX_RETRIES)
+        print("[Judge] 完了")
+    except AgentError as e:
+        ctx.logger.log_error_with_traceback("Judge", e, context={"iteration": iteration})
+        print(f"[Judge] エラー: {e}")
+    except Exception as e:
+        ctx.logger.log_error_with_traceback("Judge", e, context={"iteration": iteration})
+        print(f"[Judge] 予期しないエラー: {e}")
+
+
+def run_main_loop() -> None:
+    """
+    Run the main agent loop.
+    初期化・エージェントセットアップ・各フェーズ関数を呼び出してオーケストレートする。
+    """
+    ctx = initialize_session()
+    agents = setup_agents(ctx)
+
     print("\n[Phase 2] メインループを開始します...")
     print(f"プロジェクト目標: {config.AGENT_CONFIG['project_goal']}")
     print(f"待機時間: {config.WAIT_TIME_SECONDS}秒")
@@ -172,12 +447,11 @@ def run_main_loop() -> None:
 
     iteration = 0
 
-    # Create initial checkpoint
     try:
-        checkpoint_path = state_manager.create_checkpoint("initial")
-        logger.info(f"Initial checkpoint created: {checkpoint_path}")
+        checkpoint_path = ctx.state_manager.create_checkpoint("initial")
+        ctx.logger.info(f"Initial checkpoint created: {checkpoint_path}")
     except Exception as e:
-        logger.warning(f"Failed to create initial checkpoint: {e}")
+        ctx.logger.warning(f"Failed to create initial checkpoint: {e}")
 
     try:
         while iteration < config.MAX_ITERATIONS:
@@ -186,267 +460,42 @@ def run_main_loop() -> None:
             print(f"イテレーション {iteration}")
             print(f"{'=' * 60}")
 
-            # Update status with current iteration
-            state_manager.update_status(current_iteration=iteration)
+            ctx.state_manager.update_status(current_iteration=iteration)
 
-            # 1. Planner ↔ Plan_Judge ループ
-            print("\n[1/3] Planner / Plan_Judge フェーズを開始します...")
-            plan_loop_failed = False
-            decision = None  # 初期化
-            for plan_attempt in range(1, config.MAX_PLAN_REVISIONS + 1):
-                print(f"\n[1/3] Planner実行中... (attempt {plan_attempt}/{config.MAX_PLAN_REVISIONS})")
-                try:
-                    planner.run(iteration=iteration, max_retries=config.MAX_RETRIES)
-                    print("[Planner] 完了")
-                except AgentError as e:
-                    logger.log_error_with_traceback("Planner", e, context={"iteration": iteration, "attempt": plan_attempt})
-                    print(f"[Planner] エラー: {e}")
-                    # Planner 自体が失敗した場合は計画が成立しないため、このイテレーションを失敗として扱う
-                    plan_loop_failed = True
-                    break
-                except Exception as e:
-                    logger.log_error_with_traceback("Planner", e, context={"iteration": iteration, "attempt": plan_attempt})
-                    print(f"[Planner] 予期しないエラー: {e}")
-                    plan_loop_failed = True
-                    break
-
-                print("\n[1/3] Plan_Judge実行中...")
-                try:
-                    plan_judge_result = plan_judge.run(
-                        iteration=iteration, max_retries=config.MAX_RETRIES
-                    )
-                    decision = plan_judge_result.get("decision", "accept")
-                    print(f"[Plan_Judge] 完了 (decision: {decision})")
-
-                    if decision != "revise":
-                        # 計画が受理されたので Planner ↔ Plan_Judge ループを終了
-                        break
-                    else:
-                        print("[Plan_Judge] 計画の再検討が必要と判断されました。Planner を再実行します...")
-                        # ループ継続（次の plan_attempt で Planner を再実行）
-                except AgentError as e:
-                    logger.log_error_with_traceback(
-                        "Plan_Judge", e, context={"iteration": iteration, "attempt": plan_attempt}
-                    )
-                    print(f"[Plan_Judge] エラー: {e}")
-                    # Plan_Judge が安定して動かない場合も計画が評価できないため失敗扱い
-                    plan_loop_failed = True
-                    break
-                except Exception as e:
-                    logger.log_error_with_traceback(
-                        "Plan_Judge", e, context={"iteration": iteration, "attempt": plan_attempt}
-                    )
-                    print(f"[Plan_Judge] 予期しないエラー: {e}")
-                    plan_loop_failed = True
-                    break
-
-            # Planner / Plan_Judge ループが失敗、もしくは最大回数に達しても accept されなかった場合
-            if plan_loop_failed or (decision is not None and decision == "revise"):
+            if not run_plan_phase(ctx, agents, iteration):
                 reason = (
                     "Planner と Plan_Judge の最大再計画回数に達しても妥当な計画に収束しなかったため、"
                     "エージェントシステム全体を失敗として終了します。"
                 )
                 print(f"\n[致命的エラー] {reason}")
-                state_manager.update_status(
+                ctx.state_manager.update_status(
                     should_continue=False,
                     reason=reason,
                     plan_revision_failed=True,
                     last_failed_iteration=iteration,
                 )
-                # ここでメインループを即座に終了
                 break
 
-            # 待機
-            wait_seconds = config.WAIT_TIME_SECONDS
             print(f"\n[待機] {config.WAIT_TIME_SECONDS}秒待機中...")
-            time.sleep(wait_seconds)
+            time.sleep(config.WAIT_TIME_SECONDS)
 
-            # 2. Worker実行（並列実行対応）
-            print("\n[2/3] Worker実行中...")
+            run_work_phase(ctx, agents, iteration)
 
-            if config.ENABLE_PARALLEL_EXECUTION:
-                # Parallel execution mode
-                parallelizable_tasks = task_scheduler.get_parallelizable_tasks(
-                    max_workers=config.MAX_PARALLEL_WORKERS
-                )
-
-                if not parallelizable_tasks:
-                    print("[Worker] 並列実行可能なタスクがありません")
-                else:
-                    print(f"[Worker] {len(parallelizable_tasks)}個のタスクを並列実行します")
-
-                    def run_worker_task(task_data) -> Dict[str, Any]:
-                        """Run a single worker task."""
-                        task_id = task_data.id
-                        worker_instance = WorkerAgent(
-                            name=f"Worker-{task_id}",
-                            llm_client=llm_client,
-                            state_manager=state_manager,
-                            logger=logger,
-                            config=worker_config
-                        )
-
-                        result = {
-                            "task_id": task_id,
-                            "success": False,
-                            "error": None
-                        }
-
-                        try:
-                            # Acquire file locks
-                            task_files = task_scheduler._extract_task_files(task_data)
-                            locks_acquired = []
-                            for filepath in task_files:
-                                if file_lock_manager.acquire_lock(filepath, task_id, timeout=10.0):
-                                    locks_acquired.append(filepath)
-                                else:
-                                    # Failed to acquire lock, release acquired locks and skip
-                                    for locked_file in locks_acquired:
-                                        file_lock_manager.release_lock(locked_file)
-                                    result["error"] = f"Failed to acquire lock for {filepath}"
-                                    return result
-
-                            # Assign and run task
-                            if worker_instance.assign_task(task_id):
-                                try:
-                                    worker_result = worker_instance.run(
-                                        iteration=iteration,
-                                        max_retries=config.MAX_RETRIES
-                                    )
-                                    result["success"] = True
-                                    logger.info(f"[Worker-{task_id}] Task completed")
-                                except Exception as e:
-                                    result["error"] = str(e)
-                                    state_manager.fail_task(task_id, str(e))
-                                    logger.log_error_with_traceback(
-                                        f"Worker-{task_id}",
-                                        e,
-                                        context={"iteration": iteration, "task_id": task_id}
-                                    )
-                            else:
-                                result["error"] = "Failed to assign task"
-
-                            # Release file locks
-                            for filepath in locks_acquired:
-                                file_lock_manager.release_lock(filepath)
-
-                        except Exception as e:
-                            result["error"] = str(e)
-                            logger.log_error_with_traceback(
-                                f"Worker-{task_id}",
-                                e,
-                                context={"iteration": iteration, "task_id": task_id}
-                            )
-
-                        return result
-
-                    # Execute tasks in parallel
-                    with ThreadPoolExecutor(max_workers=config.MAX_PARALLEL_WORKERS) as executor:
-                        future_to_task = {
-                            executor.submit(run_worker_task, task): task
-                            for task in parallelizable_tasks
-                        }
-
-                        completed_count = 0
-                        failed_count = 0
-
-                        for future in as_completed(future_to_task):
-                            task = future_to_task[future]
-                            task_id = task.id
-                            try:
-                                result = future.result()
-                                if result["success"]:
-                                    completed_count += 1
-                                    print(f"[Worker] タスク {task_id} 完了: {task.title}")
-                                else:
-                                    failed_count += 1
-                                    print(f"[Worker] タスク {task_id} 失敗: {result.get('error', 'Unknown error')}")
-                            except Exception as e:
-                                failed_count += 1
-                                logger.log_error_with_traceback(
-                                    f"Worker-{task_id}",
-                                    e,
-                                    context={"iteration": iteration, "task_id": task_id}
-                                )
-                                print(f"[Worker] タスク {task_id} 例外: {e}")
-
-                        print(f"[Worker] 並列実行完了: {completed_count}成功, {failed_count}失敗")
-
-                    # Cleanup stale locks
-                    stale_locks = file_lock_manager.cleanup_stale_locks(timeout=300.0)
-                    if stale_locks > 0:
-                        logger.info(f"Cleaned up {stale_locks} stale locks")
-            else:
-                # Sequential execution mode (original behavior)
-                pending_tasks = state_manager.get_pending_tasks()
-
-                if not pending_tasks:
-                    print("[Worker] 保留中のタスクがありません")
-                else:
-                    # 最初の保留タスクを実行
-                    task = pending_tasks[0]
-                    task_id = task.id
-                    print(f"[Worker] タスク {task_id} を実行: {task.title}")
-
-                    if worker.assign_task(task_id):
-                        try:
-                            # Worker.run() will use self.current_task_id set by assign_task()
-                            worker_result = worker.run(iteration=iteration, max_retries=config.MAX_RETRIES)
-                            print(f"[Worker] タスク {task_id} 完了")
-                        except AgentError as e:
-                            logger.log_error_with_traceback(
-                                "Worker",
-                                e,
-                                context={"iteration": iteration, "task_id": task_id}
-                            )
-                            state_manager.fail_task(task_id, str(e))
-                            print(f"[Worker] エラー: {e}")
-                        except Exception as e:
-                            logger.log_error_with_traceback(
-                                "Worker",
-                                e,
-                                context={"iteration": iteration, "task_id": task_id}
-                            )
-                            state_manager.fail_task(task_id, str(e))
-                            print(f"[Worker] 予期しないエラー: {e}")
-                    else:
-                        print(f"[Worker] タスク {task_id} の割り当てに失敗")
-
-            # 待機
             print(f"\n[待機] {config.WAIT_TIME_SECONDS}秒待機中...")
-            time.sleep(wait_seconds)
+            time.sleep(config.WAIT_TIME_SECONDS)
 
-            # 3. Judge実行
-            print("\n[3/3] Judge実行中...")
-            try:
-                judge.run(iteration=iteration, max_retries=config.MAX_RETRIES)
-                print("[Judge] 完了")
-            except AgentError as e:
-                logger.log_error_with_traceback("Judge", e, context={"iteration": iteration})
-                print(f"[Judge] エラー: {e}")
-                # Continue to next iteration even if judge fails
-            except Exception as e:
-                logger.log_error_with_traceback("Judge", e, context={"iteration": iteration})
-                print(f"[Judge] 予期しないエラー: {e}")
-                # Continue to next iteration
+            run_judge_phase(ctx, agents, iteration)
 
-            # 継続判定
-            status = state_manager.get_status()
+            status = ctx.state_manager.get_status()
             should_continue = status.get("should_continue", True)
 
-            # 進捗ログ（個別タスクファイルから正確な状態を取得）
-            task_stats = state_manager.get_task_statistics()
-            total_tasks = task_stats.total
-            completed_tasks = task_stats.completed
-            failed_tasks = task_stats.failed
-            pending_tasks_count = task_stats.pending
-
-            logger.log_progress(
+            task_stats = ctx.state_manager.get_task_statistics()
+            ctx.logger.log_progress(
                 iteration=iteration,
-                total_tasks=total_tasks,
-                completed_tasks=completed_tasks,
-                failed_tasks=failed_tasks,
-                pending_tasks=pending_tasks_count
+                total_tasks=task_stats.total,
+                completed_tasks=task_stats.completed,
+                failed_tasks=task_stats.failed,
+                pending_tasks=task_stats.pending
             )
 
             print(f"\n[判定] 継続判定: {should_continue}")
@@ -456,38 +505,31 @@ def run_main_loop() -> None:
                 print("\n[完了] Judgeが停止を判定しました")
                 break
 
-            # Create checkpoint after each iteration
             try:
-                checkpoint_path = state_manager.create_checkpoint()
-                logger.info(f"Checkpoint created after iteration {iteration}: {checkpoint_path}")
+                checkpoint_path = ctx.state_manager.create_checkpoint()
+                ctx.logger.info(f"Checkpoint created after iteration {iteration}: {checkpoint_path}")
             except Exception as e:
-                logger.warning(f"Failed to create checkpoint: {e}")
+                ctx.logger.warning(f"Failed to create checkpoint: {e}")
 
-            # Create backup periodically (every 5 iterations)
             if iteration % 5 == 0:
                 try:
-                    backup_path = state_manager.create_backup()
-                    logger.info(f"Backup created: {backup_path}")
+                    backup_path = ctx.state_manager.create_backup()
+                    ctx.logger.info(f"Backup created: {backup_path}")
                 except Exception as e:
-                    logger.warning(f"Failed to create backup: {e}")
+                    ctx.logger.warning(f"Failed to create backup: {e}")
 
-            # 次のイテレーション前に待機
             if iteration < config.MAX_ITERATIONS:
                 print(f"\n[待機] 次のイテレーションまで {config.WAIT_TIME_SECONDS}秒待機中...")
-                time.sleep(wait_seconds)
+                time.sleep(config.WAIT_TIME_SECONDS)
 
         if iteration >= config.MAX_ITERATIONS:
             print(f"\n[完了] 最大イテレーション数 ({config.MAX_ITERATIONS}) に達しました")
 
-        # 最終状態を表示
         print("\n" + "=" * 60)
         print("最終状態")
         print("=" * 60)
 
-        # Get accurate statistics from individual task files
-        task_stats = state_manager.get_task_statistics()
-        status = state_manager.get_status()
-
+        task_stats = ctx.state_manager.get_task_statistics()
         print(f"総イテレーション: {iteration}")
         print(f"総タスク数: {task_stats.total}")
         print(f"完了タスク: {task_stats.completed}")
@@ -497,29 +539,25 @@ def run_main_loop() -> None:
 
     except KeyboardInterrupt:
         print("\n\n[中断] ユーザーによって中断されました")
-        logger.info("Main loop interrupted by user")
-        # Release all file locks
+        ctx.logger.info("Main loop interrupted by user")
         if config.ENABLE_PARALLEL_EXECUTION:
-            file_lock_manager.release_all_locks()
-        # Create checkpoint before exit
+            ctx.file_lock_manager.release_all_locks()
         try:
-            checkpoint_path = state_manager.create_checkpoint("interrupted")
-            logger.info(f"Checkpoint created before exit: {checkpoint_path}")
+            checkpoint_path = ctx.state_manager.create_checkpoint("interrupted")
+            ctx.logger.info(f"Checkpoint created before exit: {checkpoint_path}")
             print(f"[チェックポイント] 中断前の状態を保存しました: {checkpoint_path}")
         except Exception as e:
-            logger.warning(f"Failed to create checkpoint before exit: {e}")
+            ctx.logger.warning(f"Failed to create checkpoint before exit: {e}")
     except Exception as e:
-        logger.log_error_with_traceback("MainLoop", e, context={"iteration": iteration})
-        # Release all file locks
+        ctx.logger.log_error_with_traceback("MainLoop", e, context={"iteration": iteration})
         if config.ENABLE_PARALLEL_EXECUTION:
-            file_lock_manager.release_all_locks()
-        # Create checkpoint before exit
+            ctx.file_lock_manager.release_all_locks()
         try:
-            checkpoint_path = state_manager.create_checkpoint("error")
-            logger.info(f"Checkpoint created after error: {checkpoint_path}")
+            checkpoint_path = ctx.state_manager.create_checkpoint("error")
+            ctx.logger.info(f"Checkpoint created after error: {checkpoint_path}")
             print(f"[チェックポイント] エラー発生時の状態を保存しました: {checkpoint_path}")
         except Exception as checkpoint_error:
-            logger.warning(f"Failed to create checkpoint after error: {checkpoint_error}")
+            ctx.logger.warning(f"Failed to create checkpoint after error: {checkpoint_error}")
         raise
 
     print("\n[Phase 2] メインループ完了")
