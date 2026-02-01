@@ -13,7 +13,7 @@ main.py とは独立して起動できる Web ダッシュボードを追加し�
 | 画面       | 表示内容                                              | データソース（現行）                                                               |
 | ---------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | **概要**   | プロジェクト目標、イテレーション/継続判定、タスク統計 | StateManager.get_status(), config.AGENT_CONFIG, StateManager.get_task_statistics() |
-| **ログ**   | 実行ログのリアルタイム表示（日付別ファイル）          | config.LOG_DIR（コンテナ内は /workspace/logs）/execution_YYYYMMDD.log             |
+| **ログ**   | 実行ログのリアルタイム表示（日付別ファイル）          | config.LOG_DIR（コンテナ内は /workspace/logs）/execution_YYYYMMDD.log              |
 | **タスク** | タスク一覧、選択時の詳細・結果・エラー                | StateManager.get_all_tasks_from_files(), get_task_by_id()                          |
 | **Intent** | 変更意図一覧、詳細、Diff 表示                         | IntentManager, ADRManager, GitHelper                                               |
 | **設定**   | プロジェクト/LLM/メインループ設定、環境情報           | config                                                                             |

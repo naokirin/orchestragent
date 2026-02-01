@@ -39,9 +39,9 @@ Cursorブログ記事「[長時間稼働する自律型コーディングをス�
 
 ### どの compose ファイルを使うか
 
-| 用途 | ファイル | 実行場所 |
-|------|----------|----------|
-| **開発用**（リポジトリ内でコードを編集しながら動かす） | `docker-compose.yml` | リポジトリのルート（`cd orchestragent`） |
+| 用途                                                     | ファイル                  | 実行場所                                   |
+| -------------------------------------------------------- | ------------------------- | ------------------------------------------ |
+| **開発用**（リポジトリ内でコードを編集しながら動かす）   | `docker-compose.yml`      | リポジトリのルート（`cd orchestragent`）   |
 | **実行用**（別ディレクトリのプロジェクトを対象に動かす） | `docker-compose.exec.yml` | 作業対象プロジェクトのディレクトリ（任意） |
 
 - **開発用**: リポジトリを `.:/workspace` でマウントするため、ソース変更がそのまま反映されます。state / logs はリポジトリ内の `./state`, `./logs` に保存されます。
@@ -216,19 +216,19 @@ docker compose run --rm -p 8765:8765 -e WEB_DASHBOARD_HOST=0.0.0.0 agent python 
 
 主要な環境変数（`.env`ファイルまたは`docker-compose.yml`で設定可能）。Compose の v1/v2 で `.env` の読み込み場所が異なるため、確実に読み込ませるには **`--env-file .env`** の指定を推奨します（例: `docker compose --env-file .env up`、`docker-compose -f ... --env-file .env up`）。
 
-| 変数名                      | 説明                                                 | デフォルト値                           |
-| --------------------------- | ---------------------------------------------------- | -------------------------------------- |
-| `PROJECT_GOAL`              | プロジェクトの目標（必須）                           | `プロジェクトの目標を設定してください` |
-| `TARGET_PROJECT`            | 作業対象のプロジェクトディレクトリ（絶対パス推奨）   | `.`（リポジトリ自体）                  |
-| `ORCHESTRAGENT_STATE_DIR`   | **実行用のみ** ホスト側の state ディレクトリ（絶対パス推奨）。コンテナ内は常に `/workspace/state` | `./state` |
-| `ORCHESTRAGENT_LOG_DIR`     | **実行用のみ** ホスト側の logs ディレクトリ（絶対パス推奨）。コンテナ内は常に `/workspace/logs` | `./logs` |
-| `ORCHESTRAGENT_ADR_DIR`     | **実行用のみ** ホスト側の ADR ディレクトリ（絶対パス推奨）。コンテナ内は常に `/workspace/docs/adr` | `./docs/adr` |
-| `PROJECT_ROOT`              | コンテナ内での作業対象ディレクトリ（通常は変更不要） | `/target` または `/workspace`          |
-| `LOG_LEVEL`                 | ログレベル                                           | `INFO`                                 |
-| `WAIT_TIME_SECONDS`         | エージェント間の待機時間（秒）                       | `60`                                   |
-| `MAX_ITERATIONS`            | 最大イテレーション数                                 | `100`                                  |
-| `MAX_PARALLEL_WORKERS`      | 最大並列Worker数                                     | `3`                                    |
-| `ENABLE_PARALLEL_EXECUTION` | 並列実行の有効化                                     | `true`                                 |
+| 変数名                      | 説明                                                                                               | デフォルト値                           |
+| --------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `PROJECT_GOAL`              | プロジェクトの目標（必須）                                                                         | `プロジェクトの目標を設定してください` |
+| `TARGET_PROJECT`            | 作業対象のプロジェクトディレクトリ（絶対パス推奨）                                                 | `.`（リポジトリ自体）                  |
+| `ORCHESTRAGENT_STATE_DIR`   | **実行用のみ** ホスト側の state ディレクトリ（絶対パス推奨）。コンテナ内は常に `/workspace/state`  | `./state`                              |
+| `ORCHESTRAGENT_LOG_DIR`     | **実行用のみ** ホスト側の logs ディレクトリ（絶対パス推奨）。コンテナ内は常に `/workspace/logs`    | `./logs`                               |
+| `ORCHESTRAGENT_ADR_DIR`     | **実行用のみ** ホスト側の ADR ディレクトリ（絶対パス推奨）。コンテナ内は常に `/workspace/docs/adr` | `./docs/adr`                           |
+| `PROJECT_ROOT`              | コンテナ内での作業対象ディレクトリ（通常は変更不要）                                               | `/target` または `/workspace`          |
+| `LOG_LEVEL`                 | ログレベル                                                                                         | `INFO`                                 |
+| `WAIT_TIME_SECONDS`         | エージェント間の待機時間（秒）                                                                     | `60`                                   |
+| `MAX_ITERATIONS`            | 最大イテレーション数                                                                               | `100`                                  |
+| `MAX_PARALLEL_WORKERS`      | 最大並列Worker数                                                                                   | `3`                                    |
+| `ENABLE_PARALLEL_EXECUTION` | 並列実行の有効化                                                                                   | `true`                                 |
 
 ### 注意事項
 
