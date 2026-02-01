@@ -495,7 +495,7 @@ VALID_TRANSITIONS = {
 
 ### 中長期対応項目
 
-- [ ] StateManager の責務分割
+- [x] StateManager の責務分割 ✅ 2026-02-01（FileManager / TaskManager / CheckpointManager / ValidationManager に分割、StateManager はファサードで既存API維持）
 - [ ] テストカバレッジの向上
 - [ ] 観測可能性（メトリクス）の追加
 - [ ] プロンプトバージョニング
