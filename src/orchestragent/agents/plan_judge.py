@@ -1,12 +1,11 @@
 """Plan judge agent implementation."""
 
-import json
 import logging
-import re
 from typing import Dict, Any
 
 from .base import BaseAgent
 from orchestragent.models import Task
+from orchestragent.utils.json_parser import extract_json_from_response
 
 logger = logging.getLogger(__name__)
 
@@ -103,32 +102,18 @@ Please evaluate whether this plan and task list are appropriate.
 
     def parse_response(self, response: str) -> Dict[str, Any]:
         """Parse plan judge response."""
-        try:
-            # Look for JSON code block
-            json_match = re.search(r"```json\n(.*?)\n```", response, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group(1))
+        result = extract_json_from_response(response)
+        if result is not None:
+            return result
 
-            # Try to find JSON object directly
-            json_match = re.search(r"\{.*\}", response, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group(0))
-
-            # Fallback: treat as free-form feedback, default to accept
-            return {
-                "decision": "accept",
-                "score": 0.5,
-                "issues": [],
-                "suggested_changes": response[:500],
-            }
-        except json.JSONDecodeError as e:
-            self.logger.warning(f"[Plan_Judge] Failed to parse JSON: {e}")
-            return {
-                "decision": "accept",
-                "score": 0.5,
-                "issues": [],
-                "suggested_changes": f"JSON解析エラー: {e}. レスポンス: {response[:500]}",
-            }
+        # Fallback: treat as free-form feedback, default to accept
+        self.logger.warning("[Plan_Judge] Failed to parse JSON from response")
+        return {
+            "decision": "accept",
+            "score": 0.5,
+            "issues": [],
+            "suggested_changes": response[:500],
+        }
 
     def update_state(self, result: Dict[str, Any]) -> None:
         """Update state with plan judge result."""

@@ -1,11 +1,10 @@
 """Planner agent implementation."""
 
-import json
-import re
 from typing import Dict, Any
 
 from .base import BaseAgent
 from orchestragent.models import Task
+from orchestragent.utils.json_parser import extract_json_from_response
 
 
 class PlannerAgent(BaseAgent):
@@ -123,31 +122,17 @@ Please create a plan and new tasks in JSON format.
 
     def parse_response(self, response: str) -> Dict[str, Any]:
         """Parse planner response."""
-        # Try to extract JSON from response
-        try:
-            # Look for JSON code block
-            json_match = re.search(r'```json\n(.*?)\n```', response, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group(1))
+        result = extract_json_from_response(response)
+        if result is not None:
+            return result
 
-            # Try to find JSON object directly
-            json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group(0))
-
-            # If no JSON found, return response as-is
-            return {
-                "plan_update": response,
-                "new_tasks": [],
-                "reasoning": "JSON形式で出力されませんでした"
-            }
-        except json.JSONDecodeError as e:
-            self.logger.warning(f"[{self.name}] Failed to parse JSON: {e}")
-            return {
-                "plan_update": response,
-                "new_tasks": [],
-                "reasoning": f"JSON解析エラー: {e}"
-            }
+        # Fallback: return response as-is
+        self.logger.warning(f"[{self.name}] Failed to parse JSON from response")
+        return {
+            "plan_update": response,
+            "new_tasks": [],
+            "reasoning": "JSON形式で出力されませんでした"
+        }
 
     def update_state(self, result: Dict[str, Any]) -> None:
         """Update state with planner result."""

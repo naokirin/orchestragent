@@ -1,11 +1,10 @@
 """Judge agent implementation."""
 
-import json
-import re
 from typing import Dict, Any
 
 from .base import BaseAgent
 from orchestragent.models import Task
+from orchestragent.utils.json_parser import extract_json_from_response
 
 
 class JudgeAgent(BaseAgent):
@@ -78,40 +77,21 @@ Please evaluate progress and decide whether to continue.
 
     def parse_response(self, response: str) -> Dict[str, Any]:
         """Parse judge response."""
-        # Try to extract JSON from response
-        try:
-            # Look for JSON code block
-            json_match = re.search(r'```json\n(.*?)\n```', response, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group(1))
+        result = extract_json_from_response(response)
+        if result is not None:
+            return result
 
-            # Try to find JSON object directly
-            json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group(0))
-
-            # If no JSON found, try to extract key information
-            should_continue = "継続" in response or "continue" in response.lower() or "true" in response.lower()
-            return {
-                "should_continue": should_continue,
-                "reason": response[:500],  # First 500 chars
-                "progress_score": 0.5,
-                "drift_detected": False,
-                "recommendations": [],
-                "next_iteration_focus": "JSON形式で出力されませんでした"
-            }
-        except json.JSONDecodeError as e:
-            self.logger.warning(f"[Judge] Failed to parse JSON: {e}")
-            # Fallback: extract from text
-            should_continue = "継続" in response or "continue" in response.lower()
-            return {
-                "should_continue": should_continue,
-                "reason": f"JSON解析エラー: {e}. レスポンス: {response[:500]}",
-                "progress_score": 0.5,
-                "drift_detected": False,
-                "recommendations": [],
-                "next_iteration_focus": "JSON形式で出力してください"
-            }
+        # Fallback: extract key information from text
+        self.logger.warning("[Judge] Failed to parse JSON from response")
+        should_continue = "継続" in response or "continue" in response.lower() or "true" in response.lower()
+        return {
+            "should_continue": should_continue,
+            "reason": response[:500],
+            "progress_score": 0.5,
+            "drift_detected": False,
+            "recommendations": [],
+            "next_iteration_focus": "JSON形式で出力されませんでした"
+        }
 
     def update_state(self, result: Dict[str, Any]) -> None:
         """Update state with judge result."""
