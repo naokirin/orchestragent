@@ -57,6 +57,7 @@ class RunnerConfig:
     worker_model_light: Optional[str] = None
     worker_model_standard: Optional[str] = None
     worker_model_powerful: Optional[str] = None
+    compress_old_checkpoints: bool = True
 
     @classmethod
     def from_global_config(cls) -> "RunnerConfig":
@@ -87,6 +88,7 @@ class RunnerConfig:
             worker_model_light=global_config.WORKER_MODEL_LIGHT,
             worker_model_standard=global_config.WORKER_MODEL_STANDARD,
             worker_model_powerful=global_config.WORKER_MODEL_POWERFUL,
+            compress_old_checkpoints=global_config.COMPRESS_OLD_CHECKPOINTS,
         )
 
 
@@ -544,6 +546,10 @@ def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
     try:
         checkpoint_path = ctx.state_manager.create_checkpoint("initial")
         ctx.logger.info(f"Initial checkpoint created: {checkpoint_path}")
+        if cfg.compress_old_checkpoints:
+            n = ctx.state_manager.compress_old_checkpoints(keep_latest_n=1)
+            if n > 0:
+                ctx.logger.info(f"Compressed {n} old checkpoint(s)")
     except Exception as e:
         ctx.logger.warning(f"Failed to create initial checkpoint: {e}")
 
@@ -602,6 +608,10 @@ def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
             try:
                 checkpoint_path = ctx.state_manager.create_checkpoint()
                 ctx.logger.info(f"Checkpoint created after iteration {iteration}: {checkpoint_path}")
+                if cfg.compress_old_checkpoints:
+                    n = ctx.state_manager.compress_old_checkpoints(keep_latest_n=1)
+                    if n > 0:
+                        ctx.logger.info(f"Compressed {n} old checkpoint(s)")
             except Exception as e:
                 ctx.logger.warning(f"Failed to create checkpoint: {e}")
 
@@ -640,6 +650,8 @@ def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
             checkpoint_path = ctx.state_manager.create_checkpoint("interrupted")
             ctx.logger.info(f"Checkpoint created before exit: {checkpoint_path}")
             print(f"[チェックポイント] 中断前の状態を保存しました: {checkpoint_path}")
+            if cfg.compress_old_checkpoints:
+                ctx.state_manager.compress_old_checkpoints(keep_latest_n=1)
         except Exception as e:
             ctx.logger.warning(f"Failed to create checkpoint before exit: {e}")
     except Exception as e:
@@ -650,6 +662,8 @@ def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
             checkpoint_path = ctx.state_manager.create_checkpoint("error")
             ctx.logger.info(f"Checkpoint created after error: {checkpoint_path}")
             print(f"[チェックポイント] エラー発生時の状態を保存しました: {checkpoint_path}")
+            if cfg.compress_old_checkpoints:
+                ctx.state_manager.compress_old_checkpoints(keep_latest_n=1)
         except Exception as checkpoint_error:
             ctx.logger.warning(f"Failed to create checkpoint after error: {checkpoint_error}")
         raise

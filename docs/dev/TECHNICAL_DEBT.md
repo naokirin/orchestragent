@@ -393,11 +393,11 @@ VALID_TRANSITIONS = {
 
 ---
 
-### 3. チェックポイント圧縮なし
+### 3. チェックポイント圧縮なし（対応済み）
 
-**該当箇所**: `src/orchestragent/state/manager.py`: 461-509行
+**該当箇所**: `src/orchestragent/state/checkpoint_manager.py`, `StateManager.compress_old_checkpoints`
 
-**問題**: ディスク使用量がリニアに増加
+**対応内容**: 最新以外の過去チェックポイントを `.tar.gz` に圧縮する `compress_old_checkpoints(keep_latest_n=1)` を追加。メインループではチェックポイント作成後に自動で古いものを圧縮（`RunnerConfig.compress_old_checkpoints`、デフォルト True）。復元時は `.tar.gz` を一時展開してから復元可能。
 
 ---
 

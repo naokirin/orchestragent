@@ -389,3 +389,70 @@ class TestStateManagerTaskStatusTransition:
         task = state_manager.get_task_by_id(task_id)
         assert task is not None
         assert task.status == TaskStatus.PENDING
+
+
+class TestStateManagerCheckpointCompression:
+    """Tests for checkpoint compression and restore from .tar.gz."""
+
+    def test_compress_old_checkpoints_keeps_latest_uncompressed(self, state_manager):
+        """compress_old_checkpoints は最新 keep_latest_n 個以外を .tar.gz に圧縮する。"""
+        state_manager.save_text("plan.md", "# plan")
+        state_manager.save_json("tasks.json", {"tasks": [], "next_task_id": 1})
+        state_manager.save_json("status.json", {})
+
+        state_manager.create_checkpoint("cp1")
+        state_manager.create_checkpoint("cp2")
+        state_manager.create_checkpoint("cp3")
+
+        checkpoints_dir = state_manager.state_dir / "checkpoints"
+        assert (checkpoints_dir / "cp1").is_dir()
+        assert (checkpoints_dir / "cp2").is_dir()
+        assert (checkpoints_dir / "cp3").is_dir()
+
+        n = state_manager.compress_old_checkpoints(keep_latest_n=1)
+        # 最新1個(cp3)以外の cp1, cp2 が圧縮対象
+        assert n == 2
+
+        assert not (checkpoints_dir / "cp1").exists()
+        assert (checkpoints_dir / "cp1.tar.gz").exists()
+        assert not (checkpoints_dir / "cp2").exists()
+        assert (checkpoints_dir / "cp2.tar.gz").exists()
+        assert (checkpoints_dir / "cp3").is_dir()
+
+    def test_list_checkpoints_includes_compressed(self, state_manager):
+        """list_checkpoints は .tar.gz のチェックポイントも返す。"""
+        state_manager.save_json("tasks.json", {"tasks": [], "next_task_id": 1})
+        state_manager.create_checkpoint("old_cp")
+        state_manager.create_checkpoint("new_cp")
+        state_manager.compress_old_checkpoints(keep_latest_n=1)
+
+        listed = state_manager.list_checkpoints()
+        names = [m.checkpoint_name for m in listed]
+        assert "old_cp" in names
+        assert "new_cp" in names
+        assert len(listed) == 2
+
+    def test_restore_from_compressed_checkpoint(self, state_manager):
+        """圧縮済みチェックポイントから復元できる。"""
+        state_manager.save_json("tasks.json", {"tasks": [], "next_task_id": 1})
+        state_manager.save_text("plan.md", "# Original plan")
+        state_manager.create_checkpoint("to_restore")
+        state_manager.save_text("plan.md", "# Modified plan")
+        state_manager.create_checkpoint("latest")
+        state_manager.compress_old_checkpoints(keep_latest_n=1)
+
+        assert (state_manager.state_dir / "checkpoints" / "to_restore").exists() is False
+        assert (state_manager.state_dir / "checkpoints" / "to_restore.tar.gz").exists()
+
+        state_manager.restore_checkpoint("to_restore")
+        assert state_manager.load_text("plan.md") == "# Original plan"
+
+    def test_compress_old_checkpoints_returns_zero_when_none_to_compress(
+        self, state_manager
+    ):
+        """圧縮対象がなければ 0 を返す。"""
+        state_manager.save_json("tasks.json", {"tasks": [], "next_task_id": 1})
+        state_manager.create_checkpoint("only_one")
+        n = state_manager.compress_old_checkpoints(keep_latest_n=1)
+        assert n == 0
+        assert (state_manager.state_dir / "checkpoints" / "only_one").is_dir()

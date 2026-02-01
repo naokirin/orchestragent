@@ -1,12 +1,21 @@
 """Checkpoint and backup operations for state directory."""
 
 import json
+import logging
 import shutil
+import sys
+import tarfile
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
 from orchestragent.models import CheckpointMetadata
+
+logger = logging.getLogger(__name__)
+
+# 過去チェックポイント圧縮時のアーカイブ拡張子
+CHECKPOINT_ARCHIVE_SUFFIX = ".tar.gz"
 
 
 class CheckpointManager:
@@ -77,6 +86,9 @@ class CheckpointManager:
         """
         Restore state from a checkpoint.
 
+        チェックポイントがディレクトリの場合はそのまま復元する。
+        .tar.gz に圧縮されている場合は一時展開してから復元し、展開ディレクトリは削除する。
+
         Args:
             checkpoint_name: Name of the checkpoint to restore.
 
@@ -85,11 +97,44 @@ class CheckpointManager:
         """
         from orchestragent.core.exceptions import StateError
 
-        checkpoint_dir = self.state_dir / "checkpoints" / checkpoint_name
-        if not checkpoint_dir.exists():
+        checkpoints_dir = self.state_dir / "checkpoints"
+        checkpoint_dir = checkpoints_dir / checkpoint_name
+        archive_path = checkpoints_dir / (checkpoint_name + CHECKPOINT_ARCHIVE_SUFFIX)
+
+        if checkpoint_dir.exists():
+            source_dir = checkpoint_dir
+        elif archive_path.exists():
+            # 圧縮アーカイブを一時ディレクトリに展開してから復元
+            with tempfile.TemporaryDirectory(
+                prefix="checkpoint_restore_", dir=str(checkpoints_dir)
+            ) as tmpdir:
+                with tarfile.open(archive_path, "r:gz") as tar:
+                    # Python 3.12+ では filter='data' で安全に展開
+                    if sys.version_info >= (3, 12):
+                        tar.extractall(tmpdir, filter="data")
+                    else:
+                        tar.extractall(tmpdir)
+                # 展開後は checkpoint_name というサブディレクトリがある想定
+                extracted = Path(tmpdir) / checkpoint_name
+                if not extracted.exists():
+                    source_dir = Path(tmpdir)
+                else:
+                    source_dir = extracted
+                metadata_file = source_dir / "metadata.json"
+                if not metadata_file.exists():
+                    raise StateError(
+                        f"Checkpoint metadata not found: {checkpoint_name}"
+                    )
+                backup_name = (
+                    f"pre_restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                )
+                self.create_backup(backup_name)
+                self._restore_from_dir(source_dir)
+            return
+        else:
             raise StateError(f"Checkpoint not found: {checkpoint_name}")
 
-        metadata_file = checkpoint_dir / "metadata.json"
+        metadata_file = source_dir / "metadata.json"
         if not metadata_file.exists():
             raise StateError(
                 f"Checkpoint metadata not found: {checkpoint_name}"
@@ -100,31 +145,34 @@ class CheckpointManager:
                 f"pre_restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             )
             self.create_backup(backup_name)
-
-            state_files = ["plan.md", "tasks.json", "status.json"]
-            for filename in state_files:
-                source = checkpoint_dir / filename
-                if source.exists():
-                    dest = self.state_dir / filename
-                    shutil.copy2(source, dest)
-
-            tasks_source = checkpoint_dir / "tasks"
-            if tasks_source.exists():
-                tasks_dest = self.state_dir / "tasks"
-                if tasks_dest.exists():
-                    shutil.rmtree(tasks_dest)
-                shutil.copytree(tasks_source, tasks_dest)
-
-            results_source = checkpoint_dir / "results"
-            if results_source.exists():
-                results_dest = self.state_dir / "results"
-                if results_dest.exists():
-                    shutil.rmtree(results_dest)
-                shutil.copytree(results_source, results_dest)
+            self._restore_from_dir(source_dir)
         except Exception as e:
             raise StateError(
                 f"Failed to restore checkpoint {checkpoint_name}: {e}"
             ) from e
+
+    def _restore_from_dir(self, checkpoint_dir: Path) -> None:
+        """Checkpoint ディレクトリの内容を state_dir に復元する。"""
+        state_files = ["plan.md", "tasks.json", "status.json"]
+        for filename in state_files:
+            source = checkpoint_dir / filename
+            if source.exists():
+                dest = self.state_dir / filename
+                shutil.copy2(source, dest)
+
+        tasks_source = checkpoint_dir / "tasks"
+        if tasks_source.exists():
+            tasks_dest = self.state_dir / "tasks"
+            if tasks_dest.exists():
+                shutil.rmtree(tasks_dest)
+            shutil.copytree(tasks_source, tasks_dest)
+
+        results_source = checkpoint_dir / "results"
+        if results_source.exists():
+            results_dest = self.state_dir / "results"
+            if results_dest.exists():
+                shutil.rmtree(results_dest)
+            shutil.copytree(results_source, results_dest)
 
     def create_backup(self, backup_name: Optional[str] = None) -> str:
         """
@@ -167,16 +215,16 @@ class CheckpointManager:
         return str(backup_path)
 
     def list_checkpoints(self) -> List[CheckpointMetadata]:
-        """List all available checkpoints (newest first)."""
+        """List all available checkpoints (newest first). ディレクトリと .tar.gz の両方を対象にする。"""
         checkpoints: List[CheckpointMetadata] = []
         checkpoints_dir = self.state_dir / "checkpoints"
 
         if not checkpoints_dir.exists():
             return checkpoints
 
-        for checkpoint_dir in checkpoints_dir.iterdir():
-            if checkpoint_dir.is_dir():
-                metadata_file = checkpoint_dir / "metadata.json"
+        for path in checkpoints_dir.iterdir():
+            if path.is_dir():
+                metadata_file = path / "metadata.json"
                 if metadata_file.exists():
                     try:
                         with open(
@@ -186,8 +234,80 @@ class CheckpointManager:
                             checkpoints.append(
                                 CheckpointMetadata.from_dict(metadata_dict)
                             )
-                    except Exception:
+                    except (json.JSONDecodeError, KeyError, OSError) as e:
+                        logger.debug(
+                            "Failed to read checkpoint metadata %s: %s", path.name, e
+                        )
                         continue
+            elif path.suffix == ".gz" and path.name.endswith(CHECKPOINT_ARCHIVE_SUFFIX):
+                # 圧縮アーカイブ: アーカイブ内の metadata.json を読む
+                stem = path.name[: -len(CHECKPOINT_ARCHIVE_SUFFIX)]
+                try:
+                    with tarfile.open(path, "r:gz") as tar:
+                        meta_member = f"{stem}/metadata.json"
+                        try:
+                            member = tar.getmember(meta_member)
+                        except KeyError:
+                            logger.debug(
+                                "Metadata not found in archive %s", path.name
+                            )
+                            continue
+                        f = tar.extractfile(member)
+                        if f is None:
+                            continue
+                        metadata_dict = json.load(f)
+                        checkpoints.append(
+                            CheckpointMetadata.from_dict(metadata_dict)
+                        )
+                except (tarfile.TarError, json.JSONDecodeError, KeyError, OSError) as e:
+                    logger.debug(
+                        "Failed to read compressed checkpoint %s: %s", path.name, e
+                    )
+                    continue
 
         checkpoints.sort(key=lambda x: x.created_at, reverse=True)
         return checkpoints
+
+    def compress_old_checkpoints(self, keep_latest_n: int = 1) -> int:
+        """
+        最新 keep_latest_n 個以外のチェックポイントを .tar.gz に圧縮し、
+        元ディレクトリを削除してディスク使用量を削減する。
+
+        Args:
+            keep_latest_n: 圧縮しない最新チェックポイントの数（1 で最新のみ非圧縮）。
+
+        Returns:
+            圧縮したチェックポイントの数。
+        """
+        checkpoints_dir = self.state_dir / "checkpoints"
+        if not checkpoints_dir.exists():
+            return 0
+
+        listed = self.list_checkpoints()
+        # 圧縮対象: keep_latest_n より古いもののうち、ディレクトリとして存在するもの
+        to_compress = listed[keep_latest_n:]
+        compressed_count = 0
+
+        for meta in to_compress:
+            name = meta.checkpoint_name
+            checkpoint_dir = checkpoints_dir / name
+            archive_path = checkpoints_dir / (name + CHECKPOINT_ARCHIVE_SUFFIX)
+            if not checkpoint_dir.is_dir():
+                continue
+            if archive_path.exists():
+                # 既にアーカイブがある場合はスキップ（二重圧縮防止）
+                continue
+            try:
+                with tarfile.open(archive_path, "w:gz") as tar:
+                    for item in checkpoint_dir.rglob("*"):
+                        if item.is_file():
+                            arcname = name + "/" + item.relative_to(checkpoint_dir).as_posix()
+                            tar.add(item, arcname=arcname)
+                shutil.rmtree(checkpoint_dir)
+                compressed_count += 1
+            except Exception:
+                if archive_path.exists():
+                    archive_path.unlink()
+                raise
+
+        return compressed_count

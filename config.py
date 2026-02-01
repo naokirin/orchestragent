@@ -88,6 +88,9 @@ else:
     STATE_DIR = str(Path("state").resolve())
     LOG_DIR = str(Path("logs").resolve())
 
+# チェックポイント: 最新以外を .tar.gz に圧縮してディスク使用量を削減（長時間稼働向け）
+COMPRESS_OLD_CHECKPOINTS = os.getenv("COMPRESS_OLD_CHECKPOINTS", "true").lower() == "true"
+
 # ADR (Architecture Decision Records) Configuration
 # コンテナ内では常に /workspace/docs/adr に固定。ホストではカレント基準の docs/adr を絶対パスに解決。
 if is_running_in_container():

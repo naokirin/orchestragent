@@ -166,6 +166,18 @@ class StateManager:
         """List all available checkpoints (newest first)."""
         return self._checkpoint.list_checkpoints()
 
+    def compress_old_checkpoints(self, keep_latest_n: int = 1) -> int:
+        """
+        最新 keep_latest_n 個以外のチェックポイントを .tar.gz に圧縮してディスク使用量を削減する。
+
+        Args:
+            keep_latest_n: 圧縮しない最新チェックポイントの数（1 で最新のみ非圧縮）。
+
+        Returns:
+            圧縮したチェックポイントの数。
+        """
+        return self._checkpoint.compress_old_checkpoints(keep_latest_n=keep_latest_n)
+
     # --- Validation / Recovery (delegate to ValidationManager) ---
 
     def validate_state(self) -> ValidationResult:
