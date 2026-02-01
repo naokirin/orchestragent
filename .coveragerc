@@ -1,0 +1,23 @@
+[run]
+source = src/orchestragent
+branch = True
+omit =
+    */tests/*
+    */__pycache__/*
+    */.venv/*
+    */dashboard/tui/*
+    */dashboard/web/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    raise AssertionError
+    if TYPE_CHECKING:
+show_missing = True
+precision = 2
+
+[html]
+directory = htmlcov

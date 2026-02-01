@@ -38,3 +38,9 @@ logs/
 
 # examples
 examples/
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
