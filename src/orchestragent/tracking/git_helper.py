@@ -1,8 +1,11 @@
 """Git operations helper for Intent tracking."""
 
+import logging
 import subprocess
 from typing import Dict, Any, List, Optional
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 class GitHelper:
@@ -33,7 +36,8 @@ class GitHelper:
                 timeout=5
             )
             return result.returncode == 0
-        except Exception:
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.debug("Failed to check git repo: %s", e)
             return False
 
     def get_commit_info(self, commit_hash: str) -> Optional[Dict[str, Any]]:
@@ -70,7 +74,8 @@ class GitHelper:
                 "timestamp": lines[-2],
                 "author": lines[-1],
             }
-        except Exception:
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.warning("Failed to get commit info for %s: %s", commit_hash, e)
             return None
 
     def get_commit_diff(self, commit_hash: str, max_lines: int = 1000) -> Optional[str]:
@@ -104,7 +109,8 @@ class GitHelper:
                 return truncated + f"\n\n... ({len(lines) - max_lines} more lines truncated)"
 
             return diff
-        except Exception:
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.warning("Failed to get commit diff for %s: %s", commit_hash, e)
             return None
 
     def get_commit_files(self, commit_hash: str) -> List[str]:
@@ -130,7 +136,8 @@ class GitHelper:
                 return []
 
             return [f.strip() for f in result.stdout.strip().split('\n') if f.strip()]
-        except Exception:
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.warning("Failed to get commit files for %s: %s", commit_hash, e)
             return []
 
     def get_recent_commits(self, count: int = 10) -> List[Dict[str, Any]]:
@@ -169,7 +176,8 @@ class GitHelper:
                     })
 
             return commits
-        except Exception:
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.warning("Failed to get recent commits: %s", e)
             return []
 
     def get_commits_for_task(self, task_id: str) -> List[Dict[str, Any]]:
@@ -208,7 +216,8 @@ class GitHelper:
                     })
 
             return commits
-        except Exception:
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.warning("Failed to get commits for task %s: %s", task_id, e)
             return []
 
     def get_diff_between_commits(
@@ -248,7 +257,8 @@ class GitHelper:
                 return truncated + f"\n\n... ({len(lines) - max_lines} more lines truncated)"
 
             return diff
-        except Exception:
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.warning("Failed to get diff between %s and %s: %s", commit1, commit2, e)
             return None
 
     def get_file_at_commit(self, commit_hash: str, file_path: str) -> Optional[str]:
@@ -275,7 +285,8 @@ class GitHelper:
                 return None
 
             return result.stdout
-        except Exception:
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.warning("Failed to get file %s at commit %s: %s", file_path, commit_hash, e)
             return None
 
     def get_current_branch(self) -> Optional[str]:
@@ -298,7 +309,8 @@ class GitHelper:
                 return None
 
             return result.stdout.strip()
-        except Exception:
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.debug("Failed to get current branch: %s", e)
             return None
 
     def get_head_commit(self) -> Optional[str]:
@@ -321,5 +333,6 @@ class GitHelper:
                 return None
 
             return result.stdout.strip()
-        except Exception:
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.debug("Failed to get HEAD commit: %s", e)
             return None

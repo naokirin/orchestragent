@@ -1,5 +1,6 @@
 """Cursor CLI client implementation."""
 
+import logging
 import subprocess
 import threading
 from pathlib import Path
@@ -7,6 +8,8 @@ from typing import Optional, TYPE_CHECKING
 
 from .client import LLMClient
 from orchestragent.core.exceptions import LLMError, LLMTimeoutError, LLMRateLimitError
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from orchestragent.core.logger import AgentLogger
@@ -125,9 +128,9 @@ class CursorCLIClient(LLMClient):
                 if log_stream:
                     try:
                         log_stream.write(line)
-                    except Exception:
+                    except OSError as e:
                         # Logging failure should not break main flow
-                        pass
+                        logger.debug("Failed to write to log stream: %s", e)
 
         reader_thread = threading.Thread(target=_reader, daemon=True)
         reader_thread.start()
@@ -140,8 +143,8 @@ class CursorCLIClient(LLMClient):
             if log_stream:
                 try:
                     log_stream.write("\n[Cursor CLI timed out]\n")
-                except Exception:
-                    pass
+                except OSError as write_error:
+                    logger.debug("Failed to write timeout message: %s", write_error)
             raise LLMTimeoutError(timeout, e)
         finally:
             # Ensure reader thread finishes
@@ -149,8 +152,8 @@ class CursorCLIClient(LLMClient):
             if log_stream:
                 try:
                     log_stream.close()
-                except Exception:
-                    pass
+                except OSError as close_error:
+                    logger.debug("Failed to close log stream: %s", close_error)
 
         output_text = ''.join(collected_output)
 

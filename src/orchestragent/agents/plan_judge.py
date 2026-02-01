@@ -1,11 +1,14 @@
 """Plan judge agent implementation."""
 
 import json
+import logging
 import re
 from typing import Dict, Any
 
 from .base import BaseAgent
 from orchestragent.models import Task
+
+logger = logging.getLogger(__name__)
 
 
 class PlanJudgeAgent(BaseAgent):
@@ -55,7 +58,8 @@ Please evaluate whether this plan and task list are appropriate.
                 # Plan_Judge は index 情報だけで十分なため、status は index ではなく個別ファイルから取得
                 try:
                     task = self.state_manager.get_task_by_id(task_id)
-                except Exception:
+                except (OSError, ValueError, KeyError) as e:
+                    logger.warning("Failed to get task %s: %s", task_id, e)
                     task = None
                 if task:
                     task_status = task.status.value

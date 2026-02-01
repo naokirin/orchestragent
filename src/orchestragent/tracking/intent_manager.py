@@ -1,9 +1,12 @@
 """Intent management utilities."""
 
+import logging
 import yaml
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 class IntentManager:
@@ -81,7 +84,8 @@ class IntentManager:
                     intent = yaml.safe_load(f)
                     if intent:
                         intents.append(intent)
-            except Exception:
+            except (yaml.YAMLError, OSError) as e:
+                logger.warning("Failed to load intent file %s: %s", filepath, e)
                 continue
 
         # Sort by created_at (newest first)
