@@ -1,0 +1,313 @@
+"""Tests for data models."""
+
+import pytest
+from datetime import datetime
+
+from orchestragent.models.task import (
+    Task,
+    TaskIndex,
+    TaskPriority,
+    TaskResult,
+    TasksFile,
+    TaskStatistics,
+    TaskStatus,
+)
+
+
+class TestTaskStatus:
+    """Tests for TaskStatus enum."""
+
+    def test_status_values(self):
+        """Test that all expected status values exist."""
+        assert TaskStatus.PENDING.value == "pending"
+        assert TaskStatus.IN_PROGRESS.value == "in_progress"
+        assert TaskStatus.COMPLETED.value == "completed"
+        assert TaskStatus.FAILED.value == "failed"
+
+    def test_status_from_string(self):
+        """Test creating status from string."""
+        assert TaskStatus("pending") == TaskStatus.PENDING
+        assert TaskStatus("completed") == TaskStatus.COMPLETED
+
+
+class TestTaskPriority:
+    """Tests for TaskPriority enum."""
+
+    def test_priority_values(self):
+        """Test that all expected priority values exist."""
+        assert TaskPriority.LOW.value == "low"
+        assert TaskPriority.MEDIUM.value == "medium"
+        assert TaskPriority.HIGH.value == "high"
+
+    def test_from_string_valid(self):
+        """Test creating priority from valid string."""
+        assert TaskPriority.from_string("low") == TaskPriority.LOW
+        assert TaskPriority.from_string("HIGH") == TaskPriority.HIGH
+        assert TaskPriority.from_string("Medium") == TaskPriority.MEDIUM
+
+    def test_from_string_invalid(self):
+        """Test creating priority from invalid string defaults to MEDIUM."""
+        assert TaskPriority.from_string("invalid") == TaskPriority.MEDIUM
+        assert TaskPriority.from_string("") == TaskPriority.MEDIUM
+
+    def test_to_score(self):
+        """Test priority to score conversion."""
+        assert TaskPriority.HIGH.to_score() == 3
+        assert TaskPriority.MEDIUM.to_score() == 2
+        assert TaskPriority.LOW.to_score() == 1
+
+
+class TestTaskResult:
+    """Tests for TaskResult dataclass."""
+
+    def test_default_values(self):
+        """Test default values."""
+        result = TaskResult()
+        assert result.report == ""
+        assert result.success is True
+        assert result.error_message is None
+
+    def test_to_dict_success(self):
+        """Test converting successful result to dict."""
+        result = TaskResult(report="Task completed", success=True)
+        d = result.to_dict()
+        assert d["report"] == "Task completed"
+        assert "success" not in d  # success=True is not included
+
+    def test_to_dict_failure(self):
+        """Test converting failed result to dict."""
+        result = TaskResult(
+            report="Task failed",
+            success=False,
+            error_message="Something went wrong",
+        )
+        d = result.to_dict()
+        assert d["report"] == "Task failed"
+        assert d["success"] is False
+        assert d["error_message"] == "Something went wrong"
+
+    def test_from_dict(self):
+        """Test creating from dict."""
+        data = {
+            "report": "Test report",
+            "success": False,
+            "error_message": "Error",
+        }
+        result = TaskResult.from_dict(data)
+        assert result.report == "Test report"
+        assert result.success is False
+        assert result.error_message == "Error"
+
+    def test_from_dict_defaults(self):
+        """Test creating from dict with missing fields."""
+        result = TaskResult.from_dict({})
+        assert result.report == ""
+        assert result.success is True
+        assert result.error_message is None
+
+
+class TestTask:
+    """Tests for Task dataclass."""
+
+    def test_create_basic_task(self):
+        """Test creating a basic task."""
+        task = Task(id="task-001", title="Test Task")
+        assert task.id == "task-001"
+        assert task.title == "Test Task"
+        assert task.description == ""
+        assert task.priority == TaskPriority.MEDIUM
+        assert task.status == TaskStatus.PENDING
+        assert task.created_at is not None
+
+    def test_post_init_priority_conversion(self):
+        """Test that string priority is converted to enum."""
+        task = Task(id="t1", title="Test", priority="high")  # type: ignore
+        assert task.priority == TaskPriority.HIGH
+
+    def test_post_init_status_conversion(self):
+        """Test that string status is converted to enum."""
+        task = Task(id="t1", title="Test", status="completed")  # type: ignore
+        assert task.status == TaskStatus.COMPLETED
+
+    def test_post_init_invalid_status(self):
+        """Test that invalid status defaults to PENDING."""
+        task = Task(id="t1", title="Test", status="invalid")  # type: ignore
+        assert task.status == TaskStatus.PENDING
+
+    def test_to_dict(self, sample_task):
+        """Test converting task to dict."""
+        d = sample_task.to_dict()
+        assert d["id"] == "task-001"
+        assert d["title"] == "Test Task"
+        assert d["priority"] == "medium"
+        assert d["status"] == "pending"
+        assert d["files"] == ["src/main.py", "tests/test_main.py"]
+
+    def test_from_dict(self, sample_task_dict):
+        """Test creating task from dict."""
+        task = Task.from_dict(sample_task_dict)
+        assert task.id == "task-001"
+        assert task.title == "Test Task"
+        assert task.priority == TaskPriority.MEDIUM
+        assert task.status == TaskStatus.PENDING
+        assert task.estimated_hours == 2.0
+
+    def test_from_dict_with_result(self):
+        """Test creating task from dict with result."""
+        data = {
+            "id": "t1",
+            "title": "Task with result",
+            "status": "completed",
+            "result": {
+                "report": "Done",
+                "success": True,
+            },
+        }
+        task = Task.from_dict(data)
+        assert task.result is not None
+        assert task.result.report == "Done"
+        assert task.result.success is True
+
+    def test_status_check_methods(self):
+        """Test status check methods."""
+        pending = Task(id="t1", title="T", status=TaskStatus.PENDING)
+        in_progress = Task(id="t2", title="T", status=TaskStatus.IN_PROGRESS)
+        completed = Task(id="t3", title="T", status=TaskStatus.COMPLETED)
+        failed = Task(id="t4", title="T", status=TaskStatus.FAILED)
+
+        assert pending.is_pending() is True
+        assert pending.is_in_progress() is False
+
+        assert in_progress.is_in_progress() is True
+        assert in_progress.is_pending() is False
+
+        assert completed.is_completed() is True
+        assert completed.is_failed() is False
+
+        assert failed.is_failed() is True
+        assert failed.is_completed() is False
+
+    def test_roundtrip_dict_conversion(self, sample_task):
+        """Test that to_dict -> from_dict preserves data."""
+        d = sample_task.to_dict()
+        restored = Task.from_dict(d)
+
+        assert restored.id == sample_task.id
+        assert restored.title == sample_task.title
+        assert restored.description == sample_task.description
+        assert restored.priority == sample_task.priority
+        assert restored.status == sample_task.status
+        assert restored.files == sample_task.files
+
+
+class TestTaskIndex:
+    """Tests for TaskIndex dataclass."""
+
+    def test_create_basic_index(self):
+        """Test creating a basic task index."""
+        index = TaskIndex(id="t1", title="Task 1")
+        assert index.id == "t1"
+        assert index.title == "Task 1"
+        assert index.priority == TaskPriority.MEDIUM
+        assert index.created_at is not None
+
+    def test_to_dict(self):
+        """Test converting to dict."""
+        index = TaskIndex(id="t1", title="Task 1", priority=TaskPriority.HIGH)
+        d = index.to_dict()
+        assert d["id"] == "t1"
+        assert d["title"] == "Task 1"
+        assert d["priority"] == "high"
+
+    def test_from_dict(self):
+        """Test creating from dict."""
+        data = {"id": "t1", "title": "Task 1", "priority": "low"}
+        index = TaskIndex.from_dict(data)
+        assert index.id == "t1"
+        assert index.priority == TaskPriority.LOW
+
+
+class TestTasksFile:
+    """Tests for TasksFile dataclass."""
+
+    def test_default_values(self):
+        """Test default values."""
+        tf = TasksFile()
+        assert tf.tasks == []
+        assert tf.next_task_id == 1
+        assert tf.version == 0
+
+    def test_to_dict(self, sample_tasks_file):
+        """Test converting to dict."""
+        d = sample_tasks_file.to_dict()
+        assert len(d["tasks"]) == 3
+        assert d["next_task_id"] == 4
+        assert d["version"] == 1
+
+    def test_from_dict(self):
+        """Test creating from dict."""
+        data = {
+            "tasks": [
+                {"id": "t1", "title": "Task 1"},
+                {"id": "t2", "title": "Task 2"},
+            ],
+            "next_task_id": 3,
+            "version": 2,
+        }
+        tf = TasksFile.from_dict(data)
+        assert len(tf.tasks) == 2
+        assert tf.next_task_id == 3
+        assert tf.version == 2
+
+    def test_get_task_index(self, sample_tasks_file):
+        """Test getting task index by ID."""
+        index = sample_tasks_file.get_task_index("task-002")
+        assert index is not None
+        assert index.title == "Task 2"
+
+        assert sample_tasks_file.get_task_index("nonexistent") is None
+
+    def test_has_task(self, sample_tasks_file):
+        """Test checking if task exists."""
+        assert sample_tasks_file.has_task("task-001") is True
+        assert sample_tasks_file.has_task("nonexistent") is False
+
+
+class TestTaskStatistics:
+    """Tests for TaskStatistics dataclass."""
+
+    def test_default_values(self):
+        """Test default values."""
+        stats = TaskStatistics()
+        assert stats.total == 0
+        assert stats.completed == 0
+        assert stats.failed == 0
+        assert stats.pending == 0
+        assert stats.in_progress == 0
+
+    def test_to_dict(self):
+        """Test converting to dict."""
+        stats = TaskStatistics(total=10, completed=5, failed=1, pending=3, in_progress=1)
+        d = stats.to_dict()
+        assert d["total"] == 10
+        assert d["completed"] == 5
+        assert d["failed"] == 1
+        assert d["pending"] == 3
+        assert d["in_progress"] == 1
+
+    def test_from_tasks(self):
+        """Test calculating statistics from task list."""
+        tasks = [
+            Task(id="t1", title="T1", status=TaskStatus.COMPLETED),
+            Task(id="t2", title="T2", status=TaskStatus.COMPLETED),
+            Task(id="t3", title="T3", status=TaskStatus.FAILED),
+            Task(id="t4", title="T4", status=TaskStatus.PENDING),
+            Task(id="t5", title="T5", status=TaskStatus.IN_PROGRESS),
+        ]
+        stats = TaskStatistics.from_tasks(tasks)
+
+        assert stats.total == 5
+        assert stats.completed == 2
+        assert stats.failed == 1
+        assert stats.pending == 1
+        assert stats.in_progress == 1
