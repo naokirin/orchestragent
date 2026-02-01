@@ -27,7 +27,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Cursor CLIですべての操作を許可（コンテナ内のため、許可する）
-ENV CURSOR_CONFIG_DIR "/root/.orchestragent"
+ENV CURSOR_CONFIG_DIR="/root/.orchestragent"
 RUN mkdir -p /root/.orchestragent
 COPY cli-config.template.json /root/.orchestragent/cli-config.json
 
