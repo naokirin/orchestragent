@@ -491,7 +491,7 @@ VALID_TRANSITIONS = {
 
 - [x] `run_main_loop()` の分割 ✅ 2026-02-01
 - [x] タスク状態遷移の検証追加 ✅ 2026-02-01（VALID_TRANSITIONS・can_transition/validate_task_status_transition を models/task.py に追加、StateManager.update_task で検証、テスト追加）
-- [ ] config依存性注入
+- [x] config依存性注入 ✅ 2026-02-01（RunnerConfig 導入、WorkerAgent DI、loop は ctx.runner_config 参照）
 
 ### 中長期対応項目
 

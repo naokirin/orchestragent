@@ -1,7 +1,7 @@
 """Worker agent implementation."""
 
 import re
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from .base import BaseAgent
 from orchestragent.models import Task
@@ -9,33 +9,47 @@ from orchestragent.llm.model_selector import ModelSelector
 from orchestragent.tracking.intent_parser import IntentParser
 from orchestragent.tracking.intent_manager import IntentManager
 from orchestragent.tracking.adr_manager import ADRManager
-import config
 
 
 class WorkerAgent(BaseAgent):
     """Agent that executes tasks."""
 
-    def __init__(self, *args, **kwargs):
-        """Initialize worker agent."""
+    def __init__(
+        self,
+        *args,
+        state_dir: str = "state",
+        adr_dir: str = "docs/adr",
+        model_selection_enabled: bool = False,
+        model_complexity_threshold_light: float = 10.0,
+        model_complexity_threshold_powerful: float = 30.0,
+        worker_model_light: Optional[str] = None,
+        worker_model_standard: Optional[str] = None,
+        worker_model_powerful: Optional[str] = None,
+        worker_model_default: Optional[str] = None,
+        **kwargs,
+    ):
+        """
+        Initialize worker agent.
+        設定は依存性注入で受け取る。state_dir, adr_dir, model_* は省略時はデフォルト値を使用。
+        """
         super().__init__(*args, **kwargs)
         self.mode = "agent"  # Worker uses agent mode (not plan)
         self.current_task_id = None
 
-        # Initialize model selector for dynamic model selection
+        # Initialize model selector from injected config
         self.model_selector = ModelSelector(
-            enabled=config.MODEL_SELECTION_ENABLED,
-            threshold_light=config.MODEL_COMPLEXITY_THRESHOLD_LIGHT,
-            threshold_powerful=config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL,
-            model_light=config.WORKER_MODEL_LIGHT,
-            model_standard=config.WORKER_MODEL_STANDARD,
-            model_powerful=config.WORKER_MODEL_POWERFUL,
-            model_default=config.WORKER_MODEL
+            enabled=model_selection_enabled,
+            threshold_light=model_complexity_threshold_light,
+            threshold_powerful=model_complexity_threshold_powerful,
+            model_light=worker_model_light,
+            model_standard=worker_model_standard,
+            model_powerful=worker_model_powerful,
+            model_default=worker_model_default,
         )
 
-        # Initialize intent manager for tracking change intents
-        self.intent_manager = IntentManager(state_dir=config.STATE_DIR)
-        # Initialize ADR manager for auto-creating ADRs from Worker decisions
-        self.adr_manager = ADRManager(adr_dir=getattr(config, "ADR_DIR", "docs/adr"))
+        # Initialize intent manager and ADR manager from injected config
+        self.intent_manager = IntentManager(state_dir=state_dir)
+        self.adr_manager = ADRManager(adr_dir=adr_dir)
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for worker."""

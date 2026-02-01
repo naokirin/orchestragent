@@ -1,12 +1,11 @@
 """Main loop logic for the agent system."""
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Any, Optional
 
-import config
 from orchestragent.core.environment import is_running_in_container
 from orchestragent.core.exceptions import AgentError
 from orchestragent.core.logger import AgentLogger
@@ -28,6 +27,69 @@ from .startup import (
 )
 
 
+@dataclass(frozen=True)
+class RunnerConfig:
+    """
+    メインループとエージェントに渡す設定。依存性注入用。
+    テスト時はモックの RunnerConfig を渡せる。
+    """
+    llm_backend: str
+    working_dir: str
+    llm_output_format: str
+    state_dir: str
+    log_dir: str
+    log_level: str
+    log_fsync: bool
+    agent_config: Dict[str, Any] = field(default_factory=dict)
+    planner_model: Optional[str] = None
+    worker_model: Optional[str] = None
+    judge_model: Optional[str] = None
+    max_plan_revisions: int = 3
+    max_retries: int = 3
+    enable_parallel_execution: bool = True
+    max_parallel_workers: int = 3
+    wait_time_seconds: int = 60
+    max_iterations: int = 100
+    adr_dir: str = "docs/adr"
+    model_selection_enabled: bool = False
+    model_complexity_threshold_light: float = 10.0
+    model_complexity_threshold_powerful: float = 30.0
+    worker_model_light: Optional[str] = None
+    worker_model_standard: Optional[str] = None
+    worker_model_powerful: Optional[str] = None
+
+    @classmethod
+    def from_global_config(cls) -> "RunnerConfig":
+        """グローバル config モジュールから RunnerConfig を構築する。"""
+        import config as global_config
+        return cls(
+            llm_backend=global_config.LLM_BACKEND,
+            working_dir=str(global_config.WORKING_DIR),
+            llm_output_format=global_config.LLM_OUTPUT_FORMAT,
+            state_dir=global_config.STATE_DIR,
+            log_dir=global_config.LOG_DIR,
+            log_level=global_config.LOG_LEVEL,
+            log_fsync=global_config.LOG_FSYNC,
+            agent_config=global_config.AGENT_CONFIG.copy(),
+            planner_model=global_config.PLANNER_MODEL,
+            worker_model=global_config.WORKER_MODEL,
+            judge_model=global_config.JUDGE_MODEL,
+            max_plan_revisions=global_config.MAX_PLAN_REVISIONS,
+            max_retries=global_config.MAX_RETRIES,
+            enable_parallel_execution=global_config.ENABLE_PARALLEL_EXECUTION,
+            max_parallel_workers=global_config.MAX_PARALLEL_WORKERS,
+            wait_time_seconds=global_config.WAIT_TIME_SECONDS,
+            max_iterations=global_config.MAX_ITERATIONS,
+            adr_dir=getattr(global_config, "ADR_DIR", "docs/adr"),
+            model_selection_enabled=global_config.MODEL_SELECTION_ENABLED,
+            model_complexity_threshold_light=global_config.MODEL_COMPLEXITY_THRESHOLD_LIGHT,
+            model_complexity_threshold_powerful=global_config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL,
+            worker_model_light=global_config.WORKER_MODEL_LIGHT,
+            worker_model_standard=global_config.WORKER_MODEL_STANDARD,
+            worker_model_powerful=global_config.WORKER_MODEL_POWERFUL,
+        )
+
+
 @dataclass
 class LoopContext:
     """コンテキスト: セッション初期化で作成されるコンポーネント。"""
@@ -37,6 +99,7 @@ class LoopContext:
     llm_client: LLMClient
     file_lock_manager: FileLockManager
     task_scheduler: TaskScheduler
+    runner_config: RunnerConfig
 
 
 @dataclass
@@ -48,13 +111,17 @@ class AgentContext:
     judge: JudgeAgent
     plan_judge: PlanJudgeAgent
     worker_config: Dict[str, Any]
+    runner_config: RunnerConfig
 
 
-def initialize_session() -> LoopContext:
+def initialize_session(cfg: Optional[RunnerConfig] = None) -> LoopContext:
     """
     環境チェック・認証・StateManager/Logger/LLM/FileLock/TaskScheduler を初期化する。
-    個別にテスト可能な単位。
+    個別にテスト可能な単位。cfg を渡すとその設定で初期化し、未指定時はグローバル config から構築する。
     """
+    if cfg is None:
+        cfg = RunnerConfig.from_global_config()
+
     print("=" * 60)
     print("orchestragent")
     print("Phase 1: 動作確認")
@@ -89,12 +156,12 @@ def initialize_session() -> LoopContext:
     print("\n[初期化] コンポーネントを初期化しています...")
 
     llm_client = LLMClientFactory.create(
-        backend=config.LLM_BACKEND,
-        project_root=str(config.WORKING_DIR),
-        output_format=config.LLM_OUTPUT_FORMAT
+        backend=cfg.llm_backend,
+        project_root=cfg.working_dir,
+        output_format=cfg.llm_output_format
     )
 
-    state_manager = StateManager(state_dir=config.STATE_DIR)
+    state_manager = StateManager(state_dir=cfg.state_dir)
 
     validation = state_manager.validate_state()
     if not validation.valid:
@@ -117,12 +184,12 @@ def initialize_session() -> LoopContext:
             print(f"  - {task_id}")
 
     logger = AgentLogger(
-        log_dir=config.LOG_DIR,
-        log_level=config.LOG_LEVEL,
-        sync=config.LOG_FSYNC,
+        log_dir=cfg.log_dir,
+        log_level=cfg.log_level,
+        sync=cfg.log_fsync,
     )
 
-    file_lock_manager = FileLockManager(lock_dir=f"{config.STATE_DIR}/locks")
+    file_lock_manager = FileLockManager(lock_dir=f"{cfg.state_dir}/locks")
     task_scheduler = TaskScheduler(state_manager, file_lock_manager)
 
     return LoopContext(
@@ -131,17 +198,19 @@ def initialize_session() -> LoopContext:
         llm_client=llm_client,
         file_lock_manager=file_lock_manager,
         task_scheduler=task_scheduler,
+        runner_config=cfg,
     )
 
 
 def setup_agents(ctx: LoopContext) -> AgentContext:
     """
     エージェント（Planner / Worker / Judge / Plan_Judge）をセットアップする。
-    個別にテスト可能な単位。
+    個別にテスト可能な単位。設定は ctx.runner_config から取得する。
     """
-    planner_config = config.AGENT_CONFIG.copy()
+    cfg = ctx.runner_config
+    planner_config = cfg.agent_config.copy()
     planner_config["mode"] = "plan"
-    planner_config["model"] = config.PLANNER_MODEL
+    planner_config["model"] = cfg.planner_model
 
     planner = PlannerAgent(
         name="Planner",
@@ -151,23 +220,32 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
         config=planner_config
     )
 
-    worker_config = config.AGENT_CONFIG.copy()
+    worker_config = cfg.agent_config.copy()
     worker_config["mode"] = "agent"
     worker_config["prompt_template"] = "prompts/worker.md"
-    worker_config["model"] = config.WORKER_MODEL
+    worker_config["model"] = cfg.worker_model
 
     worker = WorkerAgent(
         name="Worker",
         llm_client=ctx.llm_client,
         state_manager=ctx.state_manager,
         logger=ctx.logger,
-        config=worker_config
+        config=worker_config,
+        state_dir=cfg.state_dir,
+        adr_dir=cfg.adr_dir,
+        model_selection_enabled=cfg.model_selection_enabled,
+        model_complexity_threshold_light=cfg.model_complexity_threshold_light,
+        model_complexity_threshold_powerful=cfg.model_complexity_threshold_powerful,
+        worker_model_light=cfg.worker_model_light,
+        worker_model_standard=cfg.worker_model_standard,
+        worker_model_powerful=cfg.worker_model_powerful,
+        worker_model_default=cfg.worker_model,
     )
 
-    judge_config = config.AGENT_CONFIG.copy()
+    judge_config = cfg.agent_config.copy()
     judge_config["mode"] = "ask"
     judge_config["prompt_template"] = "prompts/judge.md"
-    judge_config["model"] = config.JUDGE_MODEL
+    judge_config["model"] = cfg.judge_model
 
     judge = JudgeAgent(
         name="Judge",
@@ -177,10 +255,10 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
         config=judge_config
     )
 
-    plan_judge_config = config.AGENT_CONFIG.copy()
+    plan_judge_config = cfg.agent_config.copy()
     plan_judge_config["mode"] = "ask"
     plan_judge_config["prompt_template"] = "prompts/plan_judge.md"
-    plan_judge_config["model"] = config.JUDGE_MODEL
+    plan_judge_config["model"] = cfg.judge_model
 
     plan_judge = PlanJudgeAgent(
         name="Plan_Judge",
@@ -197,6 +275,7 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
         judge=judge,
         plan_judge=plan_judge,
         worker_config=worker_config,
+        runner_config=cfg,
     )
 
 
@@ -213,10 +292,11 @@ def run_plan_phase(
     plan_loop_failed = False
     decision: Optional[str] = None
 
-    for plan_attempt in range(1, config.MAX_PLAN_REVISIONS + 1):
-        print(f"\n[1/3] Planner実行中... (attempt {plan_attempt}/{config.MAX_PLAN_REVISIONS})")
+    cfg = ctx.runner_config
+    for plan_attempt in range(1, cfg.max_plan_revisions + 1):
+        print(f"\n[1/3] Planner実行中... (attempt {plan_attempt}/{cfg.max_plan_revisions})")
         try:
-            agents.planner.run(iteration=iteration, max_retries=config.MAX_RETRIES)
+            agents.planner.run(iteration=iteration, max_retries=cfg.max_retries)
             print("[Planner] 完了")
         except AgentError as e:
             ctx.logger.log_error_with_traceback(
@@ -236,7 +316,7 @@ def run_plan_phase(
         print("\n[1/3] Plan_Judge実行中...")
         try:
             plan_judge_result = agents.plan_judge.run(
-                iteration=iteration, max_retries=config.MAX_RETRIES
+                iteration=iteration, max_retries=cfg.max_retries
             )
             decision = plan_judge_result.get("decision", "accept")
             print(f"[Plan_Judge] 完了 (decision: {decision})")
@@ -274,9 +354,10 @@ def run_work_phase(
     """
     print("\n[2/3] Worker実行中...")
 
-    if config.ENABLE_PARALLEL_EXECUTION:
+    cfg = ctx.runner_config
+    if cfg.enable_parallel_execution:
         parallelizable_tasks = ctx.task_scheduler.get_parallelizable_tasks(
-            max_workers=config.MAX_PARALLEL_WORKERS
+            max_workers=cfg.max_parallel_workers
         )
 
         if not parallelizable_tasks:
@@ -286,12 +367,22 @@ def run_work_phase(
 
             def run_worker_task(task_data) -> Dict[str, Any]:
                 task_id = task_data.id
+                rc = agents.runner_config
                 worker_instance = WorkerAgent(
                     name=f"Worker-{task_id}",
                     llm_client=ctx.llm_client,
                     state_manager=ctx.state_manager,
                     logger=ctx.logger,
-                    config=agents.worker_config
+                    config=agents.worker_config,
+                    state_dir=rc.state_dir,
+                    adr_dir=rc.adr_dir,
+                    model_selection_enabled=rc.model_selection_enabled,
+                    model_complexity_threshold_light=rc.model_complexity_threshold_light,
+                    model_complexity_threshold_powerful=rc.model_complexity_threshold_powerful,
+                    worker_model_light=rc.worker_model_light,
+                    worker_model_standard=rc.worker_model_standard,
+                    worker_model_powerful=rc.worker_model_powerful,
+                    worker_model_default=rc.worker_model,
                 )
 
                 result: Dict[str, Any] = {
@@ -316,7 +407,7 @@ def run_work_phase(
                         try:
                             worker_instance.run(
                                 iteration=iteration,
-                                max_retries=config.MAX_RETRIES
+                                max_retries=cfg.max_retries
                             )
                             result["success"] = True
                             ctx.logger.info(f"[Worker-{task_id}] Task completed")
@@ -344,7 +435,7 @@ def run_work_phase(
 
                 return result
 
-            with ThreadPoolExecutor(max_workers=config.MAX_PARALLEL_WORKERS) as executor:
+            with ThreadPoolExecutor(max_workers=cfg.max_parallel_workers) as executor:
                 future_to_task = {
                     executor.submit(run_worker_task, task): task
                     for task in parallelizable_tasks
@@ -390,7 +481,7 @@ def run_work_phase(
 
             if agents.worker.assign_task(task_id):
                 try:
-                    agents.worker.run(iteration=iteration, max_retries=config.MAX_RETRIES)
+                    agents.worker.run(iteration=iteration, max_retries=cfg.max_retries)
                     print(f"[Worker] タスク {task_id} 完了")
                 except AgentError as e:
                     ctx.logger.log_error_with_traceback(
@@ -421,8 +512,9 @@ def run_judge_phase(
     Judge フェーズを実行する。
     """
     print("\n[3/3] Judge実行中...")
+    cfg = ctx.runner_config
     try:
-        agents.judge.run(iteration=iteration, max_retries=config.MAX_RETRIES)
+        agents.judge.run(iteration=iteration, max_retries=cfg.max_retries)
         print("[Judge] 完了")
     except AgentError as e:
         ctx.logger.log_error_with_traceback("Judge", e, context={"iteration": iteration})
@@ -432,18 +524,20 @@ def run_judge_phase(
         print(f"[Judge] 予期しないエラー: {e}")
 
 
-def run_main_loop() -> None:
+def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
     """
     Run the main agent loop.
     初期化・エージェントセットアップ・各フェーズ関数を呼び出してオーケストレートする。
+    cfg を渡すとその設定で実行し、未指定時はグローバル config から構築する。
     """
-    ctx = initialize_session()
+    ctx = initialize_session(cfg)
     agents = setup_agents(ctx)
+    cfg = ctx.runner_config
 
     print("\n[Phase 2] メインループを開始します...")
-    print(f"プロジェクト目標: {config.AGENT_CONFIG['project_goal']}")
-    print(f"待機時間: {config.WAIT_TIME_SECONDS}秒")
-    print(f"最大イテレーション: {config.MAX_ITERATIONS}")
+    print(f"プロジェクト目標: {cfg.agent_config['project_goal']}")
+    print(f"待機時間: {cfg.wait_time_seconds}秒")
+    print(f"最大イテレーション: {cfg.max_iterations}")
 
     iteration = 0
 
@@ -454,7 +548,7 @@ def run_main_loop() -> None:
         ctx.logger.warning(f"Failed to create initial checkpoint: {e}")
 
     try:
-        while iteration < config.MAX_ITERATIONS:
+        while iteration < cfg.max_iterations:
             iteration += 1
             print(f"\n{'=' * 60}")
             print(f"イテレーション {iteration}")
@@ -476,13 +570,13 @@ def run_main_loop() -> None:
                 )
                 break
 
-            print(f"\n[待機] {config.WAIT_TIME_SECONDS}秒待機中...")
-            time.sleep(config.WAIT_TIME_SECONDS)
+            print(f"\n[待機] {cfg.wait_time_seconds}秒待機中...")
+            time.sleep(cfg.wait_time_seconds)
 
             run_work_phase(ctx, agents, iteration)
 
-            print(f"\n[待機] {config.WAIT_TIME_SECONDS}秒待機中...")
-            time.sleep(config.WAIT_TIME_SECONDS)
+            print(f"\n[待機] {cfg.wait_time_seconds}秒待機中...")
+            time.sleep(cfg.wait_time_seconds)
 
             run_judge_phase(ctx, agents, iteration)
 
@@ -518,12 +612,12 @@ def run_main_loop() -> None:
                 except Exception as e:
                     ctx.logger.warning(f"Failed to create backup: {e}")
 
-            if iteration < config.MAX_ITERATIONS:
-                print(f"\n[待機] 次のイテレーションまで {config.WAIT_TIME_SECONDS}秒待機中...")
-                time.sleep(config.WAIT_TIME_SECONDS)
+            if iteration < cfg.max_iterations:
+                print(f"\n[待機] 次のイテレーションまで {cfg.wait_time_seconds}秒待機中...")
+                time.sleep(cfg.wait_time_seconds)
 
-        if iteration >= config.MAX_ITERATIONS:
-            print(f"\n[完了] 最大イテレーション数 ({config.MAX_ITERATIONS}) に達しました")
+        if iteration >= cfg.max_iterations:
+            print(f"\n[完了] 最大イテレーション数 ({cfg.max_iterations}) に達しました")
 
         print("\n" + "=" * 60)
         print("最終状態")
@@ -540,7 +634,7 @@ def run_main_loop() -> None:
     except KeyboardInterrupt:
         print("\n\n[中断] ユーザーによって中断されました")
         ctx.logger.info("Main loop interrupted by user")
-        if config.ENABLE_PARALLEL_EXECUTION:
+        if cfg.enable_parallel_execution:
             ctx.file_lock_manager.release_all_locks()
         try:
             checkpoint_path = ctx.state_manager.create_checkpoint("interrupted")
@@ -550,7 +644,7 @@ def run_main_loop() -> None:
             ctx.logger.warning(f"Failed to create checkpoint before exit: {e}")
     except Exception as e:
         ctx.logger.log_error_with_traceback("MainLoop", e, context={"iteration": iteration})
-        if config.ENABLE_PARALLEL_EXECUTION:
+        if cfg.enable_parallel_execution:
             ctx.file_lock_manager.release_all_locks()
         try:
             checkpoint_path = ctx.state_manager.create_checkpoint("error")

@@ -11,6 +11,7 @@ from .startup import (
 )
 from .loop import (
     run_main_loop,
+    RunnerConfig,
     LoopContext,
     AgentContext,
     initialize_session,
@@ -21,6 +22,7 @@ from .loop import (
 )
 
 __all__ = [
+    "RunnerConfig",
     "check_cursor_cli",
     "check_cursor_auth",
     "authenticate_cursor",
