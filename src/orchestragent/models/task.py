@@ -14,6 +14,38 @@ class TaskStatus(str, Enum):
     FAILED = "failed"
 
 
+# 許可される状態遷移（ステートマシン）
+# 完了後は遷移不可、失敗後は PENDING（リトライ）のみ許可
+VALID_TRANSITIONS: Dict[TaskStatus, List[TaskStatus]] = {
+    TaskStatus.PENDING: [TaskStatus.IN_PROGRESS],
+    TaskStatus.IN_PROGRESS: [TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.PENDING],
+    TaskStatus.COMPLETED: [],
+    TaskStatus.FAILED: [TaskStatus.PENDING],
+}
+
+
+def can_transition(from_status: TaskStatus, to_status: TaskStatus) -> bool:
+    """現在の状態から目的の状態への遷移が許可されているか判定する。同一状態（no-op）は許可。"""
+    if from_status == to_status:
+        return True
+    allowed = VALID_TRANSITIONS.get(from_status, [])
+    return to_status in allowed
+
+
+def validate_task_status_transition(from_status: TaskStatus, to_status: TaskStatus) -> None:
+    """
+    状態遷移が有効でない場合に ValueError を送出する。
+    同じ状態への更新（no-op）は許可する。
+    """
+    if from_status == to_status:
+        return
+    if not can_transition(from_status, to_status):
+        raise ValueError(
+            f"Invalid task status transition: {from_status.value!r} -> {to_status.value!r}. "
+            f"Allowed from {from_status.value}: {[s.value for s in VALID_TRANSITIONS.get(from_status, [])]}"
+        )
+
+
 class TaskPriority(str, Enum):
     """Task priority enumeration."""
     LOW = "low"

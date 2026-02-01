@@ -11,6 +11,8 @@ from orchestragent.models.task import (
     TasksFile,
     TaskStatistics,
     TaskStatus,
+    can_transition,
+    validate_task_status_transition,
 )
 
 
@@ -28,6 +30,64 @@ class TestTaskStatus:
         """Test creating status from string."""
         assert TaskStatus("pending") == TaskStatus.PENDING
         assert TaskStatus("completed") == TaskStatus.COMPLETED
+
+
+class TestTaskStatusTransition:
+    """Tests for task status transition validation (state machine)."""
+
+    def test_can_transition_pending_to_in_progress(self):
+        """PENDING -> IN_PROGRESS is allowed."""
+        assert can_transition(TaskStatus.PENDING, TaskStatus.IN_PROGRESS) is True
+
+    def test_can_transition_in_progress_to_completed(self):
+        """IN_PROGRESS -> COMPLETED is allowed."""
+        assert can_transition(TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED) is True
+
+    def test_can_transition_in_progress_to_failed(self):
+        """IN_PROGRESS -> FAILED is allowed."""
+        assert can_transition(TaskStatus.IN_PROGRESS, TaskStatus.FAILED) is True
+
+    def test_can_transition_in_progress_to_pending(self):
+        """IN_PROGRESS -> PENDING (recovery) is allowed."""
+        assert can_transition(TaskStatus.IN_PROGRESS, TaskStatus.PENDING) is True
+
+    def test_can_transition_failed_to_pending(self):
+        """FAILED -> PENDING (retry) is allowed."""
+        assert can_transition(TaskStatus.FAILED, TaskStatus.PENDING) is True
+
+    def test_cannot_transition_completed_to_any(self):
+        """COMPLETED is terminal; no transitions allowed."""
+        assert can_transition(TaskStatus.COMPLETED, TaskStatus.PENDING) is False
+        assert can_transition(TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS) is False
+        assert can_transition(TaskStatus.COMPLETED, TaskStatus.FAILED) is False
+        assert can_transition(TaskStatus.COMPLETED, TaskStatus.COMPLETED) is True  # no-op
+
+    def test_cannot_transition_pending_to_completed(self):
+        """PENDING -> COMPLETED is invalid (skip IN_PROGRESS)."""
+        assert can_transition(TaskStatus.PENDING, TaskStatus.COMPLETED) is False
+
+    def test_cannot_transition_failed_to_in_progress(self):
+        """FAILED -> IN_PROGRESS is invalid (must go via PENDING)."""
+        assert can_transition(TaskStatus.FAILED, TaskStatus.IN_PROGRESS) is False
+
+    def test_validate_same_status_allowed(self):
+        """Same status (no-op) does not raise."""
+        validate_task_status_transition(TaskStatus.PENDING, TaskStatus.PENDING)
+        validate_task_status_transition(TaskStatus.COMPLETED, TaskStatus.COMPLETED)
+
+    def test_validate_invalid_transition_raises(self):
+        """Invalid transition raises ValueError with clear message."""
+        with pytest.raises(ValueError) as exc_info:
+            validate_task_status_transition(TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS)
+        assert "Invalid task status transition" in str(exc_info.value)
+        assert "completed" in str(exc_info.value)
+        assert "in_progress" in str(exc_info.value)
+
+    def test_validate_valid_transition_does_not_raise(self):
+        """Valid transitions do not raise."""
+        validate_task_status_transition(TaskStatus.PENDING, TaskStatus.IN_PROGRESS)
+        validate_task_status_transition(TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED)
+        validate_task_status_transition(TaskStatus.FAILED, TaskStatus.PENDING)
 
 
 class TestTaskPriority:

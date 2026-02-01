@@ -330,3 +330,62 @@ class TestStateManagerTaskLifecycle:
         assert id1 == "task_001"
         assert id2 == "task_002"
         assert id3 == "task_003"
+
+
+class TestStateManagerTaskStatusTransition:
+    """Tests for task status transition validation in StateManager."""
+
+    def test_update_task_invalid_status_transition_raises(self, state_manager, sample_task):
+        """Invalid status transition via update_task raises ValueError."""
+        task_id = state_manager.add_task(sample_task)
+        state_manager.assign_task(task_id)
+        state_manager.complete_task(task_id, TaskResult(report="Done"))
+        # COMPLETED -> IN_PROGRESS is invalid
+        with pytest.raises(ValueError) as exc_info:
+            state_manager.update_task(task_id, {"status": TaskStatus.IN_PROGRESS.value})
+        assert "Invalid task status transition" in str(exc_info.value)
+        assert "completed" in str(exc_info.value).lower()
+        assert "in_progress" in str(exc_info.value).lower()
+        # Task should remain COMPLETED (update was rejected)
+        task = state_manager.get_task_by_id(task_id)
+        assert task is not None
+        assert task.status == TaskStatus.COMPLETED
+
+    def test_update_task_same_status_allowed(self, state_manager, sample_task):
+        """Same status update (no-op) is allowed."""
+        task_id = state_manager.add_task(sample_task)
+        state_manager.assign_task(task_id)
+        # IN_PROGRESS -> IN_PROGRESS (e.g. only updating other fields) is allowed
+        state_manager.update_task(task_id, {"status": TaskStatus.IN_PROGRESS.value, "description": "Updated"})
+        task = state_manager.get_task_by_id(task_id)
+        assert task is not None
+        assert task.status == TaskStatus.IN_PROGRESS
+        assert task.description == "Updated"
+
+    def test_recover_in_progress_tasks_valid_transition(self, state_manager, sample_task):
+        """IN_PROGRESS -> PENDING (recovery) is valid and works."""
+        task_id = state_manager.add_task(sample_task)
+        state_manager.assign_task(task_id)
+        assert state_manager.get_task_by_id(task_id).status == TaskStatus.IN_PROGRESS
+        recovered = state_manager.recover_in_progress_tasks()
+        assert task_id in recovered
+        task = state_manager.get_task_by_id(task_id)
+        assert task is not None
+        assert task.status == TaskStatus.PENDING
+
+    def test_complete_task_invalid_transition_no_file_written(self, state_manager, sample_task):
+        """complete_task validates transition BEFORE writing result file."""
+        task_id = state_manager.add_task(sample_task)
+        # Task is PENDING, cannot directly transition to COMPLETED
+        result_file_path = state_manager.state_dir / "results" / f"{task_id}.md"
+
+        with pytest.raises(ValueError) as exc_info:
+            state_manager.complete_task(task_id, TaskResult(report="Should not be written"))
+
+        assert "Invalid task status transition" in str(exc_info.value)
+        # Result file should NOT exist since validation failed before file write
+        assert not result_file_path.exists()
+        # Task should remain PENDING
+        task = state_manager.get_task_by_id(task_id)
+        assert task is not None
+        assert task.status == TaskStatus.PENDING

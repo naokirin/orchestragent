@@ -18,6 +18,7 @@ from orchestragent.models import (
     TaskResult,
     CheckpointMetadata,
     ValidationResult,
+    validate_task_status_transition,
 )
 
 
@@ -387,6 +388,12 @@ class StateManager:
         # Load current task state
         task_state = self._load_task_state(task_id)
 
+        # Validate status transition if status is being updated
+        if "status" in updates:
+            current_status = TaskStatus(task_state.get("status", TaskStatus.PENDING.value))
+            new_status = TaskStatus(updates["status"]) if isinstance(updates["status"], str) else updates["status"]
+            validate_task_status_transition(current_status, new_status)
+
         # Apply updates
         task_state.update(updates)
         if "status" in updates:
@@ -411,7 +418,15 @@ class StateManager:
         Args:
             task_id: Task ID
             result: TaskResult object or dictionary with result data
+
+        Raises:
+            ValueError: If the task is not in a state that can transition to COMPLETED
         """
+        # Validate transition BEFORE writing result file to avoid inconsistent state
+        task_state = self._load_task_state(task_id)
+        current_status = TaskStatus(task_state.get("status", TaskStatus.PENDING.value))
+        validate_task_status_transition(current_status, TaskStatus.COMPLETED)
+
         # Convert to dict if TaskResult
         result_dict = result.to_dict() if isinstance(result, TaskResult) else result
 

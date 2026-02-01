@@ -8,6 +8,8 @@ from .task import (
     TaskIndex,
     TasksFile,
     TaskStatistics,
+    can_transition,
+    validate_task_status_transition,
 )
 from .intent import (
     Commit,
@@ -29,6 +31,8 @@ __all__ = [
     "TaskIndex",
     "TasksFile",
     "TaskStatistics",
+    "can_transition",
+    "validate_task_status_transition",
     # Intent models
     "Commit",
     "IntentData",

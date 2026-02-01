@@ -490,7 +490,7 @@ VALID_TRANSITIONS = {
 ### 短期対応項目
 
 - [x] `run_main_loop()` の分割 ✅ 2026-02-01
-- [ ] タスク状態遷移の検証追加
+- [x] タスク状態遷移の検証追加 ✅ 2026-02-01（VALID_TRANSITIONS・can_transition/validate_task_status_transition を models/task.py に追加、StateManager.update_task で検証、テスト追加）
 - [ ] config依存性注入
 
 ### 中長期対応項目
