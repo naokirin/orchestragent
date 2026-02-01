@@ -165,16 +165,11 @@ VALID_TRANSITIONS = {
 
 ---
 
-### 6. ファイル抽出パターンの重複
+### 6. ファイル抽出パターンの重複（対応済み 2026-02-01）
 
 **問題**: 3箇所で類似のregex
 
-**該当箇所**:
-- `src/orchestragent/agents/planner.py`: 197-221行
-- `src/orchestragent/scheduling/task_scheduler.py`: 117-161行
-- `src/orchestragent/agents/worker.py`: 84-92行
-
-**推奨対応**: 共通ユーティリティに統合
+**対応内容**: `src/orchestragent/utils/file_extractor.py` に `extract_file_paths_from_text()` を追加。planner / task_scheduler / worker で共通利用。
 
 ---
 
@@ -429,11 +424,11 @@ VALID_TRANSITIONS = {
 
 ## コード重複箇所サマリー
 
-| パターン | 発生箇所 | 推奨対応 |
+| パターン | 発生箇所 | 対応状況 |
 |---------|---------|---------|
-| JSON抽出ロジック | planner.py, judge.py, plan_judge.py | `utils/json_parser.py`に抽出 |
-| エージェント初期化 | loop.py (118-163) | ファクトリメソッド作成 |
-| ファイルパス抽出regex | planner.py, task_scheduler.py, worker.py | 共通ユーティリティに統合 |
+| JSON抽出ロジック | planner.py, judge.py, plan_judge.py | ✅ `utils/json_parser.py` に抽出済み |
+| エージェント初期化 | loop.py (118-163) | ✅ `setup_agents()` に分離済み |
+| ファイルパス抽出regex | planner.py, task_scheduler.py, worker.py | ✅ `utils/file_extractor.py` に統合済み（2026-02-01） |
 
 ---
 
@@ -492,6 +487,7 @@ VALID_TRANSITIONS = {
 - [x] `run_main_loop()` の分割 ✅ 2026-02-01
 - [x] タスク状態遷移の検証追加 ✅ 2026-02-01（VALID_TRANSITIONS・can_transition/validate_task_status_transition を models/task.py に追加、StateManager.update_task で検証、テスト追加）
 - [x] config依存性注入 ✅ 2026-02-01（RunnerConfig 導入、WorkerAgent DI、loop は ctx.runner_config 参照）
+- [x] ファイルパス抽出regexの共通化 ✅ 2026-02-01（utils/file_extractor.py に extract_file_paths_from_text を追加、planner / task_scheduler / worker で利用）
 
 ### 中長期対応項目
 

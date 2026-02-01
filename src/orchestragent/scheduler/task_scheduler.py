@@ -1,11 +1,11 @@
 """Task scheduling utilities for parallel execution."""
 
-import re
 from typing import List, Set
 
+from orchestragent.models import Task
 from orchestragent.state.file_lock import FileLockManager
 from orchestragent.state.manager import StateManager
-from orchestragent.models import Task
+from orchestragent.utils.file_extractor import extract_file_paths_from_text
 
 
 class TaskScheduler:
@@ -112,41 +112,24 @@ class TaskScheduler:
         Returns:
             List of file paths
         """
-        files = []
+        files: List[str] = []
 
         # Check if task has explicit files field
         if task.files:
             files.extend(task.files)
 
-        # Extract from description
-        description = task.description
+        # Extract from description (include common path-like patterns for scheduling)
+        from_description = extract_file_paths_from_text(
+            task.description,
+            include_common_pattern=True,
+        )
+        seen = set(files)
+        for filepath in from_description:
+            if filepath not in seen:
+                files.append(filepath)
+                seen.add(filepath)
 
-        # Look for file patterns
-        # Pattern 1: Explicit file mentions (e.g., "file: src/main.py")
-        explicit_pattern = r'file:\s*([^\s\n]+\.(py|ts|js|md|json|yml|yaml|txt|html|css))'
-        matches = re.findall(explicit_pattern, description, re.IGNORECASE)
-        files.extend([m[0] for m in matches])
-
-        # Pattern 2: File paths in quotes or backticks
-        quoted_pattern = r'["\'`]([^\'"`]+\.(py|ts|js|md|json|yml|yaml|txt|html|css))["\'`]'
-        matches = re.findall(quoted_pattern, description, re.IGNORECASE)
-        files.extend([m[0] for m in matches])
-
-        # Pattern 3: Common file patterns
-        common_pattern = r'([\w\-_/]+\.(py|ts|js|md|json|yml|yaml|txt|html|css))'
-        matches = re.findall(common_pattern, description)
-        files.extend([m[0] for m in matches])
-
-        # Normalize and deduplicate
-        normalized_files = []
-        seen = set()
-        for filepath in files:
-            normalized = filepath.strip().strip('"\'`')
-            if normalized and normalized not in seen:
-                normalized_files.append(normalized)
-                seen.add(normalized)
-
-        return normalized_files
+        return files
 
     def can_tasks_run_parallel(self, task1: Task, task2: Task) -> bool:
         """

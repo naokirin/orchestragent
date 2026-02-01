@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 
 from .base import BaseAgent
 from orchestragent.models import Task
+from orchestragent.utils.file_extractor import extract_file_paths_from_text
 from orchestragent.llm.model_selector import ModelSelector
 from orchestragent.tracking.intent_parser import IntentParser
 from orchestragent.tracking.intent_manager import IntentManager
@@ -97,12 +98,12 @@ Please complete this task and report the result.
 
     def _get_related_files(self, task: Task) -> str:
         """Get related files for the task."""
-        # Simple implementation: extract file names from description
-        description = task.description
-        # Look for file patterns in description
-        file_patterns = re.findall(r'[\w\-_/]+\.(py|ts|js|md|json|yml|yaml)', description)
-        if file_patterns:
-            return "\n".join([f"- {f}" for f in set(file_patterns)])
+        files = extract_file_paths_from_text(
+            task.description,
+            include_common_pattern=True,
+        )
+        if files:
+            return "\n".join([f"- {f}" for f in files])
         return "関連ファイルの情報がありません"
 
     def parse_response(self, response: str) -> Dict[str, Any]:
