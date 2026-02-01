@@ -647,16 +647,24 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         }
 
         function processInline(line) {
+          // Protect inline code (backticks) so _ and ** inside are not interpreted
+          var codeSpans = [];
+          line = line.replace(/`([^`]+)`/g, function(_, code) {
+            codeSpans.push(code);
+            return '\\x00C' + (codeSpans.length - 1) + '\\x00';
+          });
           // Bold: **text** or __text__
           line = line.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');
           line = line.replace(/__(.+?)__/g, '<strong>$1</strong>');
           // Italic: *text* or _text_
           line = line.replace(/\\*([^*]+)\\*/g, '<em>$1</em>');
           line = line.replace(/_([^_]+)_/g, '<em>$1</em>');
-          // Inline code: `code`
-          line = line.replace(/`([^`]+)`/g, '<code>$1</code>');
           // Links: [text](url)
           line = line.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+          // Restore inline code (no bold/italic applied inside)
+          line = line.replace(/\\x00C(\\d+)\\x00/g, function(_, i) {
+            return '<code>' + codeSpans[parseInt(i, 10)] + '</code>';
+          });
           return line;
         }
 
@@ -678,6 +686,18 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
 
           if (inCodeBlock) {
             codeBlockContent.push(line);
+            continue;
+          }
+
+          // Indented code block (4 spaces) — do not apply inline formatting
+          if (/^    /.test(line) || (line.length > 0 && line[0] === '\\t')) {
+            flushList();
+            var indentCode = [line.replace(/^    /, '').replace(/^\\t/, '')];
+            while (i + 1 < lines.length && (lines[i + 1].length === 0 || /^    /.test(lines[i + 1]) || (lines[i + 1].length > 0 && lines[i + 1][0] === '\\t'))) {
+              i++;
+              indentCode.push(lines[i].length === 0 ? '' : lines[i].replace(/^    /, '').replace(/^\\t/, ''));
+            }
+            html.push('<pre><code>' + indentCode.join('\\n') + '</code></pre>');
             continue;
           }
 
