@@ -2288,51 +2288,87 @@
                       "type": "frame",
                       "id": "HSvMY",
                       "name": "badgeRow",
+                      "width": "fill_container",
                       "gap": 8,
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
-                          "id": "IXmOz",
-                          "name": "statusBadge",
-                          "fill": "#ecc94b",
-                          "cornerRadius": 4,
-                          "padding": [
-                            4,
-                            10
-                          ],
+                          "id": "lE5fC",
+                          "name": "badgeGroup",
+                          "gap": 8,
+                          "alignItems": "center",
                           "children": [
                             {
-                              "type": "text",
-                              "id": "djpHt",
-                              "name": "statusText",
-                              "fill": "#1a1a1a",
-                              "content": "pending",
-                              "fontFamily": "Inter",
-                              "fontSize": 11,
-                              "fontWeight": "bold"
+                              "type": "frame",
+                              "id": "IXmOz",
+                              "name": "statusBadge",
+                              "fill": "#ecc94b",
+                              "cornerRadius": 4,
+                              "padding": [
+                                4,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "djpHt",
+                                  "name": "statusText",
+                                  "fill": "#1a1a1a",
+                                  "content": "pending",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "bold"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "f4uLy",
+                              "name": "priorBadge",
+                              "fill": "#fc8181",
+                              "cornerRadius": 4,
+                              "padding": [
+                                4,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "kubJt",
+                                  "name": "priorText",
+                                  "fill": "#1a1a1a",
+                                  "content": "high",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "bold"
+                                }
+                              ]
                             }
                           ]
                         },
                         {
                           "type": "frame",
-                          "id": "f4uLy",
-                          "name": "priorBadge",
-                          "fill": "#fc8181",
+                          "id": "lyyK1",
+                          "name": "intentBtn",
+                          "fill": "#3182ce",
                           "cornerRadius": 4,
                           "padding": [
-                            4,
-                            10
+                            6,
+                            12
                           ],
+                          "alignItems": "center",
                           "children": [
                             {
                               "type": "text",
-                              "id": "kubJt",
-                              "name": "priorText",
-                              "fill": "#1a1a1a",
-                              "content": "high",
+                              "id": "ceSfq",
+                              "name": "intentBtnText",
+                              "fill": "#ffffff",
+                              "content": "Intent詳細",
                               "fontFamily": "Inter",
-                              "fontSize": 11,
-                              "fontWeight": "bold"
+                              "fontSize": 12,
+                              "fontWeight": "normal"
                             }
                           ]
                         }

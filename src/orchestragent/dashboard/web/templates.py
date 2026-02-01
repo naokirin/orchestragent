@@ -83,8 +83,12 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .task-detail-header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .task-detail-id-badge { background: #4a5568; border-radius: 4px; padding: 4px 8px; font-size: 12px; font-weight: bold; color: #e0e0e0; }
     .task-detail-title { font-size: 16px; font-weight: bold; color: #e0e0e0; margin: 0; }
-    .task-detail-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .task-detail-badges { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; width: 100%; }
+    .task-detail-badge-group { display: flex; gap: 8px; flex-wrap: wrap; }
     .task-detail-badge { border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: bold; color: #1a1a1a; }
+    .task-detail-intent-btn { background: #3182ce; color: #ffffff; border: none; border-radius: 4px; padding: 6px 12px; font-size: 12px; font-family: inherit; cursor: pointer; flex-shrink: 0; }
+    .task-detail-intent-btn:hover { background: #4299e1; }
+    .task-detail-intent-btn.hidden { display: none; }
     .task-detail-badge.status-pending { background: #ecc94b; }
     .task-detail-badge.status-in_progress { background: #63b3ed; }
     .task-detail-badge.status-completed { background: #68d391; }
@@ -298,8 +302,11 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
                 <h4 id="task-detail-title" class="task-detail-title"></h4>
               </div>
               <div class="task-detail-badges">
-                <span id="task-detail-status" class="task-detail-badge"></span>
-                <span id="task-detail-priority" class="task-detail-badge"></span>
+                <div class="task-detail-badge-group">
+                  <span id="task-detail-status" class="task-detail-badge"></span>
+                  <span id="task-detail-priority" class="task-detail-badge"></span>
+                </div>
+                <button type="button" id="task-detail-intent-btn" class="task-detail-intent-btn hidden" aria-label="Intent詳細">Intent詳細</button>
               </div>
             </div>
             <div class="task-detail-scroll">
@@ -546,6 +553,19 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           }
           document.getElementById('task-detail-description').innerHTML = descHtml || '<p>（説明なし）</p>';
           document.getElementById('task-detail-files').textContent = t.files && t.files.length ? t.files.join(', ') : 'なし';
+          var intentBtn = document.getElementById('task-detail-intent-btn');
+          if (t.status === 'completed') {
+            intentBtn.classList.remove('hidden');
+            intentBtn.onclick = function() {
+              selectedIntentTaskId = t.id;
+              setTab('intents');
+              showIntentDetailView();
+              fetchIntentDetail(t.id);
+            };
+          } else {
+            intentBtn.classList.add('hidden');
+            intentBtn.onclick = null;
+          }
         }).catch(function(e) {
           showTaskDetailPlaceholder('取得失敗: ' + e.message);
         });
