@@ -66,7 +66,7 @@ Proposed / Accepted / Deprecated / Superseded
         decision: str = "",
         rationale: str = "",
         consequences: str = "",
-        related_intents: List[str] = None,
+        related_intents: Optional[List[str]] = None,
         status: str = "Proposed"
     ) -> str:
         """

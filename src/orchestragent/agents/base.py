@@ -128,6 +128,9 @@ class BaseAgent:
                 # Wrap in AgentError
                 raise AgentError(f"Unexpected error: {e}", retryable=False, original_error=e)
 
+        # This should never be reached due to raise statements in the loop
+        raise AgentError("Unexpected: all retries exhausted without returning", retryable=False)
+
     def _run_internal(self, iteration: int, start_time: float) -> Dict[str, Any]:
         """
         Internal run method (without retry logic).

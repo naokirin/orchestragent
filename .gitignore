@@ -16,8 +16,8 @@ build/
 .env.local
 
 # State files (not tracked - generated at runtime)
-state/
-logs/
+/state/
+/logs/
 
 # IDE
 .vscode/
