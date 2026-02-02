@@ -533,6 +533,12 @@ def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
     print(f"待機時間: {cfg.wait_time_seconds}秒")
     print(f"最大イテレーション: {cfg.max_iterations}")
 
+    # 再実行時は継続判定を「継続」にリセット（Webダッシュボードの表示を正しくするため）
+    ctx.state_manager.update_status(
+        should_continue=True,
+        reason="実行中",
+    )
+
     iteration = 0
 
     try:
