@@ -70,12 +70,51 @@ else:
     # On host, use TARGET_PROJECT if set, otherwise PROJECT_ROOT
     WORKING_DIR = TARGET_PROJECT if TARGET_PROJECT else PROJECT_ROOT
 
+# Default prompts directory (orchestragent repo root when config.py lives there)
+_DEFAULT_PROMPTS_DIR = Path(__file__).parent / "prompts"
+# System-only templates (context / output format); not user-overridable by path
+SYSTEM_PROMPTS_DIR = _DEFAULT_PROMPTS_DIR / "system"
+
+
+def resolve_prompt_path(env_key: str, default_filename: str) -> str:
+    """
+    プロンプトファイルのパスを解決する。
+    優先順位: 1) 環境変数  2) 対象プロジェクトの prompts/  3) デフォルト（repo 内 prompts/）
+    ユーザーは環境変数または対象プロジェクトに prompts/<name>.md を置くことで
+    各エージェントのプロンプトをカスタマイズできる。入出力の契約は PROMPT_CONTRACT に従うこと。
+    """
+    env_val = os.getenv(env_key)
+    if env_val:
+        p = Path(env_val)
+        if p.is_absolute() and p.exists():
+            return str(p)
+        if p.is_absolute():
+            return env_val
+        # Relative: try WORKING_DIR first (project-specific)
+        candidate = WORKING_DIR / p
+        if candidate.exists():
+            return str(candidate.resolve())
+        # Fallback: resolve against cwd
+        return str(Path(env_val).resolve())
+    # Project-specific: WORKING_DIR/prompts/<default_filename>
+    project_prompt = Path(WORKING_DIR) / "prompts" / default_filename
+    if project_prompt.exists():
+        return str(project_prompt.resolve())
+    # Default: repo prompts/
+    default_path = _DEFAULT_PROMPTS_DIR / default_filename
+    return str(default_path.resolve() if default_path.exists() else str(default_path))
+
+
 AGENT_CONFIG = {
     "project_root": str(WORKING_DIR),
     "project_goal": os.getenv("PROJECT_GOAL", "プロジェクトの目標を設定してください"),
     "mode": "plan",  # For planner
     "model": LLM_MODEL,
-    "prompt_template": "prompts/planner.md"
+    "prompt_template": resolve_prompt_path("PROMPT_PLANNER", "planner.md"),
+    "prompt_template_worker": resolve_prompt_path("PROMPT_WORKER", "worker.md"),
+    "prompt_template_judge": resolve_prompt_path("PROMPT_JUDGE", "judge.md"),
+    "prompt_template_plan_judge": resolve_prompt_path("PROMPT_PLAN_JUDGE", "plan_judge.md"),
+    "system_prompts_dir": str(SYSTEM_PROMPTS_DIR),
 }
 
 # State / Log Configuration

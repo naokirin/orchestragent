@@ -18,53 +18,38 @@ class PlannerAgent(BaseAgent):
         self.mode = "plan"
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
-        """Build prompt for planner."""
-        # Load prompt template
-        prompt_template_path = self.config.get(
+        """Build prompt for planner.
+        プロンプトファイルは「役割・指示」のみ。現在の状況と出力形式はシステムが自動付与する。
+        """
+        user_part = self.load_user_prompt(
             "prompt_template",
-            "prompts/planner.md"
+            "prompts/planner.md",
+            "# Planner Agent\n\nPlease create a plan and new tasks in JSON format.",
         )
+        context_block = self._build_planner_context(state)
+        output_block = self._build_planner_output_format()
+        return self._build_prompt_parts(user_part, context_block, output_block)
 
-        try:
-            with open(prompt_template_path, 'r', encoding='utf-8') as f:
-                template = f.read()
-        except FileNotFoundError:
-            # Fallback to simple prompt
-            template = """# Planner Agent
-
-Project Goal: {project_goal}
-Current Plan: {current_plan}
-Existing Tasks: {existing_tasks}
-
-Please create a plan and new tasks in JSON format.
-"""
-
-        # Format template
+    def _build_planner_context(self, state: Dict[str, Any]) -> str:
+        """Build context block from system template (contract guaranteed)."""
         plan = state.get("plan", "")
         tasks = state.get("tasks", {})
         status = state.get("status", {})
         tasks_list = tasks.get("tasks", [])
 
-        # Format existing tasks (load status from individual task files)
         existing_tasks_str = ""
         if tasks_list:
             task_lines = []
             for task_index in tasks_list:
                 task_id = task_index.get("id", "unknown")
-                # Load full task data to get current status
                 task = self.state_manager.get_task_by_id(task_id)
-                if task:
-                    task_status = task.status.value
-                else:
-                    # Fallback to index data if individual file doesn't exist
-                    task_status = "unknown"
+                task_status = task.status.value if task else "unknown"
                 title = task_index.get("title", "No title")
                 task_lines.append(f"- {task_id}: {title} ({task_status})")
             existing_tasks_str = "\n".join(task_lines)
         else:
             existing_tasks_str = "なし"
 
-        # Previous Plan_Judge feedback
         last_plan_judge = status.get("last_plan_judge_feedback")
         if last_plan_judge:
             try:
@@ -76,7 +61,6 @@ Please create a plan and new tasks in JSON format.
         else:
             last_plan_judge_str = "まだ Plan_Judge のフィードバックはありません。"
 
-        # Previous execution (Judge) feedback
         last_execution_feedback = {
             "reason": status.get("reason"),
             "progress_score": status.get("progress_score"),
@@ -85,7 +69,6 @@ Please create a plan and new tasks in JSON format.
             "recommendations": status.get("recommendations"),
             "next_iteration_focus": status.get("next_iteration_focus"),
         }
-        # フィードバックがまったく存在しない場合は簡易メッセージにする
         if any(v is not None for v in last_execution_feedback.values()):
             last_execution_feedback_str = json.dumps(
                 last_execution_feedback, indent=2, ensure_ascii=False
@@ -93,20 +76,20 @@ Please create a plan and new tasks in JSON format.
         else:
             last_execution_feedback_str = "まだ Judge の実行結果フィードバックはありません。"
 
-        # Get working directory from config
-        working_dir = self.config.get("project_root", ".")
-
-        prompt = template.format(
+        return self._load_system_template(
+            "planner_context.md",
+            working_dir=self.config.get("project_root", "."),
             project_goal=self.config.get("project_goal", "未設定"),
             current_plan=plan if plan else "計画はまだ作成されていません",
-            existing_tasks=existing_tasks_str,
-             last_plan_judge_feedback=last_plan_judge_str,
-             last_execution_feedback=last_execution_feedback_str,
+            last_plan_judge_str=last_plan_judge_str,
+            last_execution_feedback_str=last_execution_feedback_str,
+            existing_tasks_str=existing_tasks_str,
             codebase_summary=self._get_codebase_summary(),
-            working_dir=working_dir
         )
 
-        return prompt
+    def _build_planner_output_format(self) -> str:
+        """Build output format block from system template (contract guaranteed)."""
+        return self._load_system_template("planner_output.md")
 
     def _get_codebase_summary(self) -> str:
         """Get codebase summary."""

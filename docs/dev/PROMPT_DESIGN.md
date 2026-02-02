@@ -272,7 +272,15 @@
 
 ## 6. プロンプトテンプレートの管理
 
-プロンプトは外部ファイル（`prompts/`ディレクトリ）に保存し、バージョン管理する：
+プロンプトは外部ファイル（`prompts/`ディレクトリ）に保存し、バージョン管理する。
+
+### 6.1 カスタマイズ方法
+
+- **環境変数**: `PROMPT_PLANNER`, `PROMPT_WORKER`, `PROMPT_JUDGE`, `PROMPT_PLAN_JUDGE` で各プロンプトファイルのパスを指定可能。
+- **対象プロジェクト内**: 対象プロジェクトの `prompts/planner.md`, `prompts/worker.md` などを置くと、そのファイルが優先して使われる。
+- **入出力契約**: プロンプトの文言は自由に変更できるが、テンプレートの変数名と出力 JSON のキーはシステムがパースに依存するため変更不可。詳細は [PROMPT_CONTRACT.md](./PROMPT_CONTRACT.md) を参照。
+
+### 6.2 ファイル構成例
 
 ```
 prompts/
@@ -282,15 +290,4 @@ prompts/
 ├── worker_v2.md
 ├── judge.md
 └── judge_v2.md
-```
-
-設定ファイルで使用するプロンプトを指定：
-
-```python
-# config.py
-PROMPTS = {
-    'planner': 'prompts/planner_v2.md',
-    'worker': 'prompts/worker_v2.md',
-    'judge': 'prompts/judge_v2.md',
-}
 ```

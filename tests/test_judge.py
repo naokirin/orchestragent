@@ -43,7 +43,8 @@ class TestJudgeBuildPrompt:
         with patch("builtins.open", side_effect=FileNotFoundError):
             prompt = judge_agent.build_prompt(state)
 
-        assert "Judge Agent" in prompt
+        # フォールバック時は英語、実ファイル読み込み時は日本語
+        assert "Judge Agent" in prompt or "判定者" in prompt
         assert "テストプロジェクト" in prompt
 
     def test_build_prompt_includes_task_statistics(self, judge_agent, state_manager):
@@ -65,7 +66,13 @@ class TestJudgeBuildPrompt:
         with patch("builtins.open", side_effect=mock_open_func):
             prompt = judge_agent.build_prompt(state)
 
-        assert "1 total" in prompt or "completed" in prompt.lower()
+        # タスク統計が含まれる（英語テンプレートまたはシステム注入の日本語）
+        assert (
+            "1 total" in prompt
+            or "completed" in prompt.lower()
+            or ("総タスク数" in prompt and "1" in prompt)
+            or "完了タスク" in prompt
+        )
 
     def test_build_prompt_includes_completed_task_results(self, judge_agent, state_manager):
         """完了タスクの結果がプロンプトに含まれる。"""

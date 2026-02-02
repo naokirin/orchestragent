@@ -46,7 +46,8 @@ class TestPlannerBuildPrompt:
             prompt = planner_agent.build_prompt(state)
 
         assert "テスト目標" in prompt
-        assert "Planner Agent" in prompt
+        # フォールバック時は英語、実ファイル読み込み時は日本語
+        assert "Planner Agent" in prompt or "プランナー" in prompt
 
     def test_build_prompt_formats_existing_tasks(self, planner_agent, state_manager, temp_state_dir):
         """既存タスクがある場合はフォーマットされる。"""
@@ -100,7 +101,7 @@ class TestPlannerBuildPrompt:
 
         # フォールバックテンプレートが使われてもエラーにならない
         assert prompt is not None
-        assert "Planner Agent" in prompt
+        assert "Planner Agent" in prompt or "プランナー" in prompt
 
     def test_build_prompt_with_execution_feedback_no_error(self, planner_agent):
         """last_execution_feedback (Judge結果) があっても build_prompt がエラーにならない。"""

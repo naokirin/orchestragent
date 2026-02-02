@@ -155,11 +155,13 @@ def print_configuration() -> None:
     # Agent Configuration
     print("\n[エージェント設定]")
     print(f"  Planner モード: plan")
-    print(f"  Planner プロンプト: {config.AGENT_CONFIG['prompt_template']}")
+    print(f"  Planner プロンプト: {config.AGENT_CONFIG.get('prompt_template', 'prompts/planner.md')}")
     print(f"  Worker モード: agent")
-    print(f"  Worker プロンプト: prompts/worker.md")
+    print(f"  Worker プロンプト: {config.AGENT_CONFIG.get('prompt_template_worker', 'prompts/worker.md')}")
     print(f"  Judge モード: ask")
-    print(f"  Judge プロンプト: prompts/judge.md")
+    print(f"  Judge プロンプト: {config.AGENT_CONFIG.get('prompt_template_judge', 'prompts/judge.md')}")
+    print(f"  Plan_Judge モード: ask")
+    print(f"  Plan_Judge プロンプト: {config.AGENT_CONFIG.get('prompt_template_plan_judge', 'prompts/plan_judge.md')}")
 
     # Environment Information
     print("\n[環境情報]")

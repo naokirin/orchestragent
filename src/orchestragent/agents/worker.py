@@ -53,48 +53,38 @@ class WorkerAgent(BaseAgent):
         self.adr_manager = ADRManager(adr_dir=adr_dir)
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
-        """Build prompt for worker."""
-        # Get assigned task from current_task_id (set by assign_task)
+        """Build prompt for worker.
+        プロンプトファイルは「役割・指示」のみ。割り当てタスクと出力形式はシステムが自動付与する。
+        """
         if not self.current_task_id:
             raise ValueError("No task assigned to worker. Call assign_task() first.")
-
         task = self.state_manager.get_task_by_id(self.current_task_id)
         if not task:
             raise ValueError(f"Task {self.current_task_id} not found")
 
-        # Load prompt template
-        prompt_template_path = self.config.get(
+        user_part = self.load_user_prompt(
             "prompt_template",
-            "prompts/worker.md"
+            "prompts/worker.md",
+            "# Worker Agent\n\nPlease complete the assigned task and report the result.",
         )
+        context_block = self._build_worker_context(task)
+        output_block = self._build_worker_output_format(task.id)
+        return self._build_prompt_parts(user_part, context_block, output_block)
 
-        try:
-            with open(prompt_template_path, 'r', encoding='utf-8') as f:
-                template = f.read()
-        except FileNotFoundError:
-            # Fallback to simple prompt
-            template = """# Worker Agent
-
-Task ID: {task_id}
-Task Title: {task_title}
-Task Description: {task_description}
-
-Please complete this task and report the result.
-"""
-
-        # Get working directory from config
-        working_dir = self.config.get("project_root", ".")
-
-        # Format template
-        prompt = template.format(
+    def _build_worker_context(self, task: Task) -> str:
+        """Build context block from system template (contract guaranteed)."""
+        return self._load_system_template(
+            "worker_context.md",
+            working_dir=self.config.get("project_root", "."),
             task_id=task.id,
             task_title=task.title,
             task_description=task.description,
             related_files=self._get_related_files(task),
-            working_dir=working_dir
         )
 
-        return prompt
+    def _build_worker_output_format(self, task_id: str) -> str:
+        """Build output format block from system template (contract guaranteed)."""
+        return self._load_system_template("worker_output.md", task_id=task_id)
 
     def _get_related_files(self, task: Task) -> str:
         """Get related files for the task."""

@@ -16,64 +16,50 @@ class JudgeAgent(BaseAgent):
         self.mode = "ask"  # Judge uses ask mode (read-only)
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
-        """Build prompt for judge."""
-        # Load prompt template
-        prompt_template_path = self.config.get(
+        """Build prompt for judge.
+        プロンプトファイルは「役割・指示」のみ。現在の状況と出力形式はシステムが自動付与する。
+        """
+        user_part = self.load_user_prompt(
             "prompt_template",
-            "prompts/judge.md"
+            "prompts/judge.md",
+            "# Judge Agent\n\nPlease evaluate progress and decide whether to continue.",
         )
+        context_block = self._build_judge_context(state)
+        output_block = self._build_judge_output_format()
+        return self._build_prompt_parts(user_part, context_block, output_block)
 
-        try:
-            with open(prompt_template_path, 'r', encoding='utf-8') as f:
-                template = f.read()
-        except FileNotFoundError:
-            # Fallback to simple prompt
-            template = """# Judge Agent
-
-Project Goal: {project_goal}
-Current Plan: {current_plan}
-Tasks: {total_tasks} total, {completed_tasks} completed, {pending_tasks} pending
-
-Please evaluate progress and decide whether to continue.
-"""
-
-        # Get task statistics from individual task files (source of truth)
+    def _build_judge_context(self, state: Dict[str, Any]) -> str:
+        """Build context block from system template (contract guaranteed)."""
         task_stats = self.state_manager.get_task_statistics()
-        total_tasks = task_stats.total
-        completed_tasks = task_stats.completed
-        failed_tasks = task_stats.failed
-        pending_tasks = task_stats.pending
-
-        # Get all tasks from individual files to get completed task results
         all_tasks = self.state_manager.get_all_tasks_from_files()
-
-        # Get completed task results
         completed_results = []
         for task in all_tasks:
-            if task.is_completed():
-                result_file = task.result_file
-                if result_file:
-                    try:
-                        result_content = self.state_manager.load_text(result_file)
-                        completed_results.append(f"### {task.id}: {task.title}\n{result_content[:200]}...")
-                    except:
-                        pass
-
-        completed_results_str = "\n\n".join(completed_results) if completed_results else "完了したタスクはありません"
-
-        # Format template
-        prompt = template.format(
+            if task.is_completed() and task.result_file:
+                try:
+                    result_content = self.state_manager.load_text(task.result_file)
+                    completed_results.append(
+                        f"### {task.id}: {task.title}\n{result_content[:200]}..."
+                    )
+                except Exception:
+                    pass
+        completed_results_str = (
+            "\n\n".join(completed_results) if completed_results else "完了したタスクはありません"
+        )
+        return self._load_system_template(
+            "judge_context.md",
             project_goal=self.config.get("project_goal", "未設定"),
             current_plan=state.get("plan", "計画はまだ作成されていません"),
-            total_tasks=total_tasks,
-            completed_tasks=completed_tasks,
-            failed_tasks=failed_tasks,
-            pending_tasks=pending_tasks,
+            total_tasks=task_stats.total,
+            completed_tasks=task_stats.completed,
+            failed_tasks=task_stats.failed,
+            pending_tasks=task_stats.pending,
             completed_task_results=completed_results_str,
-            iteration=state.get("status", {}).get("iteration", 0)
+            iteration=state.get("status", {}).get("iteration", 0),
         )
 
-        return prompt
+    def _build_judge_output_format(self) -> str:
+        """Build output format block from system template (contract guaranteed)."""
+        return self._load_system_template("judge_output.md")
 
     def parse_response(self, response: str) -> Dict[str, Any]:
         """Parse judge response."""

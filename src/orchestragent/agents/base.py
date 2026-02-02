@@ -1,12 +1,28 @@
 """Base agent class."""
 
 import time
+from pathlib import Path
 from typing import Dict, Any, Optional
 
 from orchestragent.llm.client import LLMClient
 from orchestragent.state.manager import StateManager
 from orchestragent.core.logger import AgentLogger
 from orchestragent.core.exceptions import AgentError, LLMError
+
+
+def load_system_template(system_prompts_dir: str, filename: str, **kwargs: Any) -> str:
+    """
+    Load system template from prompts/system/ and format.
+    In template files use {var} for placeholders and {{ }} for literal braces in JSON.
+    """
+    path = Path(system_prompts_dir) / filename
+    try:
+        content = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return ""
+    if kwargs:
+        return content.format(**kwargs)
+    return content.replace("{{", "{").replace("}}", "}")
 
 
 class BaseAgent:
@@ -36,6 +52,36 @@ class BaseAgent:
         self.logger = logger
         self.config = config or {}
         self.mode = self.config.get("mode", "agent")
+
+    def load_user_prompt(
+        self,
+        config_key: str,
+        default_path: str,
+        fallback_content: str,
+    ) -> str:
+        """Load user-editable prompt (role/instructions only). No placeholders."""
+        path = self.config.get(config_key, default_path)
+        try:
+            return Path(path).read_text(encoding="utf-8").strip()
+        except FileNotFoundError:
+            return fallback_content.strip()
+
+    def _system_prompts_dir(self) -> str:
+        """Return path to prompts/system/ (system template directory)."""
+        return self.config.get("system_prompts_dir", "prompts/system")
+
+    def _load_system_template(self, filename: str, **kwargs: Any) -> str:
+        """Load and format a system template (context or output format)."""
+        return load_system_template(self._system_prompts_dir(), filename, **kwargs)
+
+    def _build_prompt_parts(
+        self,
+        user_part: str,
+        context_block: str,
+        output_block: str,
+    ) -> str:
+        """Assemble final prompt from user part + context + output format."""
+        return f"{user_part}\n\n{context_block}\n\n{output_block}"
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
         """

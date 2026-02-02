@@ -229,6 +229,16 @@ docker compose run --rm -p 8765:8765 -e WEB_DASHBOARD_HOST=0.0.0.0 agent python 
 | `MAX_ITERATIONS`            | 最大イテレーション数                                                                               | `100`                                  |
 | `MAX_PARALLEL_WORKERS`      | 最大並列Worker数                                                                                   | `3`                                    |
 | `ENABLE_PARALLEL_EXECUTION` | 並列実行の有効化                                                                                   | `true`                                 |
+| `PROMPT_PLANNER` / `PROMPT_WORKER` / `PROMPT_JUDGE` / `PROMPT_PLAN_JUDGE` | 各エージェントのプロンプトファイルのパス（任意）。未設定時は対象プロジェクトの `prompts/<name>.md`、なければデフォルトを使用。入出力契約は [PROMPT_CONTRACT.md](./docs/dev/PROMPT_CONTRACT.md) を参照 | 未設定（上記の優先順で解決）           |
+
+### プロンプトのカスタマイズ
+
+各ステップのエージェント（Planner / Worker / Judge / Plan_Judge）のプロンプトは、次のいずれかで差し替えできます。
+
+- **環境変数**: `PROMPT_PLANNER`, `PROMPT_WORKER`, `PROMPT_JUDGE`, `PROMPT_PLAN_JUDGE` にファイルパスを指定する。
+- **対象プロジェクト内**: 対象プロジェクトに `prompts/planner.md`, `prompts/worker.md` などを置く（実行用の場合は `/target/prompts/` にマウントされるディレクトリ内に配置）。
+
+プロンプトファイルには**役割・指示**だけを書きます。「現在の状況」と「出力形式」はシステムが実行時に自動で付与するため、**ユーザーが契約を意識しなくても入出力の整合性は保たれます**。詳細は [docs/dev/PROMPT_CONTRACT.md](./docs/dev/PROMPT_CONTRACT.md) を参照。
 
 ### 注意事項
 

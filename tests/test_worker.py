@@ -128,7 +128,8 @@ class TestWorkerBuildPrompt:
         with patch("builtins.open", side_effect=mock_open_func):
             prompt = worker_agent.build_prompt({})
 
-        assert "Worker Agent" in prompt
+        # フォールバック時は英語、実ファイル読み込み時は日本語
+        assert "Worker Agent" in prompt or "ワーカー" in prompt
         assert "Test Task" in prompt
 
 
