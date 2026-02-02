@@ -30,13 +30,13 @@ class LLMClientFactory:
                 project_root=kwargs.get("project_root", "."),
                 output_format=kwargs.get("output_format", "text")
             )
-        # Phase 4以降で追加可能
+        # Phase 4+: add openai, anthropic, etc.
         # elif backend == "openai":
         #     return OpenAIClient(api_key=kwargs.get("api_key"))
         # elif backend == "anthropic":
         #     return AnthropicClient(api_key=kwargs.get("api_key"))
         else:
-            supported = ["cursor_cli"]  # Phase 4以降で拡張
+            supported = ["cursor_cli"]  # Phase 4+: extend with more backends
             raise ValueError(
                 f"Unknown backend: {backend}. "
                 f"Supported backends: {', '.join(supported)}"

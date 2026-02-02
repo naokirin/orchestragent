@@ -10,14 +10,14 @@ class TestADRManagerInit:
     """Tests for ADRManager initialization."""
 
     def test_init_creates_adr_directory(self, temp_dir):
-        """初期化時に ADR ディレクトリを作成する。"""
+        """Create ADR directory on init."""
         adr_dir = temp_dir / "docs" / "adr"
         manager = ADRManager(adr_dir=str(adr_dir))
 
         assert adr_dir.exists()
 
     def test_init_creates_template_file(self, temp_dir):
-        """初期化時にテンプレートファイルを作成する。"""
+        """Create template file on init."""
         adr_dir = temp_dir / "adr"
         manager = ADRManager(adr_dir=str(adr_dir))
 
@@ -25,7 +25,7 @@ class TestADRManagerInit:
         assert template_path.exists()
 
     def test_init_does_not_overwrite_existing_template(self, temp_dir):
-        """既存のテンプレートは上書きしない。"""
+        """Do not overwrite existing template."""
         adr_dir = temp_dir / "adr"
         adr_dir.mkdir(parents=True)
         template_path = adr_dir / "template.md"
@@ -40,13 +40,13 @@ class TestADRManagerGetNextNumber:
     """Tests for ADRManager.get_next_number."""
 
     def test_get_next_number_empty_dir(self, temp_dir):
-        """ADR がない場合は 1 を返す。"""
+        """Return 1 when no ADRs."""
         manager = ADRManager(adr_dir=str(temp_dir / "adr"))
 
         assert manager.get_next_number() == 1
 
     def test_get_next_number_with_existing_adrs(self, temp_dir):
-        """既存 ADR がある場合は最大 + 1 を返す。"""
+        """Return max+1 when existing ADRs present."""
         adr_dir = temp_dir / "adr"
         adr_dir.mkdir(parents=True)
         (adr_dir / "0001-first-decision.md").touch()
@@ -65,20 +65,20 @@ class TestADRManagerCreateAdr:
         return ADRManager(adr_dir=str(temp_dir / "adr"))
 
     def test_create_adr_returns_number(self, adr_manager):
-        """ADR 番号を返す。"""
+        """Return ADR number."""
         number = adr_manager.create_adr(title="Use Factory Pattern")
 
         assert number == "0001"
 
     def test_create_adr_creates_file(self, adr_manager, temp_dir):
-        """ADR ファイルを作成する。"""
+        """Create ADR file."""
         adr_manager.create_adr(title="Use Factory Pattern")
 
         adr_files = list((temp_dir / "adr").glob("0001-*.md"))
         assert len(adr_files) == 1
 
     def test_create_adr_with_full_content(self, adr_manager):
-        """全てのセクションを含む ADR を作成する。"""
+        """Create ADR with all sections."""
         number = adr_manager.create_adr(
             title="Use Dependency Injection",
             context="Need flexible testing",
@@ -96,7 +96,7 @@ class TestADRManagerCreateAdr:
         assert "task-001" in adr["related_intents"]
 
     def test_create_adr_increments_number(self, adr_manager):
-        """連続作成時に番号がインクリメントされる。"""
+        """Number increments on consecutive creates."""
         num1 = adr_manager.create_adr(title="First")
         num2 = adr_manager.create_adr(title="Second")
 
@@ -112,7 +112,7 @@ class TestADRManagerGetAdr:
         return ADRManager(adr_dir=str(temp_dir / "adr"))
 
     def test_get_adr_returns_parsed_content(self, adr_manager):
-        """ADR の内容をパースして返す。"""
+        """Parse and return ADR content."""
         number = adr_manager.create_adr(
             title="Test Decision",
             context="Test context",
@@ -126,16 +126,16 @@ class TestADRManagerGetAdr:
         assert "Test context" in adr["context"]
 
     def test_get_adr_nonexistent_returns_none(self, adr_manager):
-        """存在しない ADR は None を返す。"""
+        """Return None for nonexistent ADR."""
         adr = adr_manager.get_adr("9999")
 
         assert adr is None
 
     def test_get_adr_normalizes_number(self, adr_manager):
-        """番号をゼロ埋めで正規化する。"""
+        """Normalize number with zero-padding."""
         adr_manager.create_adr(title="Test")
 
-        adr = adr_manager.get_adr("1")  # "0001" ではなく "1" で取得
+        adr = adr_manager.get_adr("1")  # fetch with "1" not "0001"
 
         assert adr is not None
         assert adr["number"] == "0001"
@@ -149,13 +149,13 @@ class TestADRManagerGetAllAdrs:
         return ADRManager(adr_dir=str(temp_dir / "adr"))
 
     def test_get_all_adrs_empty(self, adr_manager):
-        """ADR がない場合は空リストを返す。"""
+        """Return empty list when no ADRs."""
         adrs = adr_manager.get_all_adrs()
 
         assert adrs == []
 
     def test_get_all_adrs_returns_sorted(self, adr_manager):
-        """番号順にソートされた ADR リストを返す。"""
+        """Return ADR list sorted by number."""
         adr_manager.create_adr(title="Third")
         adr_manager.create_adr(title="First")
 
@@ -174,7 +174,7 @@ class TestADRManagerUpdateStatus:
         return ADRManager(adr_dir=str(temp_dir / "adr"))
 
     def test_update_adr_status_success(self, adr_manager):
-        """ステータスを更新できる。"""
+        """Can update status."""
         number = adr_manager.create_adr(title="Test", status="Proposed")
 
         result = adr_manager.update_adr_status(number, "Accepted")
@@ -184,7 +184,7 @@ class TestADRManagerUpdateStatus:
         assert adr["status"] == "Accepted"
 
     def test_update_adr_status_nonexistent_returns_false(self, adr_manager):
-        """存在しない ADR の更新は False を返す。"""
+        """Return False when updating nonexistent ADR."""
         result = adr_manager.update_adr_status("9999", "Accepted")
 
         assert result is False
@@ -198,7 +198,7 @@ class TestADRManagerAddRelatedIntent:
         return ADRManager(adr_dir=str(temp_dir / "adr"))
 
     def test_add_related_intent_success(self, adr_manager):
-        """関連 Intent を追加できる。"""
+        """Can add related Intent."""
         number = adr_manager.create_adr(title="Test")
 
         result = adr_manager.add_related_intent(number, "task-001")
@@ -208,7 +208,7 @@ class TestADRManagerAddRelatedIntent:
         assert "task-001" in adr["related_intents"]
 
     def test_add_related_intent_duplicate_returns_true(self, adr_manager):
-        """重複追加は True を返し、重複しない。"""
+        """Duplicate add returns True and does not duplicate."""
         number = adr_manager.create_adr(
             title="Test",
             related_intents=["task-001"],
@@ -221,14 +221,14 @@ class TestADRManagerAddRelatedIntent:
         assert adr["related_intents"].count("task-001") == 1
 
     def test_add_related_intent_nonexistent_returns_false(self, adr_manager):
-        """存在しない ADR への追加は False を返す。"""
+        """Return False when adding to nonexistent ADR."""
         result = adr_manager.add_related_intent("9999", "task-001")
 
         assert result is False
 
     def test_add_related_intent_replaces_none(self, adr_manager):
-        """「なし」を置き換えて Intent を追加できる。"""
-        number = adr_manager.create_adr(title="Test")  # デフォルトは「なし」
+        """Can add Intent replacing 'None'."""
+        number = adr_manager.create_adr(title="Test")  # default is 'None'
 
         result = adr_manager.add_related_intent(number, "task-001")
 
@@ -242,27 +242,27 @@ class TestADRManagerSlugify:
     """Tests for ADRManager._slugify."""
 
     def test_slugify_basic(self):
-        """基本的なスラグ化。"""
+        """Basic slugify."""
         result = ADRManager._slugify("Use Factory Pattern")
 
         assert result == "use-factory-pattern"
 
     def test_slugify_removes_special_chars(self):
-        """特殊文字を除去する。"""
+        """Remove special characters."""
         result = ADRManager._slugify("Hello! World? #Test")
 
         assert result == "hello-world-test"
 
     def test_slugify_truncates_long_text(self):
-        """長いテキストは 50 文字に切り詰める。"""
+        """Truncate long text to 50 chars."""
         long_text = "a" * 100
         result = ADRManager._slugify(long_text)
 
         assert len(result) <= 50
 
     def test_slugify_handles_japanese(self):
-        """日本語はそのまま（特殊文字除去後）。"""
+        """Japanese remains (after special char removal)."""
         result = ADRManager._slugify("ファクトリパターンを使用")
 
-        # 日本語は \w にマッチするため残る
+        # Japanese matches \w so it remains
         assert len(result) > 0

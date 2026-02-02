@@ -18,9 +18,7 @@ class PlannerAgent(BaseAgent):
         self.mode = "plan"
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
-        """Build prompt for planner.
-        プロンプトファイルは「役割・指示」のみ。現在の状況と出力形式はシステムが自動付与する。
-        """
+        """Build prompt for planner. Role/instructions come from prompt file; context and output format are injected by the system."""
         user_part = self.load_user_prompt(
             "prompt_template",
             "prompts/planner.md",
@@ -48,7 +46,7 @@ class PlannerAgent(BaseAgent):
                 task_lines.append(f"- {task_id}: {title} ({task_status})")
             existing_tasks_str = "\n".join(task_lines)
         else:
-            existing_tasks_str = "なし"
+            existing_tasks_str = "None"
 
         last_plan_judge = status.get("last_plan_judge_feedback")
         if last_plan_judge:
@@ -59,7 +57,7 @@ class PlannerAgent(BaseAgent):
             except TypeError:
                 last_plan_judge_str = str(last_plan_judge)
         else:
-            last_plan_judge_str = "まだ Plan_Judge のフィードバックはありません。"
+            last_plan_judge_str = "No Plan_Judge feedback yet."
 
         last_execution_feedback = {
             "reason": status.get("reason"),
@@ -74,13 +72,13 @@ class PlannerAgent(BaseAgent):
                 last_execution_feedback, indent=2, ensure_ascii=False
             )
         else:
-            last_execution_feedback_str = "まだ Judge の実行結果フィードバックはありません。"
+            last_execution_feedback_str = "No Judge execution feedback yet."
 
         return self._load_system_template(
             "planner_context.md",
             working_dir=self.config.get("project_root", "."),
-            project_goal=self.config.get("project_goal", "未設定"),
-            current_plan=plan if plan else "計画はまだ作成されていません",
+            project_goal=self.config.get("project_goal", "Not set"),
+            current_plan=plan if plan else "No plan has been created yet.",
             last_plan_judge_str=last_plan_judge_str,
             last_execution_feedback_str=last_execution_feedback_str,
             existing_tasks_str=existing_tasks_str,
@@ -100,10 +98,10 @@ class PlannerAgent(BaseAgent):
         python_files = list(project_root.glob("**/*.py"))
 
         if len(python_files) > 20:
-            return f"コードベースには {len(python_files)} 個以上のPythonファイルがあります。"
+            return f"The codebase has {len(python_files)}+ Python files."
         else:
             file_list = "\n".join([f"- {f.relative_to(project_root)}" for f in python_files[:20]])
-            return f"主要なファイル:\n{file_list}"
+            return f"Key files:\n{file_list}"
 
     def parse_response(self, response: str) -> Dict[str, Any]:
         """Parse planner response."""
@@ -135,7 +133,7 @@ class PlannerAgent(BaseAgent):
                 self.logger.warning(f"[{self.name}] updated_tasks entry without id: {updated}")
                 continue
 
-            # id 以外のフィールドだけを更新対象とする
+            # Only fields other than id are updated
             updates = {k: v for k, v in updated.items() if k != "id"}
             if not updates:
                 continue

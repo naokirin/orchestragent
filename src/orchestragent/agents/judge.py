@@ -16,9 +16,7 @@ class JudgeAgent(BaseAgent):
         self.mode = "ask"  # Judge uses ask mode (read-only)
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
-        """Build prompt for judge.
-        プロンプトファイルは「役割・指示」のみ。現在の状況と出力形式はシステムが自動付与する。
-        """
+        """Build prompt for judge. Role/instructions come from prompt file; context and output format are injected by the system."""
         user_part = self.load_user_prompt(
             "prompt_template",
             "prompts/judge.md",
@@ -43,12 +41,12 @@ class JudgeAgent(BaseAgent):
                 except Exception:
                     pass
         completed_results_str = (
-            "\n\n".join(completed_results) if completed_results else "完了したタスクはありません"
+            "\n\n".join(completed_results) if completed_results else "No completed tasks."
         )
         return self._load_system_template(
             "judge_context.md",
-            project_goal=self.config.get("project_goal", "未設定"),
-            current_plan=state.get("plan", "計画はまだ作成されていません"),
+            project_goal=self.config.get("project_goal", "Not set"),
+            current_plan=state.get("plan", "No plan has been created yet."),
             total_tasks=task_stats.total,
             completed_tasks=task_stats.completed,
             failed_tasks=task_stats.failed,
@@ -69,7 +67,7 @@ class JudgeAgent(BaseAgent):
 
         # Fallback: extract key information from text
         self.logger.warning("[Judge] Failed to parse JSON from response")
-        should_continue = "継続" in response or "continue" in response.lower() or "true" in response.lower()
+        should_continue = "continue" in response.lower() or "true" in response.lower() or "継続" in response
         return {
             "should_continue": should_continue,
             "reason": response[:500],

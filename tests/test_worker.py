@@ -11,7 +11,7 @@ class TestWorkerAgentInit:
     """Tests for WorkerAgent initialization."""
 
     def test_init_sets_mode_to_agent(self, mock_llm_client, state_manager, temp_state_dir):
-        """WorkerAgent の mode は 'agent' に設定される。"""
+        """WorkerAgent mode is set to 'agent'."""
         logger = MagicMock()
         agent = WorkerAgent(
             name="worker",
@@ -24,7 +24,7 @@ class TestWorkerAgentInit:
         assert agent.current_task_id is None
 
     def test_init_with_model_selection_config(self, mock_llm_client, state_manager, temp_state_dir):
-        """モデル選択の設定が渡せる。"""
+        """Model selection config can be passed."""
         logger = MagicMock()
         agent = WorkerAgent(
             name="worker",
@@ -55,7 +55,7 @@ class TestWorkerAssignTask:
         )
 
     def test_assign_task_success(self, worker_agent, state_manager):
-        """pending タスクの割当は成功する。"""
+        """Assigning a pending task succeeds."""
         task_id = state_manager.add_task({"title": "Test", "description": "Desc"})
 
         result = worker_agent.assign_task(task_id)
@@ -64,16 +64,16 @@ class TestWorkerAssignTask:
         assert worker_agent.current_task_id == task_id
 
     def test_assign_task_nonexistent_returns_false(self, worker_agent):
-        """存在しないタスクの割当は失敗する。"""
+        """Assigning a nonexistent task fails."""
         result = worker_agent.assign_task("nonexistent-task")
 
         assert result is False
         worker_agent.logger.error.assert_called()
 
     def test_assign_task_not_pending_returns_false(self, worker_agent, state_manager):
-        """pending でないタスクの割当は失敗する。"""
+        """Assigning a non-pending task fails."""
         task_id = state_manager.add_task({"title": "Test", "description": "Desc"})
-        # タスクを in_progress に変更
+        # Change task to in_progress
         state_manager.assign_task(task_id, "other_worker")
 
         result = worker_agent.assign_task(task_id)
@@ -98,14 +98,14 @@ class TestWorkerBuildPrompt:
         )
 
     def test_build_prompt_raises_when_no_task_assigned(self, worker_agent):
-        """タスク未割当時は ValueError を送出。"""
+        """Raise ValueError when no task is assigned."""
         with pytest.raises(ValueError) as exc_info:
             worker_agent.build_prompt({})
 
         assert "No task assigned" in str(exc_info.value)
 
     def test_build_prompt_raises_when_task_not_found(self, worker_agent):
-        """タスクが見つからない場合は ValueError を送出。"""
+        """Raise ValueError when task is not found."""
         worker_agent.current_task_id = "nonexistent-task"
 
         with pytest.raises(ValueError) as exc_info:
@@ -114,11 +114,11 @@ class TestWorkerBuildPrompt:
         assert "not found" in str(exc_info.value)
 
     def test_build_prompt_uses_fallback_template(self, worker_agent, state_manager):
-        """テンプレートファイルがない場合はフォールバックを使用。"""
+        """Use fallback when template file is not found."""
         task_id = state_manager.add_task({"title": "Test Task", "description": "Task description"})
         worker_agent.current_task_id = task_id
 
-        # プロンプトテンプレートファイルのみFileNotFoundにする
+        # Make only prompt template files raise FileNotFoundError
         original_open = open
         def mock_open_func(path, *args, **kwargs):
             if "prompts/" in str(path):
@@ -128,7 +128,7 @@ class TestWorkerBuildPrompt:
         with patch("builtins.open", side_effect=mock_open_func):
             prompt = worker_agent.build_prompt({})
 
-        # フォールバック時は英語、実ファイル読み込み時は日本語
+        # Fallback is English; real file may be Japanese
         assert "Worker Agent" in prompt or "ワーカー" in prompt
         assert "Test Task" in prompt
 
@@ -148,7 +148,7 @@ class TestWorkerGetRelatedFiles:
         )
 
     def test_get_related_files_extracts_from_description(self, worker_agent, state_manager):
-        """タスク説明からファイルを抽出する（include_common_pattern=True）。"""
+        """Extract files from task description (include_common_pattern=True)."""
         from orchestragent.models.task import Task
 
         task = Task(
@@ -159,12 +159,12 @@ class TestWorkerGetRelatedFiles:
 
         files_str = worker_agent._get_related_files(task)
 
-        # include_common_pattern=True なのでパスが抽出される
+        # Paths are extracted because include_common_pattern=True
         assert "src/main.py" in files_str
         assert "tests/test_main.py" in files_str
 
     def test_get_related_files_returns_message_when_no_files(self, worker_agent):
-        """ファイルが見つからない場合はメッセージを返す。"""
+        """Return message when no files are found."""
         from orchestragent.models.task import Task
 
         task = Task(
@@ -175,7 +175,7 @@ class TestWorkerGetRelatedFiles:
 
         files_str = worker_agent._get_related_files(task)
 
-        assert "関連ファイルの情報がありません" in files_str
+        assert "No related files information" in files_str
 
 
 class TestWorkerParseResponse:
@@ -195,7 +195,7 @@ class TestWorkerParseResponse:
         return agent
 
     def test_parse_response_extracts_report_section(self, worker_agent):
-        """# タスク完了レポート セクションを抽出する。"""
+        """Extract # Task Report section."""
         response = """作業完了しました。
 
 # タスク完了レポート
@@ -209,7 +209,7 @@ class TestWorkerParseResponse:
         assert result["task_id"] == "task-001"
 
     def test_parse_response_uses_full_response_when_no_report_section(self, worker_agent):
-        """レポートセクションがない場合は全体を使用。"""
+        """Use full response when no report section."""
         response = "タスクを完了しました。変更を加えました。"
         result = worker_agent.parse_response(response)
 
@@ -217,7 +217,7 @@ class TestWorkerParseResponse:
         assert result["task_id"] == "task-001"
 
     def test_parse_response_extracts_commit_info_from_intent(self, worker_agent):
-        """Intent からコミット情報を抽出する。"""
+        """Extract commit info from Intent."""
         response = """# タスク完了レポート
 
 ## Intent
@@ -230,11 +230,11 @@ class TestWorkerParseResponse:
 完了しました。"""
         result = worker_agent.parse_response(response)
 
-        # IntentParser の結果に依存
+        # Depends on IntentParser result
         assert result["task_id"] == "task-001"
 
     def test_parse_response_extracts_commit_by_regex_fallback(self, worker_agent):
-        """コミット情報を正規表現でフォールバック抽出。"""
+        """Fallback extract commit info via regex."""
         response = """# タスク完了レポート
 
 コミットハッシュ: `abc1234def`
@@ -247,8 +247,8 @@ class TestWorkerParseResponse:
         assert result["commits"][0]["hash"] == "abc1234def"
 
     def test_parse_response_handles_exception_gracefully(self, worker_agent):
-        """例外発生時はフォールバック結果を返す。"""
-        # IntentParser.parse をモックして例外を発生させる
+        """Return fallback result when exception occurs."""
+        # Mock IntentParser.parse to raise exception
         with patch(
             "orchestragent.agents.worker.IntentParser.parse",
             side_effect=Exception("Parse error"),
@@ -277,14 +277,14 @@ class TestWorkerUpdateState:
         return agent
 
     def test_update_state_raises_when_result_not_dict(self, worker_agent):
-        """result が dict でない場合は ValueError を送出。"""
+        """Raise ValueError when result is not a dict."""
         with pytest.raises(ValueError) as exc_info:
             worker_agent.update_state("not a dict")
 
         assert "must be a dict" in str(exc_info.value)
 
     def test_update_state_raises_when_no_task_id(self, worker_agent):
-        """task_id がない場合は ValueError を送出。"""
+        """Raise ValueError when task_id is missing."""
         worker_agent.current_task_id = None
 
         with pytest.raises(ValueError) as exc_info:
@@ -293,7 +293,7 @@ class TestWorkerUpdateState:
         assert "No task ID" in str(exc_info.value)
 
     def test_update_state_completes_task(self, worker_agent, state_manager):
-        """タスクを completed に更新する。"""
+        """Update task to completed."""
         task_id = state_manager.add_task({"title": "Test", "description": "Desc"})
         state_manager.assign_task(task_id, "worker")
         worker_agent.current_task_id = task_id
@@ -305,7 +305,7 @@ class TestWorkerUpdateState:
         assert task.status == TaskStatus.COMPLETED
 
     def test_update_state_creates_adr_when_specified(self, worker_agent, state_manager, temp_state_dir):
-        """adr_to_create が指定されている場合は ADR を作成。"""
+        """Create ADR when adr_to_create is specified."""
         task_id = state_manager.add_task({"title": "Test", "description": "Desc"})
         state_manager.assign_task(task_id, "worker")
         worker_agent.current_task_id = task_id
@@ -324,15 +324,15 @@ class TestWorkerUpdateState:
         }
         worker_agent.update_state(result)
 
-        # ADR ディレクトリを確認
+        # Check ADR directory
         adr_dir = temp_state_dir / "adr"
         adr_files = list(adr_dir.glob("*.md"))
-        # テンプレート以外のファイルがあるか
+        # Check for files other than template
         non_template_files = [f for f in adr_files if "template" not in f.name]
         assert len(non_template_files) >= 1
 
     def test_update_state_saves_intent(self, worker_agent, state_manager, temp_state_dir):
-        """Intent を保存する。"""
+        """Save Intent."""
         task_id = state_manager.add_task({"title": "Test", "description": "Desc"})
         state_manager.assign_task(task_id, "worker")
         worker_agent.current_task_id = task_id
@@ -348,7 +348,7 @@ class TestWorkerUpdateState:
         }
         worker_agent.update_state(result)
 
-        # Intent ファイルを確認
+        # Check Intent file
         intent_file = temp_state_dir / "intents" / f"intent_{task_id}.yaml"
         assert intent_file.exists()
 
@@ -369,7 +369,7 @@ class TestWorkerRunInternal:
         )
 
     def test_run_internal_raises_when_no_task_assigned(self, worker_agent):
-        """タスク未割当時は ValueError を送出。"""
+        """Raise ValueError when no task is assigned."""
         import time
 
         with pytest.raises(ValueError) as exc_info:
@@ -378,7 +378,7 @@ class TestWorkerRunInternal:
         assert "No task assigned" in str(exc_info.value)
 
     def test_run_internal_raises_when_task_not_found(self, worker_agent):
-        """タスクが見つからない場合は ValueError を送出。"""
+        """Raise ValueError when task is not found."""
         import time
 
         worker_agent.current_task_id = "nonexistent-task"

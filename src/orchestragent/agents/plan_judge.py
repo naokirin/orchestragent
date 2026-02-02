@@ -16,13 +16,11 @@ class PlanJudgeAgent(BaseAgent):
     def __init__(self, *args, **kwargs):
         """Initialize plan judge agent."""
         super().__init__(*args, **kwargs)
-        # Plan_Judge はコードには手を触れない評価専用のため ask モード
+        # Plan_Judge is evaluation-only (no code changes), so use ask mode
         self.mode = "ask"
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
-        """Build prompt for plan judge.
-        プロンプトファイルは「役割・指示」のみ。現在の状況と出力形式はシステムが自動付与する。
-        """
+        """Build prompt for plan judge. Role/instructions come from prompt file; context and output format are injected by the system."""
         user_part = self.load_user_prompt(
             "prompt_template",
             "prompts/plan_judge.md",
@@ -61,13 +59,13 @@ class PlanJudgeAgent(BaseAgent):
                 )
             tasks_summary = "\n".join(lines)
         else:
-            tasks_summary = "タスクはまだ作成されていません"
+            tasks_summary = "No tasks have been created yet."
 
         return self._load_system_template(
             "plan_judge_context.md",
             working_dir=self.config.get("project_root", "."),
-            project_goal=self.config.get("project_goal", "未設定"),
-            current_plan=plan if plan else "計画はまだ作成されていません",
+            project_goal=self.config.get("project_goal", "Not set"),
+            current_plan=plan if plan else "No plan has been created yet.",
             tasks_summary=tasks_summary,
             codebase_summary=self._get_codebase_summary(),
             iteration=status.get("current_iteration", 0),
@@ -85,11 +83,11 @@ class PlanJudgeAgent(BaseAgent):
         python_files = list(project_root.glob("**/*.py"))
 
         if len(python_files) > 20:
-            return f"コードベースには {len(python_files)} 個以上のPythonファイルがあります。"
+            return f"The codebase has {len(python_files)}+ Python files."
         file_list = "\n".join(
             [f"- {f.relative_to(project_root)}" for f in python_files[:20]]
         )
-        return f"主要なファイル:\n{file_list}"
+        return f"Key files:\n{file_list}"
 
     def parse_response(self, response: str) -> Dict[str, Any]:
         """Parse plan judge response."""

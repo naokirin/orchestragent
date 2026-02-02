@@ -168,13 +168,13 @@ class StateManager:
 
     def compress_old_checkpoints(self, keep_latest_n: int = 1) -> int:
         """
-        最新 keep_latest_n 個以外のチェックポイントを .tar.gz に圧縮してディスク使用量を削減する。
+        Compress checkpoints older than the latest keep_latest_n into .tar.gz to reduce disk usage.
 
         Args:
-            keep_latest_n: 圧縮しない最新チェックポイントの数（1 で最新のみ非圧縮）。
+            keep_latest_n: Number of latest checkpoints to leave uncompressed (1 = only the latest).
 
         Returns:
-            圧縮したチェックポイントの数。
+            Number of checkpoints compressed.
         """
         return self._checkpoint.compress_old_checkpoints(keep_latest_n=keep_latest_n)
 

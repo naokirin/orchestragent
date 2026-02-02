@@ -29,10 +29,7 @@ from .startup import (
 
 @dataclass(frozen=True)
 class RunnerConfig:
-    """
-    メインループとエージェントに渡す設定。依存性注入用。
-    テスト時はモックの RunnerConfig を渡せる。
-    """
+    """Configuration for the main loop and agents. Used for dependency injection; tests can pass a mock RunnerConfig."""
     llm_backend: str
     working_dir: str
     llm_output_format: str
@@ -61,7 +58,7 @@ class RunnerConfig:
 
     @classmethod
     def from_global_config(cls) -> "RunnerConfig":
-        """グローバル config モジュールから RunnerConfig を構築する。"""
+        """Build RunnerConfig from the global config module."""
         import config as global_config
         return cls(
             llm_backend=global_config.LLM_BACKEND,
@@ -94,7 +91,7 @@ class RunnerConfig:
 
 @dataclass
 class LoopContext:
-    """コンテキスト: セッション初期化で作成されるコンポーネント。"""
+    """Context: components created during session initialization."""
 
     state_manager: StateManager
     logger: AgentLogger
@@ -106,7 +103,7 @@ class LoopContext:
 
 @dataclass
 class AgentContext:
-    """コンテキスト: エージェントセットアップで作成されるエージェントと設定。"""
+    """Context: agents and config created during agent setup."""
 
     planner: PlannerAgent
     worker: WorkerAgent
@@ -118,8 +115,8 @@ class AgentContext:
 
 def initialize_session(cfg: Optional[RunnerConfig] = None) -> LoopContext:
     """
-    環境チェック・認証・StateManager/Logger/LLM/FileLock/TaskScheduler を初期化する。
-    個別にテスト可能な単位。cfg を渡すとその設定で初期化し、未指定時はグローバル config から構築する。
+    Initialize environment check, auth, StateManager, Logger, LLM, FileLock, TaskScheduler.
+    Testable unit. Pass cfg to use that config; otherwise build from global config.
     """
     if cfg is None:
         cfg = RunnerConfig.from_global_config()
@@ -205,10 +202,7 @@ def initialize_session(cfg: Optional[RunnerConfig] = None) -> LoopContext:
 
 
 def setup_agents(ctx: LoopContext) -> AgentContext:
-    """
-    エージェント（Planner / Worker / Judge / Plan_Judge）をセットアップする。
-    個別にテスト可能な単位。設定は ctx.runner_config から取得する。
-    """
+    """Set up agents (Planner, Worker, Judge, Plan_Judge). Testable unit; config from ctx.runner_config."""
     cfg = ctx.runner_config
     planner_config = cfg.agent_config.copy()
     planner_config["mode"] = "plan"
@@ -292,10 +286,7 @@ def run_plan_phase(
     agents: AgentContext,
     iteration: int,
 ) -> bool:
-    """
-    Planner ↔ Plan_Judge フェーズを実行する。
-    計画が受理された場合 True、失敗または最大再計画で受理されなかった場合 False を返す。
-    """
+    """Run Planner ↔ Plan_Judge phase. Returns True if plan accepted, False if failed or max revisions reached without acceptance."""
     print("\n[1/3] Planner / Plan_Judge フェーズを開始します...")
     plan_loop_failed = False
     decision: Optional[str] = None
@@ -357,9 +348,7 @@ def run_work_phase(
     agents: AgentContext,
     iteration: int,
 ) -> None:
-    """
-    Worker フェーズを実行する（並列/直列は設定に従う）。
-    """
+    """Run Worker phase (parallel or serial according to config)."""
     print("\n[2/3] Worker実行中...")
 
     cfg = ctx.runner_config
@@ -516,9 +505,7 @@ def run_judge_phase(
     agents: AgentContext,
     iteration: int,
 ) -> None:
-    """
-    Judge フェーズを実行する。
-    """
+    """Run Judge phase."""
     print("\n[3/3] Judge実行中...")
     cfg = ctx.runner_config
     try:
@@ -534,9 +521,8 @@ def run_judge_phase(
 
 def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
     """
-    Run the main agent loop.
-    初期化・エージェントセットアップ・各フェーズ関数を呼び出してオーケストレートする。
-    cfg を渡すとその設定で実行し、未指定時はグローバル config から構築する。
+    Run the main agent loop. Initializes session, sets up agents, and runs plan/work/judge phases.
+    Pass cfg to use that config; otherwise build from global config.
     """
     ctx = initialize_session(cfg)
     agents = setup_agents(ctx)

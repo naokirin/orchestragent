@@ -1,6 +1,6 @@
-## 出力形式（必須）
+## Output Format (Required)
 
-評価結果をファイルに保存しないでください。応答テキストの中にだけ、以下のJSON形式で出力してください。この形式は必須です。
+Do not save the evaluation result to a file. Output only in the response text, in the following JSON format. This format is required.
 
 ```json
 {{
@@ -9,15 +9,15 @@
   "issues": [
     {{
       "type": "duplication",
-      "description": "問題点の説明",
+      "description": "Description of the issue",
       "related_task_ids": ["task_043", "task_049"]
     }}
   ],
-  "suggested_changes": "Plannerが次に計画を修正するときの高レベルな提案"
+  "suggested_changes": "High-level suggestions for how the Planner should revise the plan next"
 }}
 ```
 
-- **decision**: `"accept"` または `"revise"`
-- **score**: 0.0〜1.0
-- **issues**: type は "duplication" | "coverage" | "granularity" | "dependency" | "priority" | "other"
-- **出力は応答テキストのみ**。plan_judge_result.json 等は作成しないでください。
+- **decision**: `"accept"` or `"revise"`
+- **score**: 0.0 to 1.0
+- **issues**: type is one of "duplication" | "coverage" | "granularity" | "dependency" | "priority" | "other"
+- **Output only in the response text.** Do not create plan_judge_result.json or similar files.

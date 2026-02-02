@@ -1,25 +1,25 @@
-## 現在の状況
+## Current Situation
 
-### 作業ディレクトリ
-すべてのファイル操作は以下のディレクトリ内で行ってください。
+### Working Directory
+All file operations must be performed within the following directory.
 ```
 {working_dir}
 ```
 
-### プロジェクト目標
+### Project Goal
 {project_goal}
 
-### 現在の計画
+### Current Plan
 {current_plan}
 
-### 前回の計画レビュー結果（Plan_Judge）
+### Last Plan Review Result (Plan_Judge)
 {last_plan_judge_str}
 
-### 前イテレーションの実行結果レビュー（Judge）
+### Last Execution Review (Judge)
 {last_execution_feedback_str}
 
-### 既存のタスク
+### Existing Tasks
 {existing_tasks_str}
 
-### コードベースの概要
+### Codebase Overview
 {codebase_summary}

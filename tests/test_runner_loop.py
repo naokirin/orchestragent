@@ -1,4 +1,4 @@
-"""Tests for runner loop (run_main_loop 分割後の各関数)."""
+"""Tests for runner loop (functions after run_main_loop split)."""
 
 import pytest
 from pathlib import Path
@@ -18,7 +18,7 @@ from orchestragent.core.exceptions import AgentError
 
 
 def _default_runner_config(temp_state_dir: Path) -> RunnerConfig:
-    """テスト用の最小 RunnerConfig。"""
+    """Minimal RunnerConfig for tests."""
     log_dir = temp_state_dir / "logs"
     return RunnerConfig(
         llm_backend="cursor_cli",
@@ -53,7 +53,7 @@ def _default_runner_config(temp_state_dir: Path) -> RunnerConfig:
 
 @pytest.fixture
 def loop_context(state_manager, mock_llm_client, temp_state_dir):
-    """LoopContext を構築（StateManager / Logger / LLM / FileLock / TaskScheduler は実体）。"""
+    """Build LoopContext (StateManager, Logger, LLM, FileLock, TaskScheduler are real)."""
     from orchestragent.core.logger import AgentLogger
     from orchestragent.state.file_lock import FileLockManager
     from orchestragent.scheduler.task_scheduler import TaskScheduler
@@ -77,7 +77,7 @@ def loop_context(state_manager, mock_llm_client, temp_state_dir):
 
 @pytest.fixture
 def mock_agent_context(loop_context):
-    """AgentContext をモックで構築（run_plan_phase / run_work_phase / run_judge_phase 用）。"""
+    """Build AgentContext with mocks (for run_plan_phase / run_work_phase / run_judge_phase)."""
     planner = MagicMock()
     worker = MagicMock()
     judge = MagicMock()
@@ -99,7 +99,7 @@ def mock_agent_context(loop_context):
 
 
 class TestInitializeSession:
-    """initialize_session() のテスト（startup をモック）。"""
+    """Tests for initialize_session() (startup mocked)."""
 
     @patch("orchestragent.runner.loop.check_cursor_cli", return_value=True)
     @patch("orchestragent.runner.loop.check_cursor_auth", return_value=True)
@@ -116,7 +116,7 @@ class TestInitializeSession:
         temp_state_dir,
         mock_llm_client,
     ):
-        """startup をすべて成功させたとき、LoopContext が返る（config は DI で渡す）。"""
+        """When startup succeeds, LoopContext is returned (config passed via DI)."""
         mock_llm_factory.return_value = mock_llm_client
         cfg = RunnerConfig(
             llm_backend="cursor_cli",
@@ -145,10 +145,10 @@ class TestInitializeSession:
 
 
 class TestSetupAgents:
-    """setup_agents() のテスト。"""
+    """Tests for setup_agents()."""
 
     def test_returns_agent_context(self, loop_context):
-        """LoopContext を渡すと AgentContext が返る（設定は ctx.runner_config から取得）。"""
+        """Passing LoopContext returns AgentContext (config from ctx.runner_config)."""
         agents = setup_agents(loop_context)
 
         assert isinstance(agents, AgentContext)
@@ -166,12 +166,12 @@ class TestSetupAgents:
 
 
 class TestRunPlanPhase:
-    """run_plan_phase() のテスト。"""
+    """Tests for run_plan_phase()."""
 
     def test_returns_true_when_plan_accepted(
         self, loop_context, mock_agent_context
     ):
-        """Plan_Judge が accept を返すと True。"""
+        """Returns True when Plan_Judge returns accept."""
         mock_agent_context.planner.run.return_value = None
         mock_agent_context.plan_judge.run.return_value = {"decision": "accept"}
 
@@ -184,7 +184,7 @@ class TestRunPlanPhase:
     def test_returns_false_when_planner_raises(
         self, loop_context, mock_agent_context
     ):
-        """Planner が AgentError を出すと False。"""
+        """Returns False when Planner raises AgentError."""
         mock_agent_context.planner.run.side_effect = AgentError("planner error")
 
         result = run_plan_phase(loop_context, mock_agent_context, iteration=1)
@@ -196,7 +196,7 @@ class TestRunPlanPhase:
     def test_returns_false_when_plan_judge_returns_revise_after_max_attempts(
         self, loop_context, mock_agent_context, temp_state_dir
     ):
-        """Plan_Judge が常に revise を返すと最大回数で False。"""
+        """Returns False after max attempts when Plan_Judge always returns revise."""
         mock_agent_context.planner.run.return_value = None
         mock_agent_context.plan_judge.run.return_value = {"decision": "revise"}
 
@@ -231,14 +231,14 @@ class TestRunPlanPhase:
 
 
 class TestRunWorkPhase:
-    """run_work_phase() のテスト。"""
+    """Tests for run_work_phase()."""
 
     def test_no_pending_tasks_sequential(
         self, loop_context, mock_agent_context
     ):
-        """並列無効・保留タスクなしのときは Worker は実行されない。"""
-        # loop_context.runner_config は _default_runner_config で enable_parallel_execution=False
-        # state_manager は実体なので get_pending_tasks() は空の状態で [] を返す
+        """Worker is not run when parallel disabled and no pending tasks."""
+        # loop_context.runner_config has enable_parallel_execution=False from _default_runner_config
+        # state_manager is real so get_pending_tasks() returns [] (empty state)
         run_work_phase(loop_context, mock_agent_context, iteration=1)
 
         mock_agent_context.worker.assign_task.assert_not_called()
@@ -251,12 +251,12 @@ class TestRunWorkPhase:
 
 
 class TestRunJudgePhase:
-    """run_judge_phase() のテスト。"""
+    """Tests for run_judge_phase()."""
 
     def test_calls_judge_run(
         self, loop_context, mock_agent_context
     ):
-        """Judge.run が 1 回呼ばれる。"""
+        """Judge.run is called once."""
         run_judge_phase(loop_context, mock_agent_context, iteration=1)
 
         mock_agent_context.judge.run.assert_called_once()

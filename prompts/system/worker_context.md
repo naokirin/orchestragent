@@ -1,19 +1,19 @@
-## 割り当てられたタスク
+## Assigned Task
 
-### 作業ディレクトリ
-すべてのファイル操作は以下のディレクトリ内で行ってください。
+### Working Directory
+All file operations must be performed within the following directory.
 ```
 {working_dir}
 ```
 
-### タスクID
+### Task ID
 {task_id}
 
-### タスクタイトル
+### Task Title
 {task_title}
 
-### タスク説明
+### Task Description
 {task_description}
 
-### 関連ファイル
+### Related Files
 {related_files}

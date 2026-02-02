@@ -1,15 +1,14 @@
 #!/bin/bash
-# 初回セットアップスクリプト
-# .envファイルの作成、必要なディレクトリの作成を行う
+# Initial setup script: create .env from example and required directories
 
-# エラーが発生しても続行（一部の処理が失敗してもmain.pyは実行可能）
+# Continue on error (main.py can still run if some steps fail)
 set +e
 
 echo "=========================================="
 echo "初回セットアップを実行中..."
 echo "=========================================="
 
-# .envファイルが存在しない場合、.env.exampleから作成
+# Create .env from .env.example if missing
 if [ ! -f .env ]; then
     echo "[セットアップ] .envファイルが見つかりません。.env.exampleから作成します..."
     if [ -f .env.example ]; then
@@ -22,7 +21,7 @@ else
     echo "[セットアップ] .envファイルは既に存在します"
 fi
 
-# 必要なディレクトリを作成
+# Create required directories
 echo "[セットアップ] 必要なディレクトリを作成中..."
 mkdir -p state/results
 mkdir -p state/checkpoints
@@ -32,7 +31,7 @@ mkdir -p logs
 
 echo "[セットアップ] ディレクトリの作成が完了しました"
 
-# Cursor CLIの確認
+# Check Cursor CLI availability
 echo "[セットアップ] Cursor CLIの確認中..."
 if command -v agent &> /dev/null; then
     echo "[セットアップ] Cursor CLI: $(agent --version 2>&1 || echo '利用可能')"

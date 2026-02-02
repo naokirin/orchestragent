@@ -383,13 +383,13 @@ class TestStatus:
     """Tests for Status dataclass (models/state.py)."""
 
     def test_post_init_sets_last_updated_when_none(self):
-        """last_updated が None の場合 __post_init__ で現在時刻が設定される。"""
+        """When last_updated is None, __post_init__ sets current time."""
         s = Status(version=1)
         assert s.last_updated is not None
         assert s.version == 1
 
     def test_to_dict_includes_current_phase_when_set(self):
-        """current_phase が設定されている場合 to_dict に含まれる。"""
+        """When current_phase is set, it is included in to_dict."""
         s = Status(last_updated="2025-01-01T00:00:00", version=1, current_phase="planning")
         d = s.to_dict()
         assert d["current_phase"] == "planning"
@@ -397,13 +397,13 @@ class TestStatus:
         assert d["version"] == 1
 
     def test_to_dict_omits_current_phase_when_empty(self):
-        """current_phase が None/空の場合は to_dict に含めない。"""
+        """When current_phase is None/empty, omit from to_dict."""
         s = Status(last_updated="2025-01-01", version=0, current_phase=None)
         d = s.to_dict()
         assert "current_phase" not in d
 
     def test_from_dict_with_all_keys(self):
-        """from_dict で全キーを指定した場合正しく復元される。"""
+        """When all keys given in from_dict, restore correctly."""
         data = {"last_updated": "2025-01-01T12:00:00", "version": 2, "current_phase": "running"}
         s = Status.from_dict(data)
         assert s.last_updated == "2025-01-01T12:00:00"
@@ -411,9 +411,9 @@ class TestStatus:
         assert s.current_phase == "running"
 
     def test_from_dict_with_missing_keys_defaults(self):
-        """from_dict でキーが欠けている場合はデフォルト値。境界値。"""
+        """When keys missing in from_dict, use defaults (boundary)."""
         s = Status.from_dict({})
-        # last_updated は __post_init__ で現在時刻が設定される
+        # last_updated is set to current time in __post_init__
         assert s.last_updated is not None
         assert s.version == 0
         assert s.current_phase is None
@@ -423,7 +423,7 @@ class TestCheckpointMetadata:
     """Tests for CheckpointMetadata dataclass."""
 
     def test_to_dict(self):
-        """to_dict で checkpoint_name, created_at, files が含まれる。"""
+        """to_dict includes checkpoint_name, created_at, files."""
         m = CheckpointMetadata(checkpoint_name="cp1", created_at="2025-01-01", files=["a.json", "b.json"])
         d = m.to_dict()
         assert d["checkpoint_name"] == "cp1"
@@ -431,7 +431,7 @@ class TestCheckpointMetadata:
         assert d["files"] == ["a.json", "b.json"]
 
     def test_from_dict_with_missing_keys(self):
-        """from_dict でキーが欠けている場合は空文字/空リスト。異常系・境界値。"""
+        """When keys missing in from_dict, use empty string/list (boundary)."""
         m = CheckpointMetadata.from_dict({})
         assert m.checkpoint_name == ""
         assert m.created_at == ""
@@ -442,28 +442,28 @@ class TestValidationResult:
     """Tests for ValidationResult dataclass."""
 
     def test_default_valid_true(self):
-        """デフォルトでは valid=True。"""
+        """Default valid=True."""
         r = ValidationResult()
         assert r.valid is True
         assert r.errors == []
         assert r.warnings == []
 
     def test_add_error_marks_invalid(self):
-        """add_error でエラー追加と valid=False。"""
+        """add_error adds error and sets valid=False."""
         r = ValidationResult()
         r.add_error("Something wrong")
         assert r.valid is False
         assert r.errors == ["Something wrong"]
 
     def test_add_warning_keeps_valid(self):
-        """add_warning は valid を変えず警告のみ追加。"""
+        """add_warning keeps valid and adds warning only."""
         r = ValidationResult()
         r.add_warning("Minor issue")
         assert r.valid is True
         assert r.warnings == ["Minor issue"]
 
     def test_to_dict_and_from_dict_roundtrip(self):
-        """to_dict / from_dict でラウンドトリップ。"""
+        """Roundtrip via to_dict / from_dict."""
         r = ValidationResult(valid=False, errors=["e1"], warnings=["w1"])
         d = r.to_dict()
         r2 = ValidationResult.from_dict(d)
@@ -472,7 +472,7 @@ class TestValidationResult:
         assert r2.warnings == ["w1"]
 
     def test_from_dict_missing_keys_defaults(self):
-        """from_dict でキーが欠けている場合はデフォルト。境界値。"""
+        """When keys missing in from_dict, use defaults (boundary)."""
         r = ValidationResult.from_dict({})
         assert r.valid is True
         assert r.errors == []

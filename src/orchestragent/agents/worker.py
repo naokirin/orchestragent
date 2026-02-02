@@ -29,10 +29,7 @@ class WorkerAgent(BaseAgent):
         worker_model_default: Optional[str] = None,
         **kwargs,
     ):
-        """
-        Initialize worker agent.
-        設定は依存性注入で受け取る。state_dir, adr_dir, model_* は省略時はデフォルト値を使用。
-        """
+        """Initialize worker agent. Config is injected; state_dir, adr_dir, model_* use defaults when omitted."""
         super().__init__(*args, **kwargs)
         self.mode = "agent"  # Worker uses agent mode (not plan)
         self.current_task_id = None
@@ -53,9 +50,7 @@ class WorkerAgent(BaseAgent):
         self.adr_manager = ADRManager(adr_dir=adr_dir)
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
-        """Build prompt for worker.
-        プロンプトファイルは「役割・指示」のみ。割り当てタスクと出力形式はシステムが自動付与する。
-        """
+        """Build prompt for worker. Role/instructions come from prompt file; assigned task and output format are injected by the system."""
         if not self.current_task_id:
             raise ValueError("No task assigned to worker. Call assign_task() first.")
         task = self.state_manager.get_task_by_id(self.current_task_id)
@@ -94,14 +89,16 @@ class WorkerAgent(BaseAgent):
         )
         if files:
             return "\n".join([f"- {f}" for f in files])
-        return "関連ファイルの情報がありません"
+        return "No related files information."
 
     def parse_response(self, response: str) -> Dict[str, Any]:
         """Parse worker response including Intent extraction."""
         try:
             # Extract report from response
             # Try to find markdown report section
-            report_match = re.search(r'# タスク完了レポート.*', response, re.DOTALL)
+            report_match = re.search(
+                r'# (?:Task Report|タスク完了レポート)[:\s].*', response, re.DOTALL | re.IGNORECASE
+            )
             if report_match:
                 report = report_match.group(0)
             else:
@@ -121,14 +118,14 @@ class WorkerAgent(BaseAgent):
             else:
                 # Fallback: extract all commit hashes and messages by regex
                 hash_matches = re.findall(
-                    r'[-*]*\s*\**コミットハッシュ[:\*\s]+`?([a-f0-9]+)`?',
+                    r'[-*]*\s*\**(?:Commit hash|コミットハッシュ)[:\*\s]+`?([a-f0-9]+)`?',
                     response,
                     re.IGNORECASE
                 )
                 msg_matches = re.findall(
-                    r'[-*]*\s*\**コミットメッセージ[:\*\s]+`?(.+)`?',
+                    r'[-*]*\s*\**(?:Commit message|コミットメッセージ)[:\*\s]+`?(.+)`?',
                     response,
-                    re.MULTILINE
+                    re.MULTILINE | re.IGNORECASE
                 )
                 for i, h in enumerate(hash_matches):
                     msg = msg_matches[i].strip() if i < len(msg_matches) else ""

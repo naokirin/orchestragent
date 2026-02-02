@@ -12,7 +12,7 @@ class TestValidationManagerInit:
     """Tests for ValidationManager initialization."""
 
     def test_init_stores_dependencies(self, temp_dir):
-        """state_dir, file_manager, checkpoint_manager を保持する。"""
+        """Hold state_dir, file_manager, checkpoint_manager."""
         fm = MagicMock()
         cm = MagicMock()
         vm = ValidationManager(temp_dir, fm, cm)
@@ -38,15 +38,15 @@ class TestValidateState:
         return ValidationManager(temp_dir, file_manager, checkpoint_manager)
 
     def test_validate_state_file_not_found_adds_warning(self, validation_manager, temp_dir):
-        """ファイルが存在しない場合は警告を追加する（境界値）。"""
-        # tasks.json / status.json が無い
+        """Add warning when file not found (boundary)."""
+        # tasks.json / status.json missing
         result = validation_manager.validate_state()
         assert result.valid is True
         assert any("not found" in w.lower() for w in result.warnings)
         assert len(result.warnings) >= 1
 
     def test_validate_state_tasks_json_missing_tasks_key_adds_error(self, validation_manager, temp_dir):
-        """tasks.json に 'tasks' キーが無い場合はエラーを追加。"""
+        """Add error when tasks.json has no 'tasks' key."""
         (temp_dir / "tasks.json").write_text("{}")
         (temp_dir / "status.json").write_text("{}")
 
@@ -63,7 +63,7 @@ class TestValidateState:
         assert any("tasks" in e and "key" in e.lower() for e in result.errors)
 
     def test_validate_state_corruption_error_adds_error(self, validation_manager, temp_dir):
-        """異常系: StateCorruptionError の場合はエラーを追加。"""
+        """StateCorruptionError adds error."""
         from orchestragent.core.exceptions import StateCorruptionError
 
         (temp_dir / "tasks.json").touch()
@@ -73,7 +73,7 @@ class TestValidateState:
         assert any("corrupt" in e.lower() or "corrupted" in e.lower() for e in result.errors)
 
     def test_validate_state_generic_exception_adds_error(self, validation_manager, temp_dir):
-        """異常系: その他の例外でもエラーを追加。"""
+        """Other exceptions also add error."""
         (temp_dir / "tasks.json").touch()
         validation_manager._file.load_json.side_effect = RuntimeError("load failed")
         result = validation_manager.validate_state()
@@ -81,7 +81,7 @@ class TestValidateState:
         assert any("load failed" in e or "error" in e.lower() for e in result.errors)
 
     def test_validate_state_all_ok(self, validation_manager, temp_dir):
-        """全ファイルが存在し正常な場合は valid=True。"""
+        """When all files exist and valid, valid=True."""
         (temp_dir / "tasks.json").touch()
         (temp_dir / "status.json").touch()
 
@@ -112,7 +112,7 @@ class TestRecoverFromCorruption:
         return ValidationManager(temp_dir, file_manager, checkpoint_manager)
 
     def test_recover_from_checkpoint_success(self, validation_manager):
-        """チェックポイントが存在し restore が成功した場合は True。"""
+        """Return True when checkpoint exists and restore succeeds."""
         validation_manager._checkpoint.list_checkpoints.return_value = [
             MagicMock(checkpoint_name="latest")
         ]
@@ -121,18 +121,18 @@ class TestRecoverFromCorruption:
         validation_manager._checkpoint.restore_checkpoint.assert_called_once_with("latest")
 
     def test_recover_from_checkpoint_restore_raises_tries_backup(self, validation_manager, temp_dir):
-        """チェックポイント restore が失敗するとバックアップを試す。"""
+        """When checkpoint restore fails, try backup."""
         validation_manager._checkpoint.list_checkpoints.return_value = [
             MagicMock(checkpoint_name="latest")
         ]
         validation_manager._checkpoint.restore_checkpoint.side_effect = RuntimeError("restore failed")
         validation_manager._checkpoint.backup_dir = temp_dir / "backups"
         validation_manager._checkpoint.backup_dir.mkdir(parents=True, exist_ok=True)
-        # バックアップディレクトリはあるが中身が空
+        # Backup dir exists but is empty
         assert validation_manager.recover_from_corruption() is False
 
     def test_recover_no_checkpoint_no_backup_returns_false(self, validation_manager, temp_dir):
-        """チェックポイントもバックアップも無い場合は False。境界値。"""
+        """Return False when no checkpoint and no backup (boundary)."""
         validation_manager._checkpoint.list_checkpoints.return_value = []
         validation_manager._checkpoint.backup_dir = temp_dir / "backups"
         assert validation_manager.recover_from_corruption() is False

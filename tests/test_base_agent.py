@@ -267,7 +267,7 @@ class TestRunRetry:
         assert mock_llm_client.call_agent.call_count == 3
 
     def test_run_max_retries_zero_raises_exhausted(self, mock_state_manager, mock_logger):
-        """異常系: max_retries=0 のときループに入らず AgentError(exhausted) を送出。"""
+        """When max_retries=0, do not enter loop and raise AgentError(exhausted)."""
         mock_llm_client = MagicMock()
         mock_llm_client.call_agent.side_effect = LLMError("Retryable", retryable=True)
 
@@ -376,16 +376,16 @@ class TestRunInternal:
         mock_logger.error.assert_called()
 
     def test_run_internal_parse_response_returns_non_dict_uses_fallback(self, mock_llm_client, mock_state_manager, mock_logger):
-        """異常系: parse_response が dict 以外を返すと ValueError となりフォールバック結果が使われる。"""
+        """When parse_response returns non-dict, ValueError and fallback result is used."""
         class BadParseAgent(BaseAgent):
             def build_prompt(self, state):
                 return "prompt"
 
             def parse_response(self, response):
-                return "not a dict"  # 仕様違反
+                return "not a dict"  # spec violation
 
             def update_state(self, result):
-                # フォールバックで {"response": ..., "error": ...} が渡る
+                # Fallback passes {"response": ..., "error": ...}
                 assert "response" in result
                 assert "error" in result
 

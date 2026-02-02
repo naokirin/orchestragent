@@ -1,19 +1,19 @@
-## 現在の状況
+## Current Situation
 
-### プロジェクト目標
+### Project Goal
 {project_goal}
 
-### 現在の計画
+### Current Plan
 {current_plan}
 
-### タスクの状況
-- 総タスク数: {total_tasks}
-- 完了タスク: {completed_tasks}
-- 失敗タスク: {failed_tasks}
-- 保留中タスク: {pending_tasks}
+### Task Status
+- Total tasks: {total_tasks}
+- Completed: {completed_tasks}
+- Failed: {failed_tasks}
+- Pending: {pending_tasks}
 
-### 完了したタスクの結果
+### Completed Task Results
 {completed_task_results}
 
-### 現在のイテレーション
+### Current Iteration
 {iteration}

@@ -1,39 +1,39 @@
 # docker-compose.exec.yml
-# リポジトリ外の任意のディレクトリでエージェントシステムを実行するための設定です。
+# Run the agent system from any directory outside the repository.
 #
-# 【使い方】
-# 1. リポジトリでイメージをビルド: docker build -t orchestragent:latest .
-#    または Docker Hub などから image を利用する場合は ORCHESTRAGENT_IMAGE を設定
-# 2. 作業したいプロジェクトのディレクトリに移動: cd /path/to/your/project
-# 3. 起動（.env を使う場合は --env-file を推奨）:
+# Usage:
+# 1. Build image in the repo: docker build -t orchestragent:latest .
+#    Or set ORCHESTRAGENT_IMAGE when using an image from Docker Hub etc.
+# 2. Change to your project directory: cd /path/to/your/project
+# 3. Start (use --env-file when using .env):
 #    docker-compose -f /path/to/orchestragent/docker-compose.exec.yml --env-file .env up -d
-#    カレントディレクトリが「作業対象プロジェクト」として /target にマウントされます。
+#    Current directory is mounted as the target project at /target.
 #
-# 【state / logs / docs/adr の保存先】
-# コンテナ内では常に /workspace/state, /workspace/logs, /workspace/docs/adr を使用します。
-# ホスト側のパスは ORCHESTRAGENT_STATE_DIR / ORCHESTRAGENT_LOG_DIR / ORCHESTRAGENT_ADR_DIR で指定します。
-# Compose v2 で -f を使うと相対パスは compose ファイルのあるディレクトリ基準になるため、
-# リポジトリ外で実行する場合は絶対パス指定を推奨します（例: .env に記載）:
+# state / logs / docs/adr locations:
+# Inside the container paths are always /workspace/state, /workspace/logs, /workspace/docs/adr.
+# Host paths are set via ORCHESTRAGENT_STATE_DIR / ORCHESTRAGENT_LOG_DIR / ORCHESTRAGENT_ADR_DIR.
+# With Compose v2 -f, relative paths are resolved from the compose file directory;
+# when running outside the repo, use absolute paths (e.g. in .env):
 #   ORCHESTRAGENT_STATE_DIR=/path/to/your/project/state
 #   ORCHESTRAGENT_LOG_DIR=/path/to/your/project/logs
 #   ORCHESTRAGENT_ADR_DIR=/path/to/your/project/docs/adr
 #
-# 【.env について】Compose の v1 / v2 や -f の有無で .env の読み込み場所が異なります。
-# 確実に読み込ませるため、--env-file .env の指定を推奨します（.env が無い場合は省略可）。
+# .env: Compose v1/v2 and -f change where .env is loaded from.
+# To load explicitly, use --env-file .env (omit if you have no .env).
 #
-# 【開発用】リポジトリ内で開発する場合は docker-compose.yml を使用してください。
+# Development: Use docker-compose.yml when developing inside the repository.
 
 services:
   agent:
     image: ${ORCHESTRAGENT_IMAGE:-orchestragent:latest}
     volumes:
-      # 作業対象のプロジェクトディレクトリをマウント（実行時のカレントディレクトリ）
+      # Mount target project directory (current directory at run time)
       - ${TARGET_PROJECT:-.}:/target
-      # 状態ファイルを永続化（ホスト側は絶対パス指定可。コンテナ内は常に /workspace/state, /workspace/logs, /workspace/docs/adr）
+      # Persist state (host paths can be absolute; container paths: /workspace/state, /workspace/logs, /workspace/docs/adr)
       - ${ORCHESTRAGENT_STATE_DIR:-./state}:/workspace/state
       - ${ORCHESTRAGENT_LOG_DIR:-./logs}:/workspace/logs
       - ${ORCHESTRAGENT_ADR_DIR:-./docs/adr}:/workspace/docs/adr
-      # Cursor CLIの認証情報を永続化（重要）
+      # Persist Cursor CLI auth
       - cursor-config:/root/.cursor
       - cursor-config-config:/root/.config/cursor
     environment:
@@ -58,7 +58,7 @@ services:
       - MAX_RETRIES=${MAX_RETRIES:-3}
       - MAX_PARALLEL_WORKERS=${MAX_PARALLEL_WORKERS:-3}
       - ENABLE_PARALLEL_EXECUTION=${ENABLE_PARALLEL_EXECUTION:-true}
-      # ダッシュボード設定タブでホスト側パスを表示するため
+      # For dashboard settings tab (host paths)
       - HOST_STATE_DIR=${ORCHESTRAGENT_STATE_DIR:-./state}
       - HOST_LOG_DIR=${ORCHESTRAGENT_LOG_DIR:-./logs}
       - HOST_ADR_DIR=${ORCHESTRAGENT_ADR_DIR:-./docs/adr}
@@ -84,7 +84,7 @@ services:
       - TARGET_PROJECT=${TARGET_PROJECT:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - PROJECT_GOAL=${PROJECT_GOAL:-プロジェクトの目標を設定してください}
-      # ダッシュボード設定タブでホスト側パスを表示するため
+      # For dashboard settings tab (host paths)
       - HOST_STATE_DIR=${ORCHESTRAGENT_STATE_DIR:-./state}
       - HOST_LOG_DIR=${ORCHESTRAGENT_LOG_DIR:-./logs}
       - HOST_ADR_DIR=${ORCHESTRAGENT_ADR_DIR:-./docs/adr}

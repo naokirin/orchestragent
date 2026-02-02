@@ -14,7 +14,7 @@ from orchestragent.models import CheckpointMetadata
 
 logger = logging.getLogger(__name__)
 
-# 過去チェックポイント圧縮時のアーカイブ拡張子
+# Archive extension used when compressing old checkpoints
 CHECKPOINT_ARCHIVE_SUFFIX = ".tar.gz"
 
 
@@ -85,9 +85,8 @@ class CheckpointManager:
     def restore_checkpoint(self, checkpoint_name: str) -> None:
         """
         Restore state from a checkpoint.
-
-        チェックポイントがディレクトリの場合はそのまま復元する。
-        .tar.gz に圧縮されている場合は一時展開してから復元し、展開ディレクトリは削除する。
+        If the checkpoint is a directory, restore as-is. If it is a .tar.gz archive,
+        extract to a temp dir, restore, then remove the temp dir.
 
         Args:
             checkpoint_name: Name of the checkpoint to restore.
@@ -104,17 +103,17 @@ class CheckpointManager:
         if checkpoint_dir.exists():
             source_dir = checkpoint_dir
         elif archive_path.exists():
-            # 圧縮アーカイブを一時ディレクトリに展開してから復元
+            # Extract compressed archive to a temp dir, then restore
             with tempfile.TemporaryDirectory(
                 prefix="checkpoint_restore_", dir=str(checkpoints_dir)
             ) as tmpdir:
                 with tarfile.open(archive_path, "r:gz") as tar:
-                    # Python 3.12+ では filter='data' で安全に展開
+                    # Python 3.12+ uses filter='data' for safe extraction
                     if sys.version_info >= (3, 12):
                         tar.extractall(tmpdir, filter="data")
                     else:
                         tar.extractall(tmpdir)
-                # 展開後は checkpoint_name というサブディレクトリがある想定
+                # After extraction, expect a subdirectory named checkpoint_name
                 extracted = Path(tmpdir) / checkpoint_name
                 if not extracted.exists():
                     source_dir = Path(tmpdir)
@@ -215,7 +214,7 @@ class CheckpointManager:
         return str(backup_path)
 
     def list_checkpoints(self) -> List[CheckpointMetadata]:
-        """List all available checkpoints (newest first). ディレクトリと .tar.gz の両方を対象にする。"""
+        """List all available checkpoints (newest first). Includes both directories and .tar.gz archives."""
         checkpoints: List[CheckpointMetadata] = []
         checkpoints_dir = self.state_dir / "checkpoints"
 
@@ -240,7 +239,7 @@ class CheckpointManager:
                         )
                         continue
             elif path.suffix == ".gz" and path.name.endswith(CHECKPOINT_ARCHIVE_SUFFIX):
-                # 圧縮アーカイブ: アーカイブ内の metadata.json を読む
+                # Compressed archive: read metadata.json from inside the archive
                 stem = path.name[: -len(CHECKPOINT_ARCHIVE_SUFFIX)]
                 try:
                     with tarfile.open(path, "r:gz") as tar:
@@ -270,21 +269,21 @@ class CheckpointManager:
 
     def compress_old_checkpoints(self, keep_latest_n: int = 1) -> int:
         """
-        最新 keep_latest_n 個以外のチェックポイントを .tar.gz に圧縮し、
-        元ディレクトリを削除してディスク使用量を削減する。
+        Compress checkpoints older than the latest keep_latest_n into .tar.gz and remove
+        the original directories to reduce disk usage.
 
         Args:
-            keep_latest_n: 圧縮しない最新チェックポイントの数（1 で最新のみ非圧縮）。
+            keep_latest_n: Number of latest checkpoints to leave uncompressed (1 = only the latest).
 
         Returns:
-            圧縮したチェックポイントの数。
+            Number of checkpoints compressed.
         """
         checkpoints_dir = self.state_dir / "checkpoints"
         if not checkpoints_dir.exists():
             return 0
 
         listed = self.list_checkpoints()
-        # 圧縮対象: keep_latest_n より古いもののうち、ディレクトリとして存在するもの
+        # Compress checkpoints older than keep_latest_n that exist as directories
         to_compress = listed[keep_latest_n:]
         compressed_count = 0
 
@@ -295,7 +294,7 @@ class CheckpointManager:
             if not checkpoint_dir.is_dir():
                 continue
             if archive_path.exists():
-                # 既にアーカイブがある場合はスキップ（二重圧縮防止）
+                # Skip if archive already exists (avoid double compression)
                 continue
             try:
                 with tarfile.open(archive_path, "w:gz") as tar:

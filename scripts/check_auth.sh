@@ -1,10 +1,10 @@
 #!/bin/bash
-# 認証状態を確認するスクリプト
+# Script to check Cursor CLI authentication status
 
 echo "=== Cursor CLI認証状態の確認 ==="
 echo ""
 
-# コンテナ内で認証情報を確認
+# Check auth inside container
 echo "1. 認証情報ディレクトリの確認:"
 echo "  /root/.cursor:"
 docker compose run --rm agent ls -la /root/.cursor 2>&1 || echo "    .cursor ディレクトリが見つかりません"

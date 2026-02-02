@@ -1,39 +1,37 @@
-# 開発用: リポジトリをカレントにして実行します。
-# .env の読み込みは Compose v1/v2 で挙動が異なるため、明示する場合は以下を推奨:
+# Development: run with the repository as current directory.
+# .env loading differs between Compose v1/v2; to load explicitly use:
 #   docker compose --env-file .env up
 #   docker-compose -f docker-compose.yml --env-file .env up
 
 services:
   agent:
-    # ローカルでビルドする場合
+    # Build locally
     build:
       context: .
       dockerfile: Dockerfile
-    # DockerHubからpullする場合は、以下の行のコメントを外して、build: をコメントアウト
+    # To use image from Docker Hub, uncomment the line below and comment out build:
     # image: your-username/cursor-scage:latest
     volumes:
-      # エージェントシステム自体のコードをマウント
+      # Mount agent system code
       - .:/workspace
-      # 作業対象のプロジェクトディレクトリをマウント
-      # TARGET_PROJECT環境変数で指定（未指定の場合は現在のディレクトリ）
+      # Mount target project directory (TARGET_PROJECT env; default: current directory)
       - ${TARGET_PROJECT:-.}:/target
-      # 状態ファイルを永続化（コンテナ内は常に /workspace/state, /workspace/logs）
+      # Persist state files (container paths: /workspace/state, /workspace/logs)
       - ./state:/workspace/state
       - ./logs:/workspace/logs
-      # ADR を永続化（コンテナ内は常に /workspace/docs/adr）
+      # Persist ADR (container path: /workspace/docs/adr)
       - ./docs/adr:/workspace/docs/adr
-      # Cursor CLIの認証情報を永続化（重要）
-      # 認証情報は /root/.cursor と /root/.config/cursor の両方に保存される
+      # Persist Cursor CLI auth (stored in /root/.cursor and /root/.config/cursor)
       - cursor-config:/root/.cursor
       - cursor-config-config:/root/.config/cursor
     environment:
-      # 作業対象プロジェクトのルート（TARGET_PROJECTが設定されている場合は/target、未設定の場合は/workspace）
+      # Target project root (/target if TARGET_PROJECT set, else /workspace)
       - PROJECT_ROOT=${PROJECT_ROOT:-/target}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - PROJECT_GOAL=${PROJECT_GOAL:-プロジェクトの目標を設定してください}
-      # ダッシュボードモード（true/1/onで有効化）
+      # Dashboard mode (true/1/on to enable)
       - DASHBOARD=${DASHBOARD:-false}
-      # .envファイルから環境変数を読み込む
+      # Load env from .env file
       - LLM_BACKEND=${LLM_BACKEND:-cursor_cli}
       - LLM_OUTPUT_FORMAT=${LLM_OUTPUT_FORMAT:-text}
       - LLM_MODEL=${LLM_MODEL:-}
@@ -54,7 +52,7 @@ services:
       - MAX_RETRIES=${MAX_RETRIES:-3}
       - MAX_PARALLEL_WORKERS=${MAX_PARALLEL_WORKERS:-3}
       - ENABLE_PARALLEL_EXECUTION=${ENABLE_PARALLEL_EXECUTION:-true}
-      # ダッシュボード設定タブでホスト側パスを表示するため（未設定時は ${PWD}/state 等）
+      # For dashboard settings tab (host paths; default ${PWD}/state etc.)
       - HOST_STATE_DIR=${HOST_STATE_DIR:-${PWD}/state}
       - HOST_LOG_DIR=${HOST_LOG_DIR:-${PWD}/logs}
       - HOST_ADR_DIR=${HOST_ADR_DIR:-${PWD}/docs/adr}
@@ -62,21 +60,20 @@ services:
       - GIT_USER_NAME=${GIT_USER_NAME:-}
       - GIT_USER_EMAIL=${GIT_USER_EMAIL:-}
     working_dir: /workspace
-    # ネットワークアクセスを許可（API呼び出し用）
+    # Allow network access (for API calls)
     network_mode: bridge
-    # 長時間実行を許可
+    # Allow long-running execution
     restart: unless-stopped
-    # インタラクティブモードで実行（初回認証用）
+    # Interactive mode (for initial auth)
     stdin_open: true
     tty: true
 
-  # Web ダッシュボード（main.py を起動せず、state/log のみ参照）
-  # 設定タブで agent と同じ項目を表示するため、config が参照する環境変数を agent と揃えている
+  # Web dashboard (does not run main.py; only reads state/logs). Env vars aligned with agent for settings tab.
   web-dashboard:
     build:
       context: .
       dockerfile: Dockerfile
-    # DockerHub 利用時: image: your-username/cursor-scage:latest
+    # When using Docker Hub: image: your-username/cursor-scage:latest
     command: python -m orchestragent.dashboard.web
     volumes:
       - .:/workspace
@@ -85,7 +82,7 @@ services:
       - ./logs:/workspace/logs
       - ./docs/adr:/workspace/docs/adr
     environment:
-      # orchestragent は src/ 以下にあるため、python -m で見つかるようにする
+      # orchestragent lives under src/; set PYTHONPATH for python -m
       - PYTHONPATH=/workspace/src
       - PROJECT_ROOT=${PROJECT_ROOT:-/target}
       - TARGET_PROJECT=${TARGET_PROJECT:-}
@@ -108,7 +105,7 @@ services:
       - MAX_RETRIES=${MAX_RETRIES:-3}
       - MAX_PARALLEL_WORKERS=${MAX_PARALLEL_WORKERS:-3}
       - ENABLE_PARALLEL_EXECUTION=${ENABLE_PARALLEL_EXECUTION:-true}
-      # ダッシュボード設定タブでホスト側パスを表示するため
+      # For dashboard settings tab (host paths)
       - HOST_STATE_DIR=${HOST_STATE_DIR:-${PWD}/state}
       - HOST_LOG_DIR=${HOST_LOG_DIR:-${PWD}/logs}
       - HOST_ADR_DIR=${HOST_ADR_DIR:-${PWD}/docs/adr}
@@ -123,6 +120,6 @@ services:
 
 volumes:
   cursor-config:
-    # Cursor CLIの認証情報を永続化（/root/.cursor）
+    # Persist Cursor CLI auth (/root/.cursor)
   cursor-config-config:
-    # Cursor CLIの認証情報を永続化（/root/.config/cursor）
+    # Persist Cursor CLI auth (/root/.config/cursor)

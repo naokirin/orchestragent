@@ -395,7 +395,7 @@ class TestStateManagerCheckpointCompression:
     """Tests for checkpoint compression and restore from .tar.gz."""
 
     def test_compress_old_checkpoints_keeps_latest_uncompressed(self, state_manager):
-        """compress_old_checkpoints は最新 keep_latest_n 個以外を .tar.gz に圧縮する。"""
+        """compress_old_checkpoints compresses all but latest keep_latest_n to .tar.gz."""
         state_manager.save_text("plan.md", "# plan")
         state_manager.save_json("tasks.json", {"tasks": [], "next_task_id": 1})
         state_manager.save_json("status.json", {})
@@ -410,7 +410,7 @@ class TestStateManagerCheckpointCompression:
         assert (checkpoints_dir / "cp3").is_dir()
 
         n = state_manager.compress_old_checkpoints(keep_latest_n=1)
-        # 最新1個(cp3)以外の cp1, cp2 が圧縮対象
+        # cp1, cp2 are compressed (latest cp3 kept)
         assert n == 2
 
         assert not (checkpoints_dir / "cp1").exists()
@@ -420,7 +420,7 @@ class TestStateManagerCheckpointCompression:
         assert (checkpoints_dir / "cp3").is_dir()
 
     def test_list_checkpoints_includes_compressed(self, state_manager):
-        """list_checkpoints は .tar.gz のチェックポイントも返す。"""
+        """list_checkpoints also returns .tar.gz checkpoints."""
         state_manager.save_json("tasks.json", {"tasks": [], "next_task_id": 1})
         state_manager.create_checkpoint("old_cp")
         state_manager.create_checkpoint("new_cp")
@@ -433,7 +433,7 @@ class TestStateManagerCheckpointCompression:
         assert len(listed) == 2
 
     def test_restore_from_compressed_checkpoint(self, state_manager):
-        """圧縮済みチェックポイントから復元できる。"""
+        """Can restore from compressed checkpoint."""
         state_manager.save_json("tasks.json", {"tasks": [], "next_task_id": 1})
         state_manager.save_text("plan.md", "# Original plan")
         state_manager.create_checkpoint("to_restore")
@@ -450,7 +450,7 @@ class TestStateManagerCheckpointCompression:
     def test_compress_old_checkpoints_returns_zero_when_none_to_compress(
         self, state_manager
     ):
-        """圧縮対象がなければ 0 を返す。"""
+        """Return 0 when nothing to compress."""
         state_manager.save_json("tasks.json", {"tasks": [], "next_task_id": 1})
         state_manager.create_checkpoint("only_one")
         n = state_manager.compress_old_checkpoints(keep_latest_n=1)

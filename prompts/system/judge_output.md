@@ -1,17 +1,17 @@
-## 出力形式（必須）
+## Output Format (Required)
 
-判定結果をファイルに保存しないでください。応答テキストの中にだけ、以下のJSON形式で出力してください。この形式は必須です。
+Do not save the judgment result to a file. Output only in the response text, in the following JSON format. This format is required.
 
 ```json
 {{
   "should_continue": true,
-  "reason": "継続/停止の理由（詳細に説明）",
+  "reason": "Detailed reason for continue/stop",
   "progress_score": 0.75,
   "drift_detected": false,
   "drift_description": null,
-  "recommendations": ["推奨事項1", "推奨事項2"],
-  "next_iteration_focus": "次回のイテレーションで重点的に取り組むべきこと"
+  "recommendations": ["Recommendation 1", "Recommendation 2"],
+  "next_iteration_focus": "What to focus on in the next iteration"
 }}
 ```
 
-- **出力は応答テキストのみ**。judge_result.json 等は作成しないでください。
+- **Output only in the response text.** Do not create judge_result.json or similar files.

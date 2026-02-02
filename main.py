@@ -31,7 +31,7 @@ def main():
     args = parser.parse_args()
 
     if args.dashboard:
-        # ダッシュボードモード
+        # Dashboard mode
         try:
             from orchestragent.dashboard.tui.app import DashboardApp
             app = DashboardApp()
@@ -42,7 +42,7 @@ def main():
             print("  pip install rich textual")
             sys.exit(1)
     else:
-        # 通常モード（既存の動作）
+        # Normal mode (default behavior)
         from orchestragent.runner.loop import run_main_loop
         run_main_loop()
 

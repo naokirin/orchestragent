@@ -1,40 +1,39 @@
 FROM python:3.11-slim
 
-# 必要なシステムパッケージをインストール
+# Install required system packages
 RUN apt-get update && apt-get install -y \
     git \
     curl \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Cursor CLIをインストール
+# Install Cursor CLI
 RUN curl https://cursor.com/install -fsS | bash || (echo "Cursor CLI installation failed" && exit 1)
 
-# PATHに ~/.local/bin を追加（Cursor CLIがインストールされる場所）
+# Add ~/.local/bin to PATH (where Cursor CLI is installed)
 ENV PATH="/root/.local/bin:${PATH}"
 
-# Cursor CLIのインストールを検証
+# Verify Cursor CLI installation
 RUN agent --version || (echo "Cursor CLI verification failed" && exit 1)
 
-# 作業ディレクトリを設定
+# Set working directory
 WORKDIR /workspace
 
-# Python依存関係をインストール
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# アプリケーションコードをコピー
+# Copy application code
 COPY . .
 
-# Cursor CLIですべての操作を許可（コンテナ内のため、許可する）
+# Allow all operations for Cursor CLI (inside container)
 ENV CURSOR_CONFIG_DIR="/root/.orchestragent"
 RUN mkdir -p /root/.orchestragent
 COPY cli-config.template.json /root/.orchestragent/cli-config.json
 
-# スクリプトを実行可能にする
+# Make scripts executable
 RUN chmod +x scripts/setup.sh || true && \
     chmod +x scripts/entrypoint.sh || true
 
-# エントリーポイント
-# - scripts/entrypoint.sh 内で git のユーザー設定 / 初回セットアップ / ダッシュボード起動を行う
+# Entrypoint: scripts/entrypoint.sh runs git user config, initial setup, and dashboard startup
 CMD ["scripts/entrypoint.sh"]

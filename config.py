@@ -78,10 +78,9 @@ SYSTEM_PROMPTS_DIR = _DEFAULT_PROMPTS_DIR / "system"
 
 def resolve_prompt_path(env_key: str, default_filename: str) -> str:
     """
-    プロンプトファイルのパスを解決する。
-    優先順位: 1) 環境変数  2) 対象プロジェクトの prompts/  3) デフォルト（repo 内 prompts/）
-    ユーザーは環境変数または対象プロジェクトに prompts/<name>.md を置くことで
-    各エージェントのプロンプトをカスタマイズできる。入出力の契約は PROMPT_CONTRACT に従うこと。
+    Resolve prompt file path. Priority: 1) env var  2) target project prompts/  3) default (repo prompts/).
+    Users can customize agent prompts via env var or prompts/<name>.md in the target project.
+    Input/output contract must follow PROMPT_CONTRACT.
     """
     env_val = os.getenv(env_key)
     if env_val:
@@ -118,8 +117,8 @@ AGENT_CONFIG = {
 }
 
 # State / Log Configuration
-# コンテナ内では常に /workspace/state, /workspace/logs に固定。
-# ホストで実行する場合はカレントディレクトリ基準の state, logs を絶対パスに解決する。
+# In container: fixed to /workspace/state, /workspace/logs.
+# On host: resolve state, logs relative to cwd to absolute paths.
 if is_running_in_container():
     STATE_DIR = "/workspace/state"
     LOG_DIR = "/workspace/logs"
@@ -127,19 +126,18 @@ else:
     STATE_DIR = str(Path("state").resolve())
     LOG_DIR = str(Path("logs").resolve())
 
-# チェックポイント: 最新以外を .tar.gz に圧縮してディスク使用量を削減（長時間稼働向け）
+# Checkpoints: compress older than latest to .tar.gz to reduce disk usage (for long runs)
 COMPRESS_OLD_CHECKPOINTS = os.getenv("COMPRESS_OLD_CHECKPOINTS", "true").lower() == "true"
 
 # ADR (Architecture Decision Records) Configuration
-# コンテナ内では常に /workspace/docs/adr に固定。ホストではカレント基準の docs/adr を絶対パスに解決。
+# In container: fixed to /workspace/docs/adr. On host: resolve docs/adr relative to cwd.
 if is_running_in_container():
     ADR_DIR = "/workspace/docs/adr"
 else:
     ADR_DIR = str(Path("docs/adr").resolve())
 
-# ダッシュボード表示用: state / logs / adr のホスト側パス。
-# コンテナ内では HOST_STATE_DIR / HOST_LOG_DIR / HOST_ADR_DIR が compose から渡されていればそれを表示、
-# 未設定ならコンテナ内パス（STATE_DIR 等）を表示。ホスト実行時は STATE_DIR 等＝ホストパスをそのまま表示。
+# For dashboard display: host paths for state / logs / adr.
+# In container: show HOST_STATE_DIR etc. from compose if set, else container paths. On host: use STATE_DIR etc. as-is.
 def _display_dir(env_key: str, fallback: str) -> str:
     host_path = os.getenv(env_key)
     if host_path:
@@ -176,7 +174,6 @@ MAX_PARALLEL_WORKERS = int(os.getenv("MAX_PARALLEL_WORKERS", "3"))  # Maximum pa
 ENABLE_PARALLEL_EXECUTION = os.getenv("ENABLE_PARALLEL_EXECUTION", "true").lower() == "true"  # Enable parallel execution
 
 # Planning Review Configuration
-# 1イテレーション内で Planner ↔ Plan_Judge を何回まで往復するかの最大回数。
-# この回数を超えても Plan_Judge が「revise」を返す場合は、計画の収束に失敗したとみなし、
-# イテレーション数が残っていてもエージェントシステム全体を失敗として終了させる。
+# Maximum number of Planner ↔ Plan_Judge rounds per iteration.
+# If Plan_Judge keeps returning "revise" beyond this count, treat as plan convergence failure and exit the agent system.
 MAX_PLAN_REVISIONS = int(os.getenv("MAX_PLAN_REVISIONS", "3"))

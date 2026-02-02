@@ -1,21 +1,21 @@
-## 現在の状況
+## Current Situation
 
-### 作業ディレクトリ
+### Working Directory
 ```
 {working_dir}
 ```
 
-### プロジェクト目標
+### Project Goal
 {project_goal}
 
-### 現在の計画（Plannerが提案した最新の計画）
+### Current Plan (Latest plan proposed by Planner)
 {current_plan}
 
-### 現在のタスクリスト
+### Current Task List
 {tasks_summary}
 
-### コードベースの概要
+### Codebase Overview
 {codebase_summary}
 
-### 現在のイテレーション
+### Current Iteration
 {iteration}

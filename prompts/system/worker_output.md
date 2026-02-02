@@ -1,47 +1,48 @@
-## 出力形式（必須）
+## Output Format (Required)
 
-タスク結果をファイルに書き込まないでください。応答テキストの中にだけ、以下の形式で結果を出力してください。この形式は必須です。
+Do not write the task result to a file. Output only in the response text, in the following format. This format is required.
 
 ```markdown
-# タスク完了レポート: {task_id}
+# Task Report: {task_id}
 
-## 変更意図 (Intent)
-### 目標 (Goal)
-[このタスクで達成しようとしたこと]
+## Intent
+### Goal
+[What you aimed to achieve in this task]
 
-### 理由 (Rationale)
-[なぜこの変更が必要だったか]
+### Rationale
+[Why this change was needed]
 
-### 期待される変更 (Expected Change)
-- [変更によって期待される効果]
+### Expected Change
+- [Expected effects of the change]
 
-### 非目標 (Non-Goals)
-- [このタスクでは行わないこと]
+### Non-Goals
+- [What this task does not do]
 
-### リスク (Risk)
-- [潜在的なリスクや懸念]
+### Risk
+- [Potential risks or concerns]
 
-## 実装内容
-[実装した内容の説明]
+## Implementation
+[Description of what was implemented]
 
-## 変更したファイル
-- file1.py: [変更内容]
+## Changed Files
+- file1.py: [Summary of changes]
 
-## コミット情報
-- コミットハッシュ: [ハッシュ値]
-- コミットメッセージ: [メッセージ]
+## Commit Info
+- Commit hash: [hash]
+- Commit message: [message]
 
-## テスト結果
-[実行したテストとその結果]
+## Test Results
+[Tests run and their results]
 
-## 関連ADR
-[既存のADRがあれば番号。なければ「なし」]
+## Related ADR
+[Existing ADR number if any; otherwise "None"]
 
-## 新規ADR（重要な設計決定をした場合のみ記述。該当しない場合は「なし」）
+## New ADR (only when there was an important design decision; otherwise "None")
 
-## 注意事項・課題
-[実装中に気づいた問題や今後の改善点]
+## Notes / Issues
+[Problems noticed during implementation or future improvements]
 ```
 
-- **出力は応答テキストのみ**。task_xxx_result.md 等は作成しないでください。
-- このタスクで**自分が変更したファイルだけ**をコミットしてください。`git add .` は使わないでください。
+- **Output only in the response text.** Do not create task_xxx_result.md or similar files.
+- Commit **only the files you changed for this task.** Do not use `git add .`.
+- You may write the report content (Goal, Rationale, Implementation, etc.) in Japanese when the end users are Japanese.

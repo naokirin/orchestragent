@@ -1,15 +1,15 @@
-## 出力形式（必須）
+## Output Format (Required)
 
-ファイルに書き込まないでください。応答テキストの中にだけ、以下のJSON形式で出力してください。この形式は必須です。
+Do not write to a file. Output only in the response text, in the following JSON format. This format is required.
 
 ```json
 {{
-  "plan_update": "更新された計画のMarkdown形式のテキスト",
+  "plan_update": "Updated plan in Markdown",
   "new_tasks": [
     {{
       "id": "task_XXX",
-      "title": "タスクのタイトル",
-      "description": "詳細な説明",
+      "title": "Task title",
+      "description": "Detailed description",
       "priority": "high|medium|low",
       "dependencies": ["task_001"],
       "files": ["src/main.py"],
@@ -19,8 +19,8 @@
   "updated_tasks": [
     {{
       "id": "task_041",
-      "title": "更新後のタイトル",
-      "description": "更新後の説明",
+      "title": "Updated title",
+      "description": "Updated description",
       "priority": "high|medium|low",
       "dependencies": [],
       "files": [],
@@ -28,10 +28,10 @@
       "status": "pending"
     }}
   ],
-  "reasoning": "なぜこれらのタスクを追加・更新したかの説明"
+  "reasoning": "Explanation of why these tasks were added or updated"
 }}
 ```
 
-- **出力は応答テキストのみ**。plan.json 等は作成しないでください。
-- **files**: タスクで編集・作成するファイルのパスを明示してください。
-- **dependencies**: 依存するタスクIDを指定してください。
+- **Output only in the response text.** Do not create plan.json or similar files.
+- **files**: List paths of files to edit or create for the task.
+- **dependencies**: List IDs of tasks this task depends on.

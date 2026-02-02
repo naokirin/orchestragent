@@ -28,23 +28,23 @@ class ADRManager:
         if not template_path.exists():
             template = '''# ADR-{number}: {title}
 
-## ステータス
+## Status
 Proposed / Accepted / Deprecated / Superseded
 
-## コンテキスト
-[決定の背景となる状況や問題を記述してください]
+## Context
+[Describe the context and problem]
 
-## 決定
-[採用した決定の内容を記述してください]
+## Decision
+[Describe the decision]
 
-## 理由
-[決定の理由を記述してください]
+## Rationale
+[Describe the rationale]
 
-## 結果
-[決定による影響・結果を記述してください]
+## Consequences
+[Describe the consequences]
 
-## 関連Intent
-- [関連するタスクIDをリストしてください]
+## Related Intent
+- [List related task IDs]
 '''
             with open(template_path, 'w', encoding='utf-8') as f:
                 f.write(template)
@@ -93,26 +93,26 @@ Proposed / Accepted / Deprecated / Superseded
         if related_intents:
             intents_text = "\n".join([f"- {task_id}" for task_id in related_intents])
         else:
-            intents_text = "- なし"
+            intents_text = "- None"
 
         content = f'''# ADR-{number_str}: {title}
 
-## ステータス
+## Status
 {status}
 
-## コンテキスト
-{context if context else "[決定の背景となる状況や問題]"}
+## Context
+{context if context else "[Describe the context and problem]"}
 
-## 決定
-{decision if decision else "[採用した決定の内容]"}
+## Decision
+{decision if decision else "[Describe the decision]"}
 
-## 理由
-{rationale if rationale else "[決定の理由]"}
+## Rationale
+{rationale if rationale else "[Describe the rationale]"}
 
-## 結果
-{consequences if consequences else "[決定による影響・結果]"}
+## Consequences
+{consequences if consequences else "[Describe the consequences]"}
 
-## 関連Intent
+## Related Intent
 {intents_text}
 '''
 
@@ -143,57 +143,57 @@ Proposed / Accepted / Deprecated / Superseded
             title_match = re.search(r'^# ADR-\d+: (.+)$', content, re.MULTILINE)
             title = title_match.group(1) if title_match else "Unknown"
 
-            # Parse status
+            # Parse status (English or Japanese header)
             status_match = re.search(
-                r'^## ステータス\s*\n(.+?)(?=\n##|\Z)',
+                r'^## (?:Status|ステータス)\s*\n(.+?)(?=\n##|\Z)',
                 content,
-                re.MULTILINE | re.DOTALL
+                re.MULTILINE | re.DOTALL | re.IGNORECASE
             )
             status = status_match.group(1).strip().split('\n')[0] if status_match else "Unknown"
 
             # Parse context
             context_match = re.search(
-                r'^## コンテキスト\s*\n(.+?)(?=\n##|\Z)',
+                r'^## (?:Context|コンテキスト)\s*\n(.+?)(?=\n##|\Z)',
                 content,
-                re.MULTILINE | re.DOTALL
+                re.MULTILINE | re.DOTALL | re.IGNORECASE
             )
             context = context_match.group(1).strip() if context_match else ""
 
             # Parse decision
             decision_match = re.search(
-                r'^## 決定\s*\n(.+?)(?=\n##|\Z)',
+                r'^## (?:Decision|決定)\s*\n(.+?)(?=\n##|\Z)',
                 content,
-                re.MULTILINE | re.DOTALL
+                re.MULTILINE | re.DOTALL | re.IGNORECASE
             )
             decision = decision_match.group(1).strip() if decision_match else ""
 
             # Parse rationale
             rationale_match = re.search(
-                r'^## 理由\s*\n(.+?)(?=\n##|\Z)',
+                r'^## (?:Rationale|理由)\s*\n(.+?)(?=\n##|\Z)',
                 content,
-                re.MULTILINE | re.DOTALL
+                re.MULTILINE | re.DOTALL | re.IGNORECASE
             )
             rationale = rationale_match.group(1).strip() if rationale_match else ""
 
             # Parse consequences
             consequences_match = re.search(
-                r'^## 結果\s*\n(.+?)(?=\n##|\Z)',
+                r'^## (?:Consequences|結果)\s*\n(.+?)(?=\n##|\Z)',
                 content,
-                re.MULTILINE | re.DOTALL
+                re.MULTILINE | re.DOTALL | re.IGNORECASE
             )
             consequences = consequences_match.group(1).strip() if consequences_match else ""
 
-            # Parse related intents
+            # Parse related intents (English or Japanese header)
             intents_match = re.search(
-                r'^## 関連Intent\s*\n(.+?)(?=\n##|\Z)',
+                r'^## (?:Related Intent|関連Intent)\s*\n(.+?)(?=\n##|\Z)',
                 content,
-                re.MULTILINE | re.DOTALL
+                re.MULTILINE | re.DOTALL | re.IGNORECASE
             )
             related_intents = []
             if intents_match:
                 intents_text = intents_match.group(1)
                 related_intents = re.findall(r'^[-*]\s+(.+)$', intents_text, re.MULTILINE)
-                related_intents = [i.strip() for i in related_intents if i.strip() != "なし"]
+                related_intents = [i.strip() for i in related_intents if i.strip() not in ("なし", "None")]
 
             return {
                 "number": number,
@@ -245,12 +245,12 @@ Proposed / Accepted / Deprecated / Superseded
         filepath = Path(adr["filepath"])
         content = adr["content"]
 
-        # Replace status
+        # Replace status (English or Japanese header)
         new_content = re.sub(
-            r'(^## ステータス\s*\n)(.+?)(?=\n##|\Z)',
+            r'(^## (?:Status|ステータス)\s*\n)(.+?)(?=\n##|\Z)',
             f'\\g<1>{new_status}',
             content,
-            flags=re.MULTILINE | re.DOTALL
+            flags=re.MULTILINE | re.DOTALL | re.IGNORECASE
         )
 
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -280,16 +280,16 @@ Proposed / Accepted / Deprecated / Superseded
         filepath = Path(adr["filepath"])
         content = adr["content"]
 
-        # Find the related intents section and add new task
+        # Find the related intents section and add new task (English or Japanese header)
         intents_match = re.search(
-            r'(^## 関連Intent\s*\n)(.+?)(?=\n##|\Z)',
+            r'(^## (?:Related Intent|関連Intent)\s*\n)(.+?)(?=\n##|\Z)',
             content,
-            re.MULTILINE | re.DOTALL
+            re.MULTILINE | re.DOTALL | re.IGNORECASE
         )
 
         if intents_match:
             existing = intents_match.group(2).strip()
-            if existing == "- なし":
+            if existing in ("- なし", "- None"):
                 new_intents = f"- {task_id}"
             else:
                 new_intents = f"{existing}\n- {task_id}"
@@ -297,7 +297,7 @@ Proposed / Accepted / Deprecated / Superseded
             new_content = content[:intents_match.start(2)] + new_intents + content[intents_match.end(2):]
         else:
             # Add section at end
-            new_content = content.rstrip() + f"\n\n## 関連Intent\n- {task_id}\n"
+            new_content = content.rstrip() + f"\n\n## Related Intent\n- {task_id}\n"
 
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(new_content)
