@@ -645,6 +645,10 @@ def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
         if cfg.enable_parallel_execution:
             ctx.file_lock_manager.release_all_locks()
         try:
+            ctx.state_manager.update_status(should_continue=False)
+        except Exception as e:
+            ctx.logger.warning(f"Failed to update status on interrupt: {e}")
+        try:
             checkpoint_path = ctx.state_manager.create_checkpoint("interrupted")
             ctx.logger.info(f"Checkpoint created before exit: {checkpoint_path}")
             print(f"[チェックポイント] 中断前の状態を保存しました: {checkpoint_path}")
