@@ -162,6 +162,10 @@ class PlannerAgent(BaseAgent):
             if task.get("files"):
                 self.logger.info(f"[{self.name}] Task {task_id} files: {', '.join(task['files'])}")
 
+        # Always sync tasks.json from current task files so PlanJudge and others see the latest index
+        self.state_manager.sync_tasks_index()
+        self.logger.info(f"[{self.name}] tasks.json synced")
+
     def _get_timestamp(self) -> str:
         """Get current timestamp."""
         from datetime import datetime

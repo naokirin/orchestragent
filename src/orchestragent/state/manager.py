@@ -130,6 +130,10 @@ class StateManager:
         """Update task with given fields (validates status transition)."""
         self._task.update_task(task_id, updates)
 
+    def sync_tasks_index(self) -> None:
+        """Rebuild tasks.json from individual task files so the index is up to date."""
+        self._task.sync_tasks_index()
+
     def assign_task(self, task_id: str, worker_id: str = "worker") -> None:
         """Assign task to worker."""
         self._task.assign_task(task_id, worker_id)

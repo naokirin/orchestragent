@@ -57,6 +57,56 @@ class TaskManager:
         data = self._file.load_json("tasks.json")
         return TasksFile.from_dict(data)
 
+    def sync_tasks_index(self) -> None:
+        """
+        Rebuild tasks.json from individual task files (state/tasks/*.json).
+        Ensures the index always reflects the current set of tasks so that
+        PlanJudge and other consumers see up-to-date task list.
+        """
+        tasks_dir = self._file.state_dir / "tasks"
+        if not tasks_dir.exists():
+            self._file.save_json(
+                "tasks.json",
+                {"tasks": [], "next_task_id": 1, "version": 0},
+            )
+            return
+
+        index_entries: List[Dict[str, Any]] = []
+        max_num = 0
+        for path in sorted(tasks_dir.glob("task_*.json")):
+            task_id = path.stem
+            try:
+                num = int(task_id.replace("task_", ""), 10)
+                if num > max_num:
+                    max_num = num
+            except ValueError:
+                continue
+            data = self._file.load_json(f"tasks/{task_id}.json")
+            if not isinstance(data, dict):
+                continue
+            index_entries.append(
+                TaskIndex(
+                    id=task_id,
+                    title=data.get("title", "No title"),
+                    priority=TaskPriority.from_string(
+                        data.get("priority", "medium")
+                    ),
+                    created_at=data.get("created_at"),
+                ).to_dict()
+            )
+
+        index_entries.sort(key=lambda e: e["id"])
+        current = self._file.load_json("tasks.json")
+        version = current.get("version", 0) + 1
+        self._file.save_json(
+            "tasks.json",
+            {
+                "tasks": index_entries,
+                "next_task_id": max_num + 1,
+                "version": version,
+            },
+        )
+
     def _load_task_state(self, task_id: str) -> Dict[str, Any]:
         """Load individual task state from its file."""
         data = self._file.load_json(f"tasks/{task_id}.json")
