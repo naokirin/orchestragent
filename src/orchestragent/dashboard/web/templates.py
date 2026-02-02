@@ -55,6 +55,13 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .overview-stat-value.in_progress { color: #63b3ed; }
     .overview-stat-value.rate { color: #63b3ed; }
     .overview-stat-label { color: #a0aec0; font-size: 11px; margin: 0; }
+    /* Plan tab: .pen design — 計画 (state/plan.md) セクション + マークダウン表示 */
+    #pane-plan.tab-pane.active { display: flex; flex-direction: column; gap: 16px; }
+    .plan-section { display: flex; flex-direction: column; gap: 8px; width: 100%; flex: 1; min-height: 0; }
+    .plan-section-title { color: #63b3ed; font-size: 16px; font-weight: normal; margin: 0; font-family: inherit; }
+    .plan-box { background: #2d3748; border-radius: 4px; padding: 12px; width: 100%; flex: 1; min-height: 400px; overflow: auto; }
+    .plan-box .md-content { color: #a0aec0; font-size: 14px; }
+    .plan-box .loading { color: #a0aec0; }
     .section { margin-bottom: 1rem; }
     .section h3 { color: #63b3ed; margin: 0 0 0.5rem 0; font-size: 1rem; }
     .section pre, .section .text { background: #2d3748; padding: 0.75rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; font-size: 0.85rem; }
@@ -232,6 +239,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
   <div id="header"><h1 class="header-title">orchestragent Web ダッシュボード</h1></div>
   <div id="tabs">
     <button type="button" data-tab="overview" class="active">概要</button>
+    <button type="button" data-tab="plan">計画</button>
     <button type="button" data-tab="logs">ログ</button>
     <button type="button" data-tab="tasks">タスク</button>
     <button type="button" data-tab="intents">Intent</button>
@@ -273,6 +281,14 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
             <div class="overview-stat-card"><span id="overview-stat-in-progress" class="overview-stat-value in_progress">0</span><span class="overview-stat-label">実行中</span></div>
             <div class="overview-stat-card"><span id="overview-stat-rate" class="overview-stat-value rate">0%</span><span class="overview-stat-label">完了率</span></div>
           </div>
+        </div>
+      </div>
+    </div>
+    <div id="pane-plan" class="tab-pane">
+      <div class="plan-section">
+        <h3 class="plan-section-title">計画 (state/plan.md)</h3>
+        <div class="plan-box">
+          <div id="plan-content" class="md-content loading">読込中…</div>
         </div>
       </div>
     </div>
@@ -434,7 +450,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       var POLL_INTERVAL_MS = 5000;
       var currentTab = (function() {
         var h = window.location.hash.slice(1) || 'overview';
-        return ['overview','logs','tasks','intents','settings'].indexOf(h) >= 0 ? h : 'overview';
+        return ['overview','plan','logs','tasks','intents','settings'].indexOf(h) >= 0 ? h : 'overview';
       })();
       var selectedTaskId = null;
       var selectedIntentTaskId = null;
@@ -457,6 +473,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
 
       function fetchTab(tab) {
         if (tab === 'overview') fetchOverview();
+        else if (tab === 'plan') fetchPlan();
         else if (tab === 'logs') fetchLogs();
         else if (tab === 'tasks') fetchTasks();
         else if (tab === 'intents') fetchIntents();
@@ -481,6 +498,18 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           document.getElementById('overview-stat-rate').textContent = (t.completion_rate_percent ?? 0) + '%';
         }).catch(function(e) {
           document.getElementById('overview-goal-text').textContent = '取得失敗: ' + e.message;
+        });
+      }
+
+      function fetchPlan() {
+        fetch('/api/plan').then(function(r) { return r.json(); }).then(function(d) {
+          var el = document.getElementById('plan-content');
+          el.classList.remove('loading');
+          var content = d.content != null ? d.content : '';
+          el.innerHTML = content ? renderMarkdown(content) : '<p class="loading">（計画なし）</p>';
+        }).catch(function(e) {
+          document.getElementById('plan-content').innerHTML = '<p class="error">取得失敗: ' + escapeHtml(e.message) + '</p>';
+          document.getElementById('plan-content').classList.remove('loading');
         });
       }
 
@@ -1045,7 +1074,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       });
       window.addEventListener('hashchange', function() {
         var t = window.location.hash.slice(1) || 'overview';
-        if (['overview','logs','tasks','intents','settings'].indexOf(t) >= 0) setTab(t);
+        if (['overview','plan','logs','tasks','intents','settings'].indexOf(t) >= 0) setTab(t);
       });
       document.getElementById('logs-container').addEventListener('scroll', function() {
         var el = this;
