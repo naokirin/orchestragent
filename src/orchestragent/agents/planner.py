@@ -1,5 +1,6 @@
 """Planner agent implementation."""
 
+import json
 from typing import Dict, Any
 
 from .base import BaseAgent
