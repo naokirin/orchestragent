@@ -9164,6 +9164,1688 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "1ovMl",
+      "x": 1250,
+      "y": 1600,
+      "name": "AgentLog_Dialog",
+      "width": 1200,
+      "height": 700,
+      "fill": "#1a1a1a",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "XkMsh",
+          "name": "hdrAgentLog",
+          "width": "fill_container",
+          "height": 48,
+          "fill": "#2d3748",
+          "padding": [
+            8,
+            16
+          ],
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "2Ot2j",
+              "name": "titleAgentLog",
+              "fill": "#e0e0e0",
+              "content": "orchestragent Web ダッシュボード",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "z2DqR",
+          "name": "tabsAgentLog",
+          "width": "fill_container",
+          "height": 44,
+          "fill": "#2d3748",
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "bottom": 1
+            },
+            "fill": "#4a5568"
+          },
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "LDRW3",
+              "name": "t1AL",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "VLdoK",
+                  "name": "t1ALt",
+                  "fill": "#a0aec0",
+                  "content": "概要",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "eY8It",
+              "name": "t2AL",
+              "height": 40,
+              "stroke": {
+                "align": "inside",
+                "thickness": {
+                  "bottom": 2
+                },
+                "fill": "#63b3ed"
+              },
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "HMJTl",
+                  "name": "t2ALt",
+                  "fill": "#63b3ed",
+                  "content": "ログ",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "7MBzv",
+              "name": "t3AL",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "AlDP4",
+                  "name": "t3ALt",
+                  "fill": "#a0aec0",
+                  "content": "タスク",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "y0pMY",
+              "name": "t4AL",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "bzrDy",
+                  "name": "t4ALt",
+                  "fill": "#a0aec0",
+                  "content": "Intent",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "aygou",
+              "name": "t5AL",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "WP8mr",
+                  "name": "t5ALt",
+                  "fill": "#a0aec0",
+                  "content": "設定",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "s4FeC",
+          "name": "subTabsAL",
+          "width": "fill_container",
+          "height": 36,
+          "fill": "#2a2a2a",
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Q5JFj",
+              "name": "subTabAllAL",
+              "height": 36,
+              "padding": [
+                8,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "llfAa",
+                  "name": "subTabAllTextAL",
+                  "fill": "#a0aec0",
+                  "content": "全体ログ",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "c7V7r",
+              "name": "subTabAgentAL",
+              "height": 36,
+              "stroke": {
+                "align": "inside",
+                "thickness": {
+                  "bottom": 2
+                },
+                "fill": "#63b3ed"
+              },
+              "padding": [
+                8,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "XdfCY",
+                  "name": "subTabAgentTextAL",
+                  "fill": "#63b3ed",
+                  "content": "エージェント別",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "bDfx4",
+          "name": "contentAL",
+          "width": "fill_container",
+          "height": "fill_container",
+          "gap": 16,
+          "padding": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "tlIhS",
+              "name": "agentListPanel",
+              "width": 280,
+              "height": "fill_container",
+              "fill": "#2d3748",
+              "cornerRadius": 8,
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "77b7j",
+                  "name": "agentListHeader",
+                  "width": "fill_container",
+                  "fill": "#374151",
+                  "cornerRadius": [
+                    8,
+                    8,
+                    0,
+                    0
+                  ],
+                  "gap": 8,
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "RnY84",
+                      "name": "agentListTitle",
+                      "fill": "#e0e0e0",
+                      "content": "エージェント一覧",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JEblT",
+                      "name": "agentListBadge",
+                      "fill": "#4a5568",
+                      "cornerRadius": 10,
+                      "padding": [
+                        2,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "cpG73",
+                          "name": "leftBadgeText",
+                          "fill": "#a0aec0",
+                          "content": "4",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "V9tDe",
+                  "name": "agentList",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "padding": [
+                    8,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "BwXoN",
+                      "name": "agentItem1",
+                      "width": "fill_container",
+                      "fill": "#3b82f6",
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "hwLxJ",
+                          "name": "agent1Icon",
+                          "width": 32,
+                          "height": 32,
+                          "fill": "#63b3ed",
+                          "cornerRadius": 16,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "TGkNo",
+                              "name": "agent1IconText",
+                              "fill": "#1a1a1a",
+                              "content": "P",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "bold"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "3YC2K",
+                          "name": "agent1Info",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "lX5Zb",
+                              "name": "agent1Name",
+                              "fill": "#ffffff",
+                              "content": "Planner",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "bold"
+                            },
+                            {
+                              "type": "text",
+                              "id": "2iI7T",
+                              "name": "agent1Count",
+                              "fill": "#d1d5db",
+                              "content": "3 回実行",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "659t9",
+                      "name": "agentItem2",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "x5KqY",
+                          "name": "agent2Icon",
+                          "width": 32,
+                          "height": 32,
+                          "fill": "#f6ad55",
+                          "cornerRadius": 16,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "CWXrV",
+                              "name": "agent2IconText",
+                              "fill": "#1a1a1a",
+                              "content": "J",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "bold"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "UDb1t",
+                          "name": "agent2Info",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "xI5Qx",
+                              "name": "agent2Name",
+                              "fill": "#e0e0e0",
+                              "content": "Plan_Judge",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "YXS2m",
+                              "name": "agent2Count",
+                              "fill": "#a0aec0",
+                              "content": "2 回実行",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "830fV",
+                      "name": "agentItem3",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "yudpN",
+                          "name": "agent3Icon",
+                          "width": 32,
+                          "height": 32,
+                          "fill": "#b794f4",
+                          "cornerRadius": 16,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "5XyXQ",
+                              "name": "agent3IconText",
+                              "fill": "#1a1a1a",
+                              "content": "W",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "bold"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "rM4aF",
+                          "name": "agent3Info",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "JCaXG",
+                              "name": "agent3Name",
+                              "fill": "#e0e0e0",
+                              "content": "Worker",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "v5Xjr",
+                              "name": "agent3Count",
+                              "fill": "#a0aec0",
+                              "content": "5 回実行",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gxBFN",
+                      "name": "agentItem4",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ALu21",
+                          "name": "agent4Icon",
+                          "width": 32,
+                          "height": 32,
+                          "fill": "#68d391",
+                          "cornerRadius": 16,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ieb6K",
+                              "name": "agent4IconText",
+                              "fill": "#1a1a1a",
+                              "content": "J",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "bold"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "LM2EZ",
+                          "name": "agent4Info",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "7mkyf",
+                              "name": "agent4Name",
+                              "fill": "#e0e0e0",
+                              "content": "Judge",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "NuS1r",
+                              "name": "agent4Count",
+                              "fill": "#a0aec0",
+                              "content": "4 回実行",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "IOU7r",
+              "name": "agentDetailPanel",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#2d3748",
+              "cornerRadius": 8,
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "p3nHL",
+                  "name": "agentDetailHeader",
+                  "width": "fill_container",
+                  "fill": "#374151",
+                  "cornerRadius": [
+                    8,
+                    8,
+                    0,
+                    0
+                  ],
+                  "gap": 12,
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "KCK53",
+                      "name": "detailIcon",
+                      "width": 28,
+                      "height": 28,
+                      "fill": "#63b3ed",
+                      "cornerRadius": 14,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "fcOCO",
+                          "name": "rightIconText",
+                          "fill": "#1a1a1a",
+                          "content": "P",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "bold"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "hRC5O",
+                      "name": "agentDetailTitle",
+                      "fill": "#e0e0e0",
+                      "content": "Planner のログ",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NIrJl",
+                      "name": "detailBadge",
+                      "fill": "#4a5568",
+                      "cornerRadius": 10,
+                      "padding": [
+                        2,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ruLpD",
+                          "name": "rightBadgeText",
+                          "fill": "#a0aec0",
+                          "content": "42 件",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UbJLa",
+                  "name": "logSelector",
+                  "width": "fill_container",
+                  "fill": "#252d3d",
+                  "gap": 12,
+                  "padding": [
+                    8,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "IwCah",
+                      "name": "selectorLabel",
+                      "fill": "#a0aec0",
+                      "content": "実行ログ:",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tN9tq",
+                      "name": "selectorDropdown",
+                      "width": "fill_container",
+                      "fill": "#374151",
+                      "cornerRadius": 4,
+                      "gap": 8,
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "CMbGf",
+                          "name": "dropdownText",
+                          "fill": "#e0e0e0",
+                          "content": "agent_Planner_20260202_143401_281473706749984.log",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "TQiAB",
+                          "name": "dropdownIcon",
+                          "fill": "#a0aec0",
+                          "content": "▼",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JX9xJ",
+                      "name": "execCount",
+                      "fill": "#4a5568",
+                      "cornerRadius": 10,
+                      "padding": [
+                        2,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "yak6M",
+                          "name": "execCountText",
+                          "fill": "#a0aec0",
+                          "content": "3 回実行",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "V300I",
+                  "name": "detailLogBox",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "vRVlo",
+                      "name": "dLogRow1",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "mgfR5",
+                          "name": "dLogTime1",
+                          "fill": "#718096",
+                          "content": "14:32:15",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "EbF6e",
+                          "name": "dLogLevel1",
+                          "fill": "#2f855a",
+                          "cornerRadius": 4,
+                          "padding": [
+                            2,
+                            6
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "OM1fT",
+                              "name": "dLogLevelText1",
+                              "fill": "#9ae6b4",
+                              "content": "INFO",
+                              "fontFamily": "JetBrains Mono",
+                              "fontSize": 10,
+                              "fontWeight": "bold"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "KKER1",
+                          "name": "dLogMsg1",
+                          "fill": "#e0e0e0",
+                          "content": "タスク分解を開始しました",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BGzeW",
+                      "name": "dLogRow2",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "vIe7U",
+                          "name": "dLogTime2",
+                          "fill": "#718096",
+                          "content": "14:32:16",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "aGxi0",
+                          "name": "dLogLevel2",
+                          "fill": "#1e3a5f",
+                          "cornerRadius": 4,
+                          "padding": [
+                            2,
+                            6
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "zjvQm",
+                              "name": "dLogLevelText2",
+                              "fill": "#90cdf4",
+                              "content": "DEBUG",
+                              "fontFamily": "JetBrains Mono",
+                              "fontSize": 10,
+                              "fontWeight": "bold"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "f3551",
+                          "name": "dLogMsg2",
+                          "fill": "#e0e0e0",
+                          "content": "入力テキストを解析中...",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "d6rtc",
+                      "name": "dLogRow3",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "69r6k",
+                          "name": "dLogTime3",
+                          "fill": "#718096",
+                          "content": "14:32:17",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "841Lx",
+                          "name": "dLogLevel3",
+                          "fill": "#2f855a",
+                          "cornerRadius": 4,
+                          "padding": [
+                            2,
+                            6
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "DhpEn",
+                              "name": "dLogLevelText3",
+                              "fill": "#9ae6b4",
+                              "content": "INFO",
+                              "fontFamily": "JetBrains Mono",
+                              "fontSize": 10,
+                              "fontWeight": "bold"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "rmUWq",
+                          "name": "dLogMsg3",
+                          "fill": "#e0e0e0",
+                          "content": "3 件のサブタスクを生成しました",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "252qW",
+                      "name": "dLogRow4",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "obHJF",
+                          "name": "dLogTime4",
+                          "fill": "#718096",
+                          "content": "14:32:18",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "jhJvV",
+                          "name": "dLogLevel4",
+                          "fill": "#1e3a5f",
+                          "cornerRadius": 4,
+                          "padding": [
+                            2,
+                            6
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "7yyDF",
+                              "name": "dLogLevelText4",
+                              "fill": "#90cdf4",
+                              "content": "DEBUG",
+                              "fontFamily": "JetBrains Mono",
+                              "fontSize": 10,
+                              "fontWeight": "bold"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "vonJB",
+                          "name": "dLogMsg4",
+                          "fill": "#e0e0e0",
+                          "content": "サブタスク優先度を計算中...",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ne9o3",
+                      "name": "dLogRow5",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "SwDFH",
+                          "name": "dLogTime5",
+                          "fill": "#718096",
+                          "content": "14:32:19",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "k5sW6",
+                          "name": "dLogLevel5",
+                          "fill": "#2f855a",
+                          "cornerRadius": 4,
+                          "padding": [
+                            2,
+                            6
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "tCJHl",
+                              "name": "dLogLevelText5",
+                              "fill": "#9ae6b4",
+                              "content": "INFO",
+                              "fontFamily": "JetBrains Mono",
+                              "fontSize": 10,
+                              "fontWeight": "bold"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "abVsu",
+                          "name": "dLogMsg5",
+                          "fill": "#e0e0e0",
+                          "content": "タスク実行キューに追加しました",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ERCkY",
+                      "name": "dLogRow6",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "j5XYH",
+                          "name": "dLogTime6",
+                          "fill": "#718096",
+                          "content": "14:32:20",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "57Bqa",
+                          "name": "dLogLevel6",
+                          "fill": "#2f855a",
+                          "cornerRadius": 4,
+                          "padding": [
+                            2,
+                            6
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "xIhss",
+                              "name": "dLogLevelText6",
+                              "fill": "#9ae6b4",
+                              "content": "INFO",
+                              "fontFamily": "JetBrains Mono",
+                              "fontSize": 10,
+                              "fontWeight": "bold"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "Ow81G",
+                          "name": "dLogMsg6",
+                          "fill": "#e0e0e0",
+                          "content": "executor にタスクを委譲しました",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "1ajmX",
+          "name": "dialogOverlay",
+          "width": 1200,
+          "height": 570,
+          "fill": "rgba(0,0,0,0.6)",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "wi41L",
+              "name": "logSelectDialog",
+              "width": 480,
+              "height": 480,
+              "fill": "#2d3748",
+              "cornerRadius": 12,
+              "stroke": {
+                "align": "outside",
+                "thickness": 1,
+                "fill": "#4a5568"
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "2eMTq",
+                  "name": "dialogHeader",
+                  "width": "fill_container",
+                  "height": 52,
+                  "fill": "#374151",
+                  "cornerRadius": [
+                    12,
+                    12,
+                    0,
+                    0
+                  ],
+                  "padding": [
+                    12,
+                    20
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "cmyWj",
+                      "name": "dialogTitle",
+                      "fill": "#ffffff",
+                      "content": "実行ログを選択",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "8xAvU",
+                      "name": "closeBtn",
+                      "width": 28,
+                      "height": 28,
+                      "fill": "#4a5568",
+                      "cornerRadius": 14,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "BPu3n",
+                          "name": "closeIcon",
+                          "fill": "#a0aec0",
+                          "content": "×",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "3wDDa",
+                  "name": "dialogBody",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "SclqF",
+                      "name": "dateGroup1",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "pSzcA",
+                          "name": "dateHeader1",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "j2bgS",
+                              "name": "dateIcon1",
+                              "fill": "#63b3ed",
+                              "content": "●",
+                              "fontFamily": "Inter",
+                              "fontSize": 8,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "E36Yo",
+                              "name": "dateText1",
+                              "fill": "#63b3ed",
+                              "content": "2026年2月2日",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "bold"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "rpZm2",
+                              "name": "dateBadge1",
+                              "fill": "#4a5568",
+                              "cornerRadius": 10,
+                              "padding": [
+                                2,
+                                8
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "nnleL",
+                                  "name": "dateBadgeText1",
+                                  "fill": "#a0aec0",
+                                  "content": "2 件",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ai82Z",
+                          "name": "logList1",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "padding": [
+                            0,
+                            0,
+                            0,
+                            20
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Hvxjz",
+                              "name": "logEntry1",
+                              "width": "fill_container",
+                              "fill": "#3b82f6",
+                              "cornerRadius": 6,
+                              "gap": 12,
+                              "padding": [
+                                10,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "u74dT",
+                                  "name": "logTime1",
+                                  "fill": "#ffffff",
+                                  "content": "14:34:01",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "bold"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "0CLXm",
+                                  "name": "logName1",
+                                  "fill": "#e0e0e0",
+                                  "content": "agent_Planner_20260202_143401",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "5X4nZ",
+                                  "name": "logSelected",
+                                  "fill": "#1d4ed8",
+                                  "cornerRadius": 8,
+                                  "padding": [
+                                    2,
+                                    8
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "e2wCo",
+                                      "name": "logSelectedText",
+                                      "fill": "#ffffff",
+                                      "content": "選択中",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "bold"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "GHUuc",
+                              "name": "logEntry2",
+                              "width": "fill_container",
+                              "fill": "#374151",
+                              "cornerRadius": 6,
+                              "gap": 12,
+                              "padding": [
+                                10,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "9VLvb",
+                                  "name": "logTime2",
+                                  "fill": "#a0aec0",
+                                  "content": "14:25:13",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Jx6HQ",
+                                  "name": "logName2",
+                                  "fill": "#e0e0e0",
+                                  "content": "agent_Planner_20260202_142513",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "P8IF6",
+                      "name": "dateGroup2",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "C61Fw",
+                          "name": "dateHeader2",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "dluGm",
+                              "name": "dateIcon2",
+                              "fill": "#718096",
+                              "content": "●",
+                              "fontFamily": "Inter",
+                              "fontSize": 8,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "EjotG",
+                              "name": "dateText2",
+                              "fill": "#a0aec0",
+                              "content": "2026年2月1日",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "bold"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "p4r2Q",
+                              "name": "dateBadge2",
+                              "fill": "#4a5568",
+                              "cornerRadius": 10,
+                              "padding": [
+                                2,
+                                8
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Ddhll",
+                                  "name": "dateBadgeText2",
+                                  "fill": "#a0aec0",
+                                  "content": "1 件",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "OgMH5",
+                          "name": "logList2",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "padding": [
+                            0,
+                            0,
+                            0,
+                            20
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Nc0It",
+                              "name": "logEntry3",
+                              "width": "fill_container",
+                              "fill": "#374151",
+                              "cornerRadius": 6,
+                              "gap": 12,
+                              "padding": [
+                                10,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "B0t9F",
+                                  "name": "logTime3",
+                                  "fill": "#a0aec0",
+                                  "content": "09:12:45",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "abZDg",
+                                  "name": "logName3",
+                                  "fill": "#e0e0e0",
+                                  "content": "agent_Planner_20260201_091245",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "m1MWC",
+                      "name": "dateGroup3",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "cgAyj",
+                          "name": "dateHeader3",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "enOwp",
+                              "name": "dateIcon3",
+                              "fill": "#718096",
+                              "content": "●",
+                              "fontFamily": "Inter",
+                              "fontSize": 8,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "1UTuE",
+                              "name": "dateText3",
+                              "fill": "#a0aec0",
+                              "content": "2026年1月31日",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "bold"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "AbmC9",
+                              "name": "dateBadge3",
+                              "fill": "#4a5568",
+                              "cornerRadius": 10,
+                              "padding": [
+                                2,
+                                8
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "p4Aka",
+                                  "name": "dateBadgeText3",
+                                  "fill": "#a0aec0",
+                                  "content": "2 件",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "21hAa",
+                          "name": "logList3",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "padding": [
+                            0,
+                            0,
+                            0,
+                            20
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "U2ycC",
+                              "name": "logEntry4",
+                              "width": "fill_container",
+                              "fill": "#374151",
+                              "cornerRadius": 6,
+                              "gap": 12,
+                              "padding": [
+                                10,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "7hc7T",
+                                  "name": "logTime4",
+                                  "fill": "#a0aec0",
+                                  "content": "16:45:22",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "QjI9Y",
+                                  "name": "logName4",
+                                  "fill": "#e0e0e0",
+                                  "content": "agent_Planner_20260131_164522",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "3g0Zy",
+                              "name": "logEntry5",
+                              "width": "fill_container",
+                              "fill": "#374151",
+                              "cornerRadius": 6,
+                              "gap": 12,
+                              "padding": [
+                                10,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "YUV4J",
+                                  "name": "logTime5",
+                                  "fill": "#a0aec0",
+                                  "content": "10:23:08",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "LC02O",
+                                  "name": "logName5",
+                                  "fill": "#e0e0e0",
+                                  "content": "agent_Planner_20260131_102308",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }

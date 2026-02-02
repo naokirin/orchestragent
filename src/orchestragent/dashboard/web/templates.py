@@ -177,6 +177,34 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .agent-log-box { flex: 1; overflow: auto; padding: 12px; }
     .agent-log-content { color: #a0aec0; font-family: 'JetBrains Mono', monospace; font-size: 11px; white-space: pre-wrap; margin: 0; }
     .agent-log-placeholder { color: #718096; font-size: 13px; text-align: center; padding: 40px; }
+    /* Log selection dialog */
+    .log-dialog-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+    .log-dialog-overlay.visible { display: flex; }
+    .log-dialog { background: #2d3748; border-radius: 12px; width: 480px; max-height: 80vh; display: flex; flex-direction: column; border: 1px solid #4a5568; }
+    .log-dialog-header { background: #374151; border-radius: 12px 12px 0 0; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .log-dialog-title { color: #ffffff; font-size: 16px; font-weight: bold; margin: 0; }
+    .log-dialog-close { width: 28px; height: 28px; background: #4a5568; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; color: #a0aec0; font-size: 16px; }
+    .log-dialog-close:hover { background: #5a6b7c; }
+    .log-dialog-body { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+    .log-date-group { display: flex; flex-direction: column; gap: 8px; }
+    .log-date-header { display: flex; align-items: center; gap: 8px; }
+    .log-date-indicator { width: 8px; height: 8px; border-radius: 4px; background: #718096; }
+    .log-date-indicator.current { background: #63b3ed; }
+    .log-date-text { color: #a0aec0; font-size: 13px; font-weight: bold; }
+    .log-date-text.current { color: #63b3ed; }
+    .log-date-badge { background: #4a5568; border-radius: 10px; padding: 2px 8px; color: #a0aec0; font-size: 10px; }
+    .log-entry-list { display: flex; flex-direction: column; gap: 4px; padding-left: 20px; }
+    .log-entry { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #374151; border-radius: 6px; cursor: pointer; }
+    .log-entry:hover { background: #4a5568; }
+    .log-entry.selected { background: #3b82f6; }
+    .log-entry-time { color: #a0aec0; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .log-entry.selected .log-entry-time { color: #ffffff; font-weight: bold; }
+    .log-entry-name { color: #e0e0e0; font-family: 'JetBrains Mono', monospace; font-size: 11px; flex: 1; }
+    .log-entry-badge { background: #1d4ed8; border-radius: 8px; padding: 2px 8px; color: #ffffff; font-size: 10px; font-weight: bold; }
+    .log-selector-btn { background: #374151; border-radius: 4px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; flex: 1; cursor: pointer; border: none; text-align: left; }
+    .log-selector-btn:hover { background: #4a5568; }
+    .log-selector-btn-text { color: #e0e0e0; font-family: 'JetBrains Mono', monospace; font-size: 11px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .log-selector-btn-icon { color: #a0aec0; font-size: 10px; }
     /* Intent tab: .pen design, list-only then detail with sub-tabs */
     #pane-intents.tab-pane.active { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
     #intent-list-view { display: flex; flex-direction: column; gap: 12px; width: 100%; }
@@ -363,15 +391,25 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
             </div>
             <div id="log-selector" class="log-selector" style="display: none;">
               <span class="log-selector-label">実行ログ:</span>
-              <div class="log-selector-dropdown">
-                <select id="log-file-select"></select>
-              </div>
+              <button type="button" id="log-selector-btn" class="log-selector-btn">
+                <span id="log-selector-btn-text" class="log-selector-btn-text">ログを選択</span>
+                <span class="log-selector-btn-icon">▼</span>
+              </button>
               <span id="log-exec-badge" class="log-exec-badge">0 回実行</span>
             </div>
             <div class="agent-log-box">
               <div id="agent-log-content" class="agent-log-placeholder">左のリストからエージェントを選択してください</div>
             </div>
           </div>
+        </div>
+      </div>
+      <div id="log-dialog-overlay" class="log-dialog-overlay">
+        <div class="log-dialog">
+          <div class="log-dialog-header">
+            <h4 class="log-dialog-title">実行ログを選択</h4>
+            <button type="button" id="log-dialog-close" class="log-dialog-close">×</button>
+          </div>
+          <div id="log-dialog-body" class="log-dialog-body"></div>
         </div>
       </div>
     </div>
@@ -668,7 +706,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         var titleEl = document.getElementById('agent-detail-title');
         var badgeEl = document.getElementById('agent-detail-badge');
         var selectorEl = document.getElementById('log-selector');
-        var selectEl = document.getElementById('log-file-select');
+        var selectorBtnText = document.getElementById('log-selector-btn-text');
         var execBadgeEl = document.getElementById('log-exec-badge');
 
         if (!selectedAgentName) {
@@ -692,19 +730,144 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
 
         if (agentLogFiles.length > 0) {
           selectorEl.style.display = 'flex';
-          selectEl.innerHTML = '';
-          agentLogFiles.forEach(function(f) {
-            var opt = document.createElement('option');
-            opt.value = f.filename;
-            opt.textContent = f.filename;
-            if (f.filename === selectedLogFile) opt.selected = true;
-            selectEl.appendChild(opt);
-          });
+          // Update button text with selected log file
+          if (selectedLogFile) {
+            selectorBtnText.textContent = selectedLogFile;
+          } else {
+            selectorBtnText.textContent = 'ログを選択';
+          }
         } else {
           selectorEl.style.display = 'none';
           document.getElementById('agent-log-content').className = 'agent-log-placeholder';
           document.getElementById('agent-log-content').textContent = 'ログファイルがありません';
         }
+      }
+
+      function parseUtcTimestamp(timestamp) {
+        // timestamp format: YYYYMMDD_HHMMSS (UTC)
+        if (!timestamp || timestamp.length < 15) return null;
+        var year = parseInt(timestamp.slice(0, 4), 10);
+        var month = parseInt(timestamp.slice(4, 6), 10) - 1; // JS months are 0-indexed
+        var day = parseInt(timestamp.slice(6, 8), 10);
+        var hour = parseInt(timestamp.slice(9, 11), 10);
+        var min = parseInt(timestamp.slice(11, 13), 10);
+        var sec = parseInt(timestamp.slice(13, 15), 10);
+        // Create Date object from UTC components
+        return new Date(Date.UTC(year, month, day, hour, min, sec));
+      }
+
+      function getLocalDateStr(date) {
+        // Return local date as YYYYMMDD string
+        var year = date.getFullYear();
+        var month = ('0' + (date.getMonth() + 1)).slice(-2);
+        var day = ('0' + date.getDate()).slice(-2);
+        return year + month + day;
+      }
+
+      function groupLogFilesByDate(logFiles) {
+        var groups = {};
+        logFiles.forEach(function(f) {
+          // timestamp format: YYYYMMDD_HHMMSS (UTC)
+          var utcDate = parseUtcTimestamp(f.timestamp);
+          if (!utcDate) return;
+          // Convert to local date string for grouping
+          var localDateStr = getLocalDateStr(utcDate);
+          if (!groups[localDateStr]) {
+            groups[localDateStr] = [];
+          }
+          groups[localDateStr].push(f);
+        });
+        // Sort dates descending
+        var sortedDates = Object.keys(groups).sort().reverse();
+        return sortedDates.map(function(dateStr) {
+          // Format date for display: YYYY年M月D日
+          var year = dateStr.slice(0, 4);
+          var month = parseInt(dateStr.slice(4, 6), 10);
+          var day = parseInt(dateStr.slice(6, 8), 10);
+          var displayDate = year + '年' + month + '月' + day + '日';
+          // Check if current date (local)
+          var today = new Date();
+          var todayStr = getLocalDateStr(today);
+          var isCurrent = dateStr === todayStr;
+          return {
+            dateStr: dateStr,
+            displayDate: displayDate,
+            isCurrent: isCurrent,
+            files: groups[dateStr]
+          };
+        });
+      }
+
+      function formatLogTime(timestamp) {
+        // timestamp format: YYYYMMDD_HHMMSS (UTC) -> convert to local time
+        var utcDate = parseUtcTimestamp(timestamp);
+        if (!utcDate) return '';
+        // Get local time components
+        var hours = ('0' + utcDate.getHours()).slice(-2);
+        var mins = ('0' + utcDate.getMinutes()).slice(-2);
+        var secs = ('0' + utcDate.getSeconds()).slice(-2);
+        return hours + ':' + mins + ':' + secs;
+      }
+
+      function renderLogDialog() {
+        var dialogBody = document.getElementById('log-dialog-body');
+        var groups = groupLogFilesByDate(agentLogFiles);
+
+        if (groups.length === 0) {
+          dialogBody.innerHTML = '<p style="color: #718096; text-align: center; padding: 20px;">ログファイルがありません</p>';
+          return;
+        }
+
+        var html = '';
+        groups.forEach(function(group, groupIdx) {
+          var indicatorClass = group.isCurrent ? 'log-date-indicator current' : 'log-date-indicator';
+          var textClass = group.isCurrent ? 'log-date-text current' : 'log-date-text';
+          html += '<div class="log-date-group">';
+          html += '<div class="log-date-header">';
+          html += '<span class="' + indicatorClass + '"></span>';
+          html += '<span class="' + textClass + '">' + escapeHtml(group.displayDate) + '</span>';
+          html += '<span class="log-date-badge">' + group.files.length + ' 件</span>';
+          html += '</div>';
+          html += '<div class="log-entry-list">';
+          group.files.forEach(function(f) {
+            var isSelected = f.filename === selectedLogFile;
+            var entryClass = isSelected ? 'log-entry selected' : 'log-entry';
+            var time = formatLogTime(f.timestamp);
+            html += '<div class="' + entryClass + '" data-filename="' + escapeHtml(f.filename) + '">';
+            html += '<span class="log-entry-time">' + escapeHtml(time) + '</span>';
+            html += '<span class="log-entry-name">' + escapeHtml(f.filename.replace(/^agent_[^_]+_/, '').replace(/\.log$/, '')) + '</span>';
+            if (isSelected) {
+              html += '<span class="log-entry-badge">選択中</span>';
+            }
+            html += '</div>';
+          });
+          html += '</div>';
+          html += '</div>';
+        });
+
+        dialogBody.innerHTML = html;
+
+        // Add click handlers to entries
+        dialogBody.querySelectorAll('.log-entry').forEach(function(el) {
+          el.addEventListener('click', function() {
+            var filename = el.getAttribute('data-filename');
+            selectedLogFile = filename;
+            closeLogDialog();
+            updateAgentDetailPanel();
+            if (selectedAgentName && selectedLogFile) {
+              fetchAgentLogContent(selectedAgentName, selectedLogFile);
+            }
+          });
+        });
+      }
+
+      function openLogDialog() {
+        renderLogDialog();
+        document.getElementById('log-dialog-overlay').classList.add('visible');
+      }
+
+      function closeLogDialog() {
+        document.getElementById('log-dialog-overlay').classList.remove('visible');
       }
 
       function fetchAgentLogContent(agentName, filename) {
@@ -1298,10 +1461,15 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           setLogsSubTab(btn.getAttribute('data-logs-sub'));
         });
       });
-      document.getElementById('log-file-select').addEventListener('change', function() {
-        selectedLogFile = this.value;
-        if (selectedAgentName && selectedLogFile) {
-          fetchAgentLogContent(selectedAgentName, selectedLogFile);
+      document.getElementById('log-selector-btn').addEventListener('click', function() {
+        openLogDialog();
+      });
+      document.getElementById('log-dialog-close').addEventListener('click', function() {
+        closeLogDialog();
+      });
+      document.getElementById('log-dialog-overlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeLogDialog();
         }
       });
 
