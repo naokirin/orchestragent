@@ -80,3 +80,21 @@ That's all.'''
         result = extract_json_from_response(response)
         assert result["message"] == "タスクが完了しました"
         assert result["status"] == "成功"
+
+    def test_json_code_block_invalid_json_falls_back_to_direct(self):
+        """異常系: ```json ブロック内が不正なJSONの場合はパース失敗し、直後の直接JSONを試す。"""
+        # コードブロック内に { を含めないようにし、直後の {"fallback": true} が単独でマッチするようにする
+        response = """```json
+not valid json
+```
+{"fallback": true}"""
+        result = extract_json_from_response(response)
+        assert result == {"fallback": True}
+
+    def test_json_code_block_invalid_json_no_direct_returns_none(self):
+        """異常系: ```json ブロックが不正で、直接JSONもない場合は None。"""
+        response = """```json
+{broken
+```"""
+        result = extract_json_from_response(response)
+        assert result is None

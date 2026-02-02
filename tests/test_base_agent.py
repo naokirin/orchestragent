@@ -266,6 +266,25 @@ class TestRunRetry:
 
         assert mock_llm_client.call_agent.call_count == 3
 
+    def test_run_max_retries_zero_raises_exhausted(self, mock_state_manager, mock_logger):
+        """異常系: max_retries=0 のときループに入らず AgentError(exhausted) を送出。"""
+        mock_llm_client = MagicMock()
+        mock_llm_client.call_agent.side_effect = LLMError("Retryable", retryable=True)
+
+        agent = ConcreteAgent(
+            name="test",
+            llm_client=mock_llm_client,
+            state_manager=mock_state_manager,
+            logger=mock_logger
+        )
+
+        with pytest.raises(AgentError) as exc_info:
+            agent.run(iteration=0, max_retries=0)
+
+        assert "exhausted" in str(exc_info.value).lower()
+        assert exc_info.value.retryable is False
+        assert mock_llm_client.call_agent.call_count == 0
+
     def test_run_wraps_unexpected_error(self, mock_state_manager, mock_logger):
         """Test that unexpected errors are wrapped in AgentError."""
         mock_llm_client = MagicMock()
@@ -354,6 +373,31 @@ class TestRunInternal:
         with pytest.raises(RuntimeError):
             agent._run_internal(iteration=0, start_time=time.time())
 
+        mock_logger.error.assert_called()
+
+    def test_run_internal_parse_response_returns_non_dict_uses_fallback(self, mock_llm_client, mock_state_manager, mock_logger):
+        """異常系: parse_response が dict 以外を返すと ValueError となりフォールバック結果が使われる。"""
+        class BadParseAgent(BaseAgent):
+            def build_prompt(self, state):
+                return "prompt"
+
+            def parse_response(self, response):
+                return "not a dict"  # 仕様違反
+
+            def update_state(self, result):
+                # フォールバックで {"response": ..., "error": ...} が渡る
+                assert "response" in result
+                assert "error" in result
+
+        agent = BadParseAgent(
+            name="test",
+            llm_client=mock_llm_client,
+            state_manager=mock_state_manager,
+            logger=mock_logger
+        )
+        result = agent._run_internal(iteration=0, start_time=time.time())
+        assert "response" in result
+        assert "error" in result
         mock_logger.error.assert_called()
 
 

@@ -3,6 +3,7 @@
 import pytest
 from datetime import datetime
 
+from orchestragent.models import Status, CheckpointMetadata, ValidationResult
 from orchestragent.models.task import (
     Task,
     TaskIndex,
@@ -371,3 +372,108 @@ class TestTaskStatistics:
         assert stats.failed == 1
         assert stats.pending == 1
         assert stats.in_progress == 1
+
+
+# ---------------------------------------------------------------------------
+# State models (models/state.py): Status, CheckpointMetadata, ValidationResult
+# ---------------------------------------------------------------------------
+
+
+class TestStatus:
+    """Tests for Status dataclass (models/state.py)."""
+
+    def test_post_init_sets_last_updated_when_none(self):
+        """last_updated が None の場合 __post_init__ で現在時刻が設定される。"""
+        s = Status(version=1)
+        assert s.last_updated is not None
+        assert s.version == 1
+
+    def test_to_dict_includes_current_phase_when_set(self):
+        """current_phase が設定されている場合 to_dict に含まれる。"""
+        s = Status(last_updated="2025-01-01T00:00:00", version=1, current_phase="planning")
+        d = s.to_dict()
+        assert d["current_phase"] == "planning"
+        assert d["last_updated"] == "2025-01-01T00:00:00"
+        assert d["version"] == 1
+
+    def test_to_dict_omits_current_phase_when_empty(self):
+        """current_phase が None/空の場合は to_dict に含めない。"""
+        s = Status(last_updated="2025-01-01", version=0, current_phase=None)
+        d = s.to_dict()
+        assert "current_phase" not in d
+
+    def test_from_dict_with_all_keys(self):
+        """from_dict で全キーを指定した場合正しく復元される。"""
+        data = {"last_updated": "2025-01-01T12:00:00", "version": 2, "current_phase": "running"}
+        s = Status.from_dict(data)
+        assert s.last_updated == "2025-01-01T12:00:00"
+        assert s.version == 2
+        assert s.current_phase == "running"
+
+    def test_from_dict_with_missing_keys_defaults(self):
+        """from_dict でキーが欠けている場合はデフォルト値。境界値。"""
+        s = Status.from_dict({})
+        # last_updated は __post_init__ で現在時刻が設定される
+        assert s.last_updated is not None
+        assert s.version == 0
+        assert s.current_phase is None
+
+
+class TestCheckpointMetadata:
+    """Tests for CheckpointMetadata dataclass."""
+
+    def test_to_dict(self):
+        """to_dict で checkpoint_name, created_at, files が含まれる。"""
+        m = CheckpointMetadata(checkpoint_name="cp1", created_at="2025-01-01", files=["a.json", "b.json"])
+        d = m.to_dict()
+        assert d["checkpoint_name"] == "cp1"
+        assert d["created_at"] == "2025-01-01"
+        assert d["files"] == ["a.json", "b.json"]
+
+    def test_from_dict_with_missing_keys(self):
+        """from_dict でキーが欠けている場合は空文字/空リスト。異常系・境界値。"""
+        m = CheckpointMetadata.from_dict({})
+        assert m.checkpoint_name == ""
+        assert m.created_at == ""
+        assert m.files == []
+
+
+class TestValidationResult:
+    """Tests for ValidationResult dataclass."""
+
+    def test_default_valid_true(self):
+        """デフォルトでは valid=True。"""
+        r = ValidationResult()
+        assert r.valid is True
+        assert r.errors == []
+        assert r.warnings == []
+
+    def test_add_error_marks_invalid(self):
+        """add_error でエラー追加と valid=False。"""
+        r = ValidationResult()
+        r.add_error("Something wrong")
+        assert r.valid is False
+        assert r.errors == ["Something wrong"]
+
+    def test_add_warning_keeps_valid(self):
+        """add_warning は valid を変えず警告のみ追加。"""
+        r = ValidationResult()
+        r.add_warning("Minor issue")
+        assert r.valid is True
+        assert r.warnings == ["Minor issue"]
+
+    def test_to_dict_and_from_dict_roundtrip(self):
+        """to_dict / from_dict でラウンドトリップ。"""
+        r = ValidationResult(valid=False, errors=["e1"], warnings=["w1"])
+        d = r.to_dict()
+        r2 = ValidationResult.from_dict(d)
+        assert r2.valid is False
+        assert r2.errors == ["e1"]
+        assert r2.warnings == ["w1"]
+
+    def test_from_dict_missing_keys_defaults(self):
+        """from_dict でキーが欠けている場合はデフォルト。境界値。"""
+        r = ValidationResult.from_dict({})
+        assert r.valid is True
+        assert r.errors == []
+        assert r.warnings == []
