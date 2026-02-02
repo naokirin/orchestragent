@@ -131,11 +131,52 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .task-detail-content .task-detail-badge { color: #1a1a1a; }
     .task-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     /* Logs tab: .pen design — 高さはビューポートに合わせ、ログはインラインでスクロール */
-    #pane-logs.tab-pane.active { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
-    .logs-section { display: flex; flex-direction: column; gap: 8px; width: 100%; flex: 1; min-height: 0; }
+    #pane-logs.tab-pane.active { display: flex; flex-direction: column; gap: 0; flex: 1; min-height: 0; }
+    .logs-sub-tabs { display: flex; align-items: flex-end; background: #2a2a2a; padding: 0 16px; height: 36px; flex-shrink: 0; }
+    .logs-sub-tabs button { background: none; border: none; color: #a0aec0; padding: 8px 16px; cursor: pointer; font-size: 13px; height: 36px; font-family: inherit; }
+    .logs-sub-tabs button:hover { color: #e2e8f0; }
+    .logs-sub-tabs button.active { color: #63b3ed; border-bottom: 2px solid #63b3ed; margin-bottom: -1px; }
+    .logs-pane { display: none; flex: 1; min-height: 0; }
+    .logs-pane.active { display: flex; flex-direction: column; }
+    .logs-section { display: flex; flex-direction: column; gap: 8px; width: 100%; flex: 1; min-height: 0; padding: 16px; }
     .logs-section-title { color: #63b3ed; font-size: 16px; font-weight: normal; margin: 0; font-family: inherit; flex-shrink: 0; }
     .logs-box { background: #2d3748; border-radius: 4px; padding: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
     #logs-container { flex: 1; min-height: 0; overflow: auto; color: #a0aec0; font-family: Inter, ui-monospace, monospace; font-size: 13px; white-space: pre-wrap; margin: 0; }
+    /* Agent logs pane */
+    .agent-logs-content { display: flex; gap: 16px; flex: 1; min-height: 0; padding: 16px; }
+    .agent-list-panel { background: #2d3748; border-radius: 8px; width: 280px; min-width: 280px; display: flex; flex-direction: column; overflow: hidden; }
+    .agent-list-header { background: #374151; border-radius: 8px 8px 0 0; padding: 12px 16px; display: flex; align-items: center; gap: 8px; }
+    .agent-list-title { color: #e0e0e0; font-size: 14px; font-weight: bold; margin: 0; }
+    .agent-list-badge { background: #4a5568; border-radius: 10px; padding: 2px 8px; color: #a0aec0; font-size: 11px; }
+    .agent-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .agent-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; }
+    .agent-item:hover { background: #374151; }
+    .agent-item.selected { background: #3b82f6; }
+    .agent-icon { width: 32px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #1a1a1a; font-size: 14px; font-weight: bold; }
+    .agent-icon.planner { background: #63b3ed; }
+    .agent-icon.plan_judge { background: #f6ad55; }
+    .agent-icon.worker { background: #b794f4; }
+    .agent-icon.judge { background: #68d391; }
+    .agent-info { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+    .agent-name { color: #e0e0e0; font-size: 13px; font-weight: normal; margin: 0; }
+    .agent-item.selected .agent-name { color: #ffffff; font-weight: bold; }
+    .agent-exec-count { color: #a0aec0; font-size: 11px; margin: 0; }
+    .agent-item.selected .agent-exec-count { color: #d1d5db; }
+    .agent-detail-panel { background: #2d3748; border-radius: 8px; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .agent-detail-header { background: #374151; border-radius: 8px 8px 0 0; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+    .agent-detail-icon { width: 28px; height: 28px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #1a1a1a; font-size: 12px; font-weight: bold; }
+    .agent-detail-title { color: #e0e0e0; font-size: 14px; font-weight: bold; margin: 0; }
+    .agent-detail-badge { background: #4a5568; border-radius: 10px; padding: 2px 8px; color: #a0aec0; font-size: 11px; }
+    .log-selector { background: #252d3d; padding: 8px 16px; display: flex; align-items: center; gap: 12px; }
+    .log-selector-label { color: #a0aec0; font-size: 12px; }
+    .log-selector-dropdown { background: #374151; border-radius: 4px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; flex: 1; cursor: pointer; }
+    .log-selector-dropdown:hover { background: #4a5568; }
+    .log-selector-dropdown select { background: transparent; border: none; color: #e0e0e0; font-family: 'JetBrains Mono', monospace; font-size: 11px; flex: 1; cursor: pointer; outline: none; }
+    .log-selector-dropdown select option { background: #374151; color: #e0e0e0; }
+    .log-exec-badge { background: #4a5568; border-radius: 10px; padding: 2px 8px; color: #a0aec0; font-size: 11px; white-space: nowrap; }
+    .agent-log-box { flex: 1; overflow: auto; padding: 12px; }
+    .agent-log-content { color: #a0aec0; font-family: 'JetBrains Mono', monospace; font-size: 11px; white-space: pre-wrap; margin: 0; }
+    .agent-log-placeholder { color: #718096; font-size: 13px; text-align: center; padding: 40px; }
     /* Intent tab: .pen design, list-only then detail with sub-tabs */
     #pane-intents.tab-pane.active { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
     #intent-list-view { display: flex; flex-direction: column; gap: 12px; width: 100%; }
@@ -293,10 +334,44 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       </div>
     </div>
     <div id="pane-logs" class="tab-pane">
-      <div class="logs-section">
-        <h3 class="logs-section-title">ログ</h3>
-        <div class="logs-box">
-          <div id="logs-container">読込中…</div>
+      <div class="logs-sub-tabs">
+        <button type="button" data-logs-sub="all" class="active">全体ログ</button>
+        <button type="button" data-logs-sub="agent">エージェント別</button>
+      </div>
+      <div id="logs-pane-all" class="logs-pane active">
+        <div class="logs-section">
+          <h3 class="logs-section-title">ログ</h3>
+          <div class="logs-box">
+            <div id="logs-container">読込中…</div>
+          </div>
+        </div>
+      </div>
+      <div id="logs-pane-agent" class="logs-pane">
+        <div class="agent-logs-content">
+          <div class="agent-list-panel">
+            <div class="agent-list-header">
+              <h4 class="agent-list-title">エージェント一覧</h4>
+              <span id="agent-list-badge" class="agent-list-badge">4</span>
+            </div>
+            <div id="agent-list" class="agent-list"></div>
+          </div>
+          <div class="agent-detail-panel">
+            <div class="agent-detail-header">
+              <div id="agent-detail-icon" class="agent-detail-icon planner">P</div>
+              <h4 id="agent-detail-title" class="agent-detail-title">エージェントを選択</h4>
+              <span id="agent-detail-badge" class="agent-detail-badge">0 件</span>
+            </div>
+            <div id="log-selector" class="log-selector" style="display: none;">
+              <span class="log-selector-label">実行ログ:</span>
+              <div class="log-selector-dropdown">
+                <select id="log-file-select"></select>
+              </div>
+              <span id="log-exec-badge" class="log-exec-badge">0 回実行</span>
+            </div>
+            <div class="agent-log-box">
+              <div id="agent-log-content" class="agent-log-placeholder">左のリストからエージェントを選択してください</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -458,6 +533,10 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       var cachedIntentDetail = null;
       var logsScrollBottom = true;
       var pollTimer = null;
+      var logsSubTab = 'all';
+      var selectedAgentName = null;
+      var agentLogFiles = [];
+      var selectedLogFile = null;
 
       function setTab(tab) {
         currentTab = tab;
@@ -514,6 +593,14 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       }
 
       function fetchLogs() {
+        if (logsSubTab === 'all') {
+          fetchAllLogs();
+        } else {
+          fetchAgentLogs();
+        }
+      }
+
+      function fetchAllLogs() {
         fetch('/api/logs').then(function(r) { return r.json(); }).then(function(d) {
           var el = document.getElementById('logs-container');
           var wasBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
@@ -524,6 +611,132 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         }).catch(function(e) {
           document.getElementById('logs-container').textContent = '取得失敗: ' + e.message;
         });
+      }
+
+      var agentIcons = { 'Planner': 'P', 'Plan_Judge': 'J', 'Worker': 'W', 'Judge': 'J' };
+      var agentColors = { 'Planner': 'planner', 'Plan_Judge': 'plan_judge', 'Worker': 'worker', 'Judge': 'judge' };
+
+      function fetchAgentLogs() {
+        fetch('/api/agent-logs').then(function(r) { return r.json(); }).then(function(d) {
+          var agents = d.agents || [];
+          var listEl = document.getElementById('agent-list');
+          listEl.innerHTML = '';
+          agents.forEach(function(agent) {
+            var div = document.createElement('div');
+            div.className = 'agent-item' + (selectedAgentName === agent.name ? ' selected' : '');
+            div.dataset.agentName = agent.name;
+            var iconClass = agentColors[agent.name] || 'planner';
+            var iconLetter = agentIcons[agent.name] || agent.name.charAt(0);
+            div.innerHTML = '<div class="agent-icon ' + iconClass + '">' + iconLetter + '</div>' +
+              '<div class="agent-info">' +
+              '<p class="agent-name">' + agent.name + '</p>' +
+              '<p class="agent-exec-count">' + agent.execution_count + ' 回実行</p>' +
+              '</div>';
+            div.onclick = function() {
+              selectedAgentName = agent.name;
+              agentLogFiles = agent.log_files || [];
+              selectedLogFile = agentLogFiles.length > 0 ? agentLogFiles[0].filename : null;
+              updateAgentListSelection();
+              updateAgentDetailPanel();
+              if (selectedLogFile) {
+                fetchAgentLogContent(agent.name, selectedLogFile);
+              }
+            };
+            listEl.appendChild(div);
+          });
+          // 選択済みエージェントがある場合、詳細を更新
+          if (selectedAgentName) {
+            var agent = agents.find(function(a) { return a.name === selectedAgentName; });
+            if (agent) {
+              agentLogFiles = agent.log_files || [];
+              updateAgentDetailPanel();
+            }
+          }
+        }).catch(function(e) {
+          document.getElementById('agent-list').innerHTML = '<p class="agent-log-placeholder">取得失敗: ' + e.message + '</p>';
+        });
+      }
+
+      function updateAgentListSelection() {
+        document.querySelectorAll('.agent-item').forEach(function(el) {
+          el.classList.toggle('selected', el.dataset.agentName === selectedAgentName);
+        });
+      }
+
+      function updateAgentDetailPanel() {
+        var iconEl = document.getElementById('agent-detail-icon');
+        var titleEl = document.getElementById('agent-detail-title');
+        var badgeEl = document.getElementById('agent-detail-badge');
+        var selectorEl = document.getElementById('log-selector');
+        var selectEl = document.getElementById('log-file-select');
+        var execBadgeEl = document.getElementById('log-exec-badge');
+
+        if (!selectedAgentName) {
+          iconEl.className = 'agent-detail-icon planner';
+          iconEl.textContent = 'P';
+          titleEl.textContent = 'エージェントを選択';
+          badgeEl.textContent = '0 件';
+          selectorEl.style.display = 'none';
+          document.getElementById('agent-log-content').className = 'agent-log-placeholder';
+          document.getElementById('agent-log-content').textContent = '左のリストからエージェントを選択してください';
+          return;
+        }
+
+        var iconClass = agentColors[selectedAgentName] || 'planner';
+        var iconLetter = agentIcons[selectedAgentName] || selectedAgentName.charAt(0);
+        iconEl.className = 'agent-detail-icon ' + iconClass;
+        iconEl.textContent = iconLetter;
+        titleEl.textContent = selectedAgentName + ' のログ';
+        badgeEl.textContent = agentLogFiles.length + ' 件';
+        execBadgeEl.textContent = agentLogFiles.length + ' 回実行';
+
+        if (agentLogFiles.length > 0) {
+          selectorEl.style.display = 'flex';
+          selectEl.innerHTML = '';
+          agentLogFiles.forEach(function(f) {
+            var opt = document.createElement('option');
+            opt.value = f.filename;
+            opt.textContent = f.filename;
+            if (f.filename === selectedLogFile) opt.selected = true;
+            selectEl.appendChild(opt);
+          });
+        } else {
+          selectorEl.style.display = 'none';
+          document.getElementById('agent-log-content').className = 'agent-log-placeholder';
+          document.getElementById('agent-log-content').textContent = 'ログファイルがありません';
+        }
+      }
+
+      function fetchAgentLogContent(agentName, filename) {
+        document.getElementById('agent-log-content').className = 'agent-log-placeholder';
+        document.getElementById('agent-log-content').textContent = '読込中…';
+        fetch('/api/agent-logs/' + encodeURIComponent(agentName) + '/' + encodeURIComponent(filename))
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            var el = document.getElementById('agent-log-content');
+            if (d.content) {
+              el.className = 'agent-log-content';
+              el.textContent = d.content;
+            } else {
+              el.className = 'agent-log-placeholder';
+              el.textContent = d.error || '(ログなし)';
+            }
+          })
+          .catch(function(e) {
+            document.getElementById('agent-log-content').className = 'agent-log-placeholder';
+            document.getElementById('agent-log-content').textContent = '取得失敗: ' + e.message;
+          });
+      }
+
+      function setLogsSubTab(tab) {
+        logsSubTab = tab;
+        document.querySelectorAll('.logs-sub-tabs button').forEach(function(b) {
+          b.classList.toggle('active', b.getAttribute('data-logs-sub') === tab);
+        });
+        document.querySelectorAll('.logs-pane').forEach(function(p) {
+          p.classList.toggle('active', p.id === 'logs-pane-' + tab);
+        });
+        fetchLogs();
       }
 
       function fetchTasks() {
@@ -1079,6 +1292,17 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       document.getElementById('logs-container').addEventListener('scroll', function() {
         var el = this;
         logsScrollBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
+      });
+      document.querySelectorAll('.logs-sub-tabs button').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          setLogsSubTab(btn.getAttribute('data-logs-sub'));
+        });
+      });
+      document.getElementById('log-file-select').addEventListener('change', function() {
+        selectedLogFile = this.value;
+        if (selectedAgentName && selectedLogFile) {
+          fetchAgentLogContent(selectedAgentName, selectedLogFile);
+        }
       });
 
       setTab(currentTab);

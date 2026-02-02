@@ -12,6 +12,11 @@ router = APIRouter()
 
 # execution_YYYYMMDD.log
 _EXECUTION_LOG_PATTERN = re.compile(r"^execution_(\d{8})\.log$")
+# agent_{agent_name}_{timestamp}_{thread_id}.log
+_AGENT_LOG_PATTERN = re.compile(r"^agent_(.+?)_(\d{8}_\d{6})_(\d+)\.log$")
+
+# エージェント名マッピング（表示名 -> ログファイル名パターン）
+_AGENT_TYPES = ["Planner", "Plan_Judge", "Worker", "Judge"]
 
 
 def _get_log_dir():
@@ -78,3 +83,87 @@ def get_logs(
             paths.append(str(p))
     content = "\n\n".join(parts)
     return {"content": content, "path": "all", "paths": paths}
+
+
+def _collect_agent_log_paths(log_dir: Path) -> dict[str, list[tuple[str, Path]]]:
+    """Collect agent log paths grouped by agent type.
+
+    Returns dict mapping agent_type -> list of (timestamp, path) sorted by timestamp descending.
+    """
+    result: dict[str, list[tuple[str, Path]]] = {agent: [] for agent in _AGENT_TYPES}
+
+    for p in log_dir.iterdir():
+        if not p.is_file():
+            continue
+        m = _AGENT_LOG_PATTERN.match(p.name)
+        if not m:
+            continue
+        agent_name = m.group(1)
+        timestamp = m.group(2)
+
+        # マッチするエージェントタイプを探す
+        for agent_type in _AGENT_TYPES:
+            if agent_name == agent_type or agent_name.startswith(f"{agent_type}-"):
+                result[agent_type].append((timestamp, p))
+                break
+
+    # タイムスタンプ降順でソート
+    for agent_type in result:
+        result[agent_type].sort(key=lambda x: x[0], reverse=True)
+
+    return result
+
+
+@router.get("/agent-logs")
+def get_agent_logs_summary(state=Depends(get_state_manager)):
+    """Return summary of agent logs: agent types and their execution counts."""
+    log_dir = _get_log_dir()
+    agent_logs = _collect_agent_log_paths(log_dir)
+
+    agents = []
+    for agent_type in _AGENT_TYPES:
+        logs = agent_logs.get(agent_type, [])
+        agents.append({
+            "name": agent_type,
+            "execution_count": len(logs),
+            "log_files": [{"timestamp": ts, "filename": p.name} for ts, p in logs]
+        })
+
+    return {"agents": agents}
+
+
+@router.get("/agent-logs/{agent_name}")
+def get_agent_log_files(agent_name: str, state=Depends(get_state_manager)):
+    """Return list of log files for a specific agent."""
+    log_dir = _get_log_dir()
+    agent_logs = _collect_agent_log_paths(log_dir)
+
+    if agent_name not in agent_logs:
+        return {"agent_name": agent_name, "log_files": [], "error": "Unknown agent type"}
+
+    logs = agent_logs[agent_name]
+    return {
+        "agent_name": agent_name,
+        "execution_count": len(logs),
+        "log_files": [{"timestamp": ts, "filename": p.name} for ts, p in logs]
+    }
+
+
+@router.get("/agent-logs/{agent_name}/{filename}")
+def get_agent_log_content(agent_name: str, filename: str, state=Depends(get_state_manager)):
+    """Return content of a specific agent log file."""
+    log_dir = _get_log_dir()
+    log_path = log_dir / filename
+
+    # セキュリティ: ファイル名が期待パターンに一致するか確認
+    if not _AGENT_LOG_PATTERN.match(filename):
+        return {"content": "", "error": "Invalid filename pattern"}
+
+    if not log_path.exists():
+        return {"content": "", "path": str(log_path), "error": "File not found"}
+
+    try:
+        content = log_path.read_text(encoding="utf-8", errors="replace")
+        return {"content": content, "path": str(log_path), "filename": filename}
+    except Exception as e:
+        return {"content": f"(読込エラー: {e})", "path": str(log_path), "error": str(e)}

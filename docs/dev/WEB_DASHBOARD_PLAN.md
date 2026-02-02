@@ -13,7 +13,7 @@ main.py とは独立して起動できる Web ダッシュボードを追加し�
 | 画面       | 表示内容                                              | データソース（現行）                                                               |
 | ---------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | **概要**   | プロジェクト目標、イテレーション/継続判定、タスク統計 | StateManager.get_status(), config.AGENT_CONFIG, StateManager.get_task_statistics() |
-| **ログ**   | 実行ログのリアルタイム表示（日付別ファイル）          | config.LOG_DIR（コンテナ内は /workspace/logs）/execution_YYYYMMDD.log              |
+| **ログ**   | 実行ログのリアルタイム表示（日付別ファイル）          | LOG_DIR/execution_YYYYMMDD.log                                                     |
 | **タスク** | タスク一覧、選択時の詳細・結果・エラー                | StateManager.get_all_tasks_from_files(), get_task_by_id()                          |
 | **Intent** | 変更意図一覧、詳細、Diff 表示                         | IntentManager, ADRManager, GitHelper                                               |
 | **設定**   | プロジェクト/LLM/メインループ設定、環境情報           | config                                                                             |
@@ -22,7 +22,7 @@ main.py とは独立して起動できる Web ダッシュボードを追加し�
 
 - **main.py と独立**: エージェントを起動せずに Web サーバー単体で起動し、永続化済みの state/log を参照できる。
 - **読み取り専用**: 状態の変更・タスク操作は行わない（表示のみ）。
-- **同一データソース**: state/log のパスは config（コンテナ内は /workspace/state, /workspace/logs に固定）等、既存と同一。
+- **同一データソース**: STATE_DIR, LOG_DIR, config 等は既存と同一。
 
 ---
 
@@ -81,7 +81,7 @@ main.py とは独立して起動できる Web ダッシュボードを追加し�
 
 ## 5. 実装 Phase（Stateful UI を組み込み済み）
 
-1. **Phase 1**: FastAPI 骨格、config（STATE_DIR/LOG_DIR は廃止済み。コンテナ内は /workspace/state, /workspace/logs 固定）読み込み、`/api/overview`, `/api/settings`。JSON 確認。
+1. **Phase 1**: FastAPI 骨格、config/STATE_DIR 読み込み、`/api/overview`, `/api/settings`。JSON 確認。
 2. **Phase 2**: `/api/tasks`, `/api/tasks/{id}` と、概要・設定・タスクの HTML（タブ切替 + fetch）。**ここで「タブ状態」「タスク選択 ID」をクライアントで保持し、ポーリング後も復元する**ことを実装し、UX を確認。
 3. **Phase 3**: ログ API とログタブ。**スクロール位置または末尾追従のルールを決め、更新後も維持する**。
 4. **Phase 4**: Intent 一覧・詳細 API と Intent タブ。**Intent 選択 ID の保持と復元**をタスクと同様に実装。
