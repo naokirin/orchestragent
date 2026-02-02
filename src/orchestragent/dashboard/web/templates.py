@@ -656,9 +656,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
           // Bold: **text** or __text__
           line = line.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');
           line = line.replace(/__(.+?)__/g, '<strong>$1</strong>');
-          // Italic: *text* or _text_
-          line = line.replace(/\\*([^*]+)\\*/g, '<em>$1</em>');
-          line = line.replace(/_([^_]+)_/g, '<em>$1</em>');
+          // Italic is not applied (* or _) to avoid false positives from file paths, env vars, globs, etc.
           // Links: [text](url)
           line = line.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
           // Restore inline code (no bold/italic applied inside)
