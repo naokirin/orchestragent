@@ -67,7 +67,6 @@
             0,
             16
           ],
-          "justifyContent": "end",
           "alignItems": "end",
           "children": [
             {
@@ -366,6 +365,30 @@
                   "name": "atab1t",
                   "fill": "#a0aec0",
                   "content": "概要",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Ve6wH",
+              "name": "atabPlan",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "654rr",
+                  "name": "atabPlantxt",
+                  "fill": "#a0aec0",
+                  "content": "計画",
                   "fontFamily": "Inter",
                   "fontSize": 14,
                   "fontWeight": "normal"
@@ -1936,6 +1959,30 @@
             },
             {
               "type": "frame",
+              "id": "MttmQ",
+              "name": "tPlanAL",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "OpjcM",
+                  "name": "tPlanALtxt",
+                  "fill": "#a0aec0",
+                  "content": "計画",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
               "id": "gS3xg",
               "name": "t2AL",
               "height": 40,
@@ -3082,6 +3129,30 @@
             },
             {
               "type": "frame",
+              "id": "JQajg",
+              "name": "tPlanLog",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "B2S7g",
+                  "name": "tPlanLogtxt",
+                  "fill": "#a0aec0",
+                  "content": "計画",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
               "id": "mgLB1",
               "name": "t2Log",
               "height": 40,
@@ -3680,6 +3751,30 @@
                   "name": "t1tT",
                   "fill": "#a0aec0",
                   "content": "概要",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rzFDT",
+              "name": "tPlanTask",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "JMFGh",
+                  "name": "tPlanTasktxt",
+                  "fill": "#a0aec0",
+                  "content": "計画",
                   "fontFamily": "Inter",
                   "fontSize": 14,
                   "fontWeight": "normal"
@@ -4343,6 +4438,30 @@
                   "name": "t1tI",
                   "fill": "#a0aec0",
                   "content": "概要",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "oXVGa",
+              "name": "tPlanIntent",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "JOeuv",
+                  "name": "tPlanIntenttxt",
+                  "fill": "#a0aec0",
+                  "content": "計画",
                   "fontFamily": "Inter",
                   "fontSize": 14,
                   "fontWeight": "normal"
@@ -5053,6 +5172,30 @@
                   "name": "tab1t",
                   "fill": "#a0aec0",
                   "content": "概要",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "A6zOp",
+              "name": "tabPlanDetail",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "L5Idm",
+                  "name": "tabPlanDetailtxt",
+                  "fill": "#a0aec0",
+                  "content": "計画",
                   "fontFamily": "Inter",
                   "fontSize": 14,
                   "fontWeight": "normal"
@@ -6007,6 +6150,30 @@
                   "name": "dtab1t",
                   "fill": "#a0aec0",
                   "content": "概要",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "K2NWb",
+              "name": "dtabPlan",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "PzVoK",
+                  "name": "dtabPlantxt",
+                  "fill": "#a0aec0",
+                  "content": "計画",
                   "fontFamily": "Inter",
                   "fontSize": 14,
                   "fontWeight": "normal"
@@ -8272,6 +8439,30 @@
             },
             {
               "type": "frame",
+              "id": "cggG6",
+              "name": "tPlanS",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "MtMFP",
+                  "name": "tPlanStxt",
+                  "fill": "#a0aec0",
+                  "content": "計画",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
               "id": "UKprG",
               "name": "t2S",
               "height": 40,
@@ -9240,6 +9431,30 @@
                   "name": "t1ALt",
                   "fill": "#a0aec0",
                   "content": "概要",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "2qy5B",
+              "name": "tPlanDialog",
+              "height": 40,
+              "padding": [
+                10,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "KV3ZB",
+                  "name": "tPlanDialogtxt",
+                  "fill": "#a0aec0",
+                  "content": "計画",
                   "fontFamily": "Inter",
                   "fontSize": 14,
                   "fontWeight": "normal"
