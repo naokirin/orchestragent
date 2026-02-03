@@ -16,9 +16,22 @@ class PlannerAgent(BaseAgent):
         """Initialize planner agent."""
         super().__init__(*args, **kwargs)
         self.mode = "plan"
+        self._run_finalize = False
+
+    def run(self, iteration: int = 0, max_retries: int = 3, finalize: bool = False):
+        """Run planner. When finalize=True, only updates plan.md to reflect completion (no task changes)."""
+        self._run_finalize = bool(finalize)
+        self._finalize_iteration = iteration if self._run_finalize else 0
+        try:
+            return super().run(iteration=iteration, max_retries=max_retries)
+        finally:
+            self._run_finalize = False
+            self._finalize_iteration = 0
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for planner. Role/instructions come from prompt file; context and output format are injected by the system."""
+        if self._run_finalize:
+            return self._build_finalize_prompt(state)
         user_part = self.load_user_prompt(
             "prompt_template",
             "prompts/planner.md",
@@ -26,6 +39,31 @@ class PlannerAgent(BaseAgent):
         )
         context_block = self._build_planner_context(state)
         output_block = self._build_planner_output_format()
+        return self._build_prompt_parts(user_part, context_block, output_block)
+
+    def _build_finalize_prompt(self, state: Dict[str, Any]) -> str:
+        """Build prompt for finalize mode: update plan.md to reflect Judge completion."""
+        user_part = self.load_user_prompt(
+            "prompt_template_finalize",
+            "prompts/planner_finalize.md",
+            "# Planner Finalize\n\nUpdate the plan document to reflect completion.",
+        )
+        plan = state.get("plan", "")
+        status = state.get("status", {})
+        task_stats = self.state_manager.get_task_statistics()
+        context_block = self._load_system_template(
+            "planner_finalize_context.md",
+            project_goal=self.config.get("project_goal", "Not set"),
+            final_iteration=getattr(self, "_finalize_iteration", "?"),
+            judge_reason=status.get("reason", "N/A"),
+            current_plan=plan if plan else "(計画が空です)",
+            task_total=task_stats.total,
+            task_completed=task_stats.completed,
+            task_failed=task_stats.failed,
+            task_pending=task_stats.pending,
+            task_in_progress=task_stats.in_progress,
+        )
+        output_block = self._load_system_template("planner_finalize_output.md")
         return self._build_prompt_parts(user_part, context_block, output_block)
 
     def _build_planner_context(self, state: Dict[str, Any]) -> str:
@@ -117,8 +155,22 @@ class PlannerAgent(BaseAgent):
             "reasoning": "JSON形式で出力されませんでした"
         }
 
+    def load_state(self) -> Dict[str, Any]:
+        """Load state; when finalizing, add final_iteration for prompt context."""
+        state = super().load_state()
+        if self._run_finalize:
+            state["final_iteration"] = getattr(self, "_finalize_iteration", "?")
+        return state
+
     def update_state(self, result: Dict[str, Any]) -> None:
         """Update state with planner result."""
+        if self._run_finalize:
+            plan_update = result.get("plan_update", "")
+            if plan_update:
+                self.state_manager.save_plan(plan_update)
+                self.logger.info(f"[{self.name}] Plan finalized (Judge完了に合わせて plan.md を更新)")
+            return
+
         # Update plan
         plan_update = result.get("plan_update", "")
         if plan_update:

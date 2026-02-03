@@ -13,6 +13,7 @@ from orchestragent.runner.loop import (
     run_plan_phase,
     run_work_phase,
     run_judge_phase,
+    run_plan_finalize_on_judge_completion,
 )
 from orchestragent.core.exceptions import AgentError
 
@@ -262,3 +263,23 @@ class TestRunJudgePhase:
         mock_agent_context.judge.run.assert_called_once()
         call_kw = mock_agent_context.judge.run.call_args[1]
         assert call_kw["iteration"] == 1
+
+
+# =============================================================================
+# run_plan_finalize_on_judge_completion
+# =============================================================================
+
+
+class TestRunPlanFinalizeOnJudgeCompletion:
+    """Tests for run_plan_finalize_on_judge_completion()."""
+
+    def test_calls_planner_run_with_finalize_true(
+        self, loop_context, mock_agent_context
+    ):
+        """Judge正常終了時に Planner が finalize=True で実行される。"""
+        run_plan_finalize_on_judge_completion(loop_context, mock_agent_context, iteration=3)
+
+        mock_agent_context.planner.run.assert_called_once()
+        call_kw = mock_agent_context.planner.run.call_args[1]
+        assert call_kw["iteration"] == 3
+        assert call_kw["finalize"] is True

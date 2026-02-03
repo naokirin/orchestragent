@@ -72,6 +72,20 @@ class TestPlannerBuildPrompt:
 
         assert "Task 1" in prompt
 
+    def test_build_prompt_finalize_mode_uses_finalize_context(self, planner_agent):
+        """When _run_finalize is True, prompt uses finalize context (Judge完了・計画の最終化)."""
+        planner_agent._run_finalize = True
+        planner_agent._finalize_iteration = 2
+        state = {"plan": "# 計画", "tasks": {}, "status": {"reason": "目標達成"}}
+
+        prompt = planner_agent.build_prompt(state)
+
+        assert "2" in prompt
+        assert "目標達成" in prompt
+        assert "計画" in prompt
+        # Finalize instructions (from planner_finalize.md or fallback)
+        assert "最終化" in prompt or "Finalize" in prompt or "完了" in prompt
+
     def test_build_prompt_shows_no_tasks_message_when_empty(self, planner_agent):
         """Show 'None' when there are no tasks."""
         state = {"plan": "", "tasks": {"tasks": []}, "status": {}}
@@ -334,3 +348,22 @@ class TestPlannerUpdateState:
         # Task is unchanged
         task = state_manager.get_task_by_id(task_id)
         assert task.title == "元タイトル"
+
+    def test_update_state_finalize_mode_only_saves_plan(self, planner_agent, state_manager):
+        """When _run_finalize is True, only plan_update is saved; no tasks added or updated."""
+        state_manager.save_plan("# 元の計画")
+        task_id = state_manager.add_task({"title": "既存タスク", "description": "説明"})
+
+        planner_agent._run_finalize = True
+        result = {
+            "plan_update": "# 最終化した計画\n\n完了サマリ付き。",
+            "new_tasks": [{"title": "無視されるタスク", "description": "追加されない"}],
+            "updated_tasks": [{"id": task_id, "title": "更新されないタイトル"}],
+        }
+        planner_agent.update_state(result)
+
+        assert state_manager.get_plan() == "# 最終化した計画\n\n完了サマリ付き。"
+        # タスクは変更されない（新規追加も更新も行われない）
+        task = state_manager.get_task_by_id(task_id)
+        assert task.title == "既存タスク"
+        assert state_manager.get_task_statistics().total == 1

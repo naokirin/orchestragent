@@ -519,6 +519,36 @@ def run_judge_phase(
         print(f"[Judge] 予期しないエラー: {e}")
 
 
+def run_plan_finalize_on_judge_completion(
+    ctx: LoopContext,
+    agents: AgentContext,
+    iteration: int,
+) -> None:
+    """
+    Judgeが正常終了を判定した際に、Planner を「最終化」モードで実行し、
+    state/plan.md 全体を現状（完了サマリ・残タスクの解消など）に合わせて更新する。
+    """
+    print("\n[計画の最終化] Planner を実行して state/plan.md を現状に合わせて更新します...")
+    cfg = ctx.runner_config
+    try:
+        agents.planner.run(
+            iteration=iteration,
+            max_retries=cfg.max_retries,
+            finalize=True,
+        )
+        print("[計画の最終化] 完了")
+    except AgentError as e:
+        ctx.logger.log_error_with_traceback(
+            "Planner(finalize)", e, context={"iteration": iteration}
+        )
+        print(f"[計画の最終化] エラー: {e}")
+    except Exception as e:
+        ctx.logger.log_error_with_traceback(
+            "Planner(finalize)", e, context={"iteration": iteration}
+        )
+        print(f"[計画の最終化] 予期しないエラー: {e}")
+
+
 def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
     """
     Run the main agent loop. Initializes session, sets up agents, and runs plan/work/judge phases.
@@ -601,6 +631,16 @@ def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
 
             if not should_continue:
                 print("\n[完了] Judgeが停止を判定しました")
+                run_plan_finalize_on_judge_completion(ctx, agents, iteration)
+                try:
+                    checkpoint_path = ctx.state_manager.create_checkpoint("completed")
+                    ctx.logger.info(f"完了時チェックポイント作成: {checkpoint_path}")
+                    if cfg.compress_old_checkpoints:
+                        n = ctx.state_manager.compress_old_checkpoints(keep_latest_n=1)
+                        if n > 0:
+                            ctx.logger.info(f"Compressed {n} old checkpoint(s)")
+                except Exception as e:
+                    ctx.logger.warning(f"Failed to create checkpoint on completion: {e}")
                 break
 
             try:
