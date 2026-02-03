@@ -110,6 +110,7 @@ AGENT_CONFIG = {
     "mode": "plan",  # For planner
     "model": LLM_MODEL,
     "prompt_template": resolve_prompt_path("PROMPT_PLANNER", "planner.md"),
+    "prompt_template_finalize": resolve_prompt_path("PROMPT_PLANNER_FINALIZE", "planner_finalize.md"),
     "prompt_template_worker": resolve_prompt_path("PROMPT_WORKER", "worker.md"),
     "prompt_template_judge": resolve_prompt_path("PROMPT_JUDGE", "judge.md"),
     "prompt_template_plan_judge": resolve_prompt_path("PROMPT_PLAN_JUDGE", "plan_judge.md"),

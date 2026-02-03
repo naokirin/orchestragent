@@ -21,9 +21,10 @@ class PlanJudgeAgent(BaseAgent):
 
     def build_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for plan judge. Role/instructions come from prompt file; context and output format are injected by the system."""
+        import config as _config
         user_part = self.load_user_prompt(
             "prompt_template",
-            "prompts/plan_judge.md",
+            _config.AGENT_CONFIG["prompt_template_plan_judge"],
             "# Plan Judge Agent\n\nPlease evaluate whether this plan and task list are appropriate.",
         )
         context_block = self._build_plan_judge_context(state)

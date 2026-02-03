@@ -32,9 +32,10 @@ class PlannerAgent(BaseAgent):
         """Build prompt for planner. Role/instructions come from prompt file; context and output format are injected by the system."""
         if self._run_finalize:
             return self._build_finalize_prompt(state)
+        import config as _config
         user_part = self.load_user_prompt(
             "prompt_template",
-            "prompts/planner.md",
+            _config.AGENT_CONFIG["prompt_template"],
             "# Planner Agent\n\nPlease create a plan and new tasks in JSON format.",
         )
         context_block = self._build_planner_context(state)
@@ -43,9 +44,10 @@ class PlannerAgent(BaseAgent):
 
     def _build_finalize_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for finalize mode: update plan.md to reflect Judge completion."""
+        import config as _config
         user_part = self.load_user_prompt(
             "prompt_template_finalize",
-            "prompts/planner_finalize.md",
+            _config.AGENT_CONFIG["prompt_template_finalize"],
             "# Planner Finalize\n\nUpdate the plan document to reflect completion.",
         )
         plan = state.get("plan", "")

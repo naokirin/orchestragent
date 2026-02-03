@@ -366,11 +366,11 @@ VALID_TRANSITIONS = {
 
 ---
 
-### 15. ハードコーディングされたパス
+### 15. ハードコーディングされたパス（対応済み 2026-02-03）
 
 **該当箇所**: エージェント内のプロンプトテンプレートパス
 
-**推奨対応**: 設定ファイルでの管理
+**対応内容**: すべてのプロンプトパスを `config.py` の `AGENT_CONFIG` で管理。`prompt_template` / `prompt_template_finalize` / `prompt_template_worker` / `prompt_template_judge` / `prompt_template_plan_judge` および `system_prompts_dir` を設定で解決し、エージェント・loop・startup では config 参照のみに統一。
 
 ---
 
@@ -492,6 +492,7 @@ VALID_TRANSITIONS = {
 ### 中長期対応項目
 
 - [x] StateManager の責務分割 ✅ 2026-02-01（FileManager / TaskManager / CheckpointManager / ValidationManager に分割、StateManager はファサードで既存API維持）
+- [x] ハードコーディングされたパス（プロンプトテンプレート） ✅ 2026-02-03（config.AGENT_CONFIG で一元管理、エージェント・loop・startup は config 参照のみ）
 - [ ] テストカバレッジの向上
 - [ ] 観測可能性（メトリクス）の追加
 - [ ] プロンプトバージョニング

@@ -216,10 +216,11 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
         config=planner_config
     )
 
+    import config as _cfg
     worker_config = cfg.agent_config.copy()
     worker_config["mode"] = "agent"
     worker_config["prompt_template"] = cfg.agent_config.get(
-        "prompt_template_worker", "prompts/worker.md"
+        "prompt_template_worker", _cfg.AGENT_CONFIG["prompt_template_worker"]
     )
     worker_config["model"] = cfg.worker_model
 
@@ -243,7 +244,7 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
     judge_config = cfg.agent_config.copy()
     judge_config["mode"] = "ask"
     judge_config["prompt_template"] = cfg.agent_config.get(
-        "prompt_template_judge", "prompts/judge.md"
+        "prompt_template_judge", _cfg.AGENT_CONFIG["prompt_template_judge"]
     )
     judge_config["model"] = cfg.judge_model
 
@@ -258,7 +259,7 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
     plan_judge_config = cfg.agent_config.copy()
     plan_judge_config["mode"] = "ask"
     plan_judge_config["prompt_template"] = cfg.agent_config.get(
-        "prompt_template_plan_judge", "prompts/plan_judge.md"
+        "prompt_template_plan_judge", _cfg.AGENT_CONFIG["prompt_template_plan_judge"]
     )
     plan_judge_config["model"] = cfg.judge_model
 
