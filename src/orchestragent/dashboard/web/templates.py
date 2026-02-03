@@ -140,8 +140,27 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
     .logs-pane.active { display: flex; flex-direction: column; }
     .logs-section { display: flex; flex-direction: column; gap: 8px; width: 100%; flex: 1; min-height: 0; padding: 16px; }
     .logs-section-title { color: #63b3ed; font-size: 16px; font-weight: normal; margin: 0; font-family: inherit; flex-shrink: 0; }
-    .logs-box { background: #2d3748; border-radius: 4px; padding: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-    #logs-container { flex: 1; min-height: 0; overflow: auto; color: #a0aec0; font-family: Inter, ui-monospace, monospace; font-size: 13px; white-space: pre-wrap; margin: 0; }
+    .logs-box { background: #2d3748; border-radius: 8px; padding: 12px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; gap: 4px; }
+    #logs-container { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 4px; }
+    /* 全体ログ: .pen design — ログ行スタイル */
+    .all-log-header { display: flex; align-items: center; gap: 12px; flex-shrink: 0; margin-bottom: 8px; }
+    .all-log-title { color: #e0e0e0; font-size: 16px; font-weight: bold; margin: 0; }
+    .all-log-badge { background: #4a5568; border-radius: 12px; padding: 4px 10px; color: #a0aec0; font-size: 12px; }
+    .log-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; width: 100%; }
+    .log-time { color: #718096; font-family: 'JetBrains Mono', monospace; font-size: 11px; flex-shrink: 0; }
+    .log-level { border-radius: 4px; padding: 2px 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: bold; flex-shrink: 0; }
+    .log-level.info { background: #2f855a; color: #9ae6b4; }
+    .log-level.debug { background: #1e3a5f; color: #90cdf4; }
+    .log-level.warn, .log-level.warning { background: #744210; color: #fbd38d; }
+    .log-level.error { background: #742a2a; color: #fc8181; }
+    .log-agent { font-family: 'JetBrains Mono', monospace; font-size: 11px; flex-shrink: 0; }
+    .log-agent.planner { color: #63b3ed; }
+    .log-agent.executor, .log-agent.worker { color: #f6ad55; }
+    .log-agent.reviewer, .log-agent.judge { color: #b794f4; }
+    .log-agent.plan_judge { color: #68d391; }
+    .log-msg { color: #e0e0e0; font-family: 'JetBrains Mono', monospace; font-size: 11px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .log-date-separator { color: #63b3ed; font-size: 12px; font-weight: bold; padding: 8px 0 4px 0; border-top: 1px solid #4a5568; margin-top: 8px; }
+    .log-date-separator:first-child { border-top: none; margin-top: 0; }
     /* Agent logs pane */
     .agent-logs-content { display: flex; gap: 16px; flex: 1; min-height: 0; padding: 16px; }
     .agent-list-panel { background: #2d3748; border-radius: 8px; width: 280px; min-width: 280px; display: flex; flex-direction: column; overflow: hidden; }
@@ -368,7 +387,10 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
       </div>
       <div id="logs-pane-all" class="logs-pane active">
         <div class="logs-section">
-          <h3 class="logs-section-title">ログ</h3>
+          <div class="all-log-header">
+            <h3 class="all-log-title">実行ログ</h3>
+            <span id="all-log-badge" class="all-log-badge">0 件</span>
+          </div>
           <div class="logs-box">
             <div id="logs-container">読込中…</div>
           </div>
@@ -638,16 +660,95 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
         }
       }
 
+      // ログ行をパースしてオブジェクトに変換
+      function parseLogLine(line) {
+        // 形式1: 2026-02-02 14:30:44,955 - agent_system - INFO - message (ミリ秒付き)
+        // 形式2: 2026-02-02 14:30:44 - agent_system - INFO - message (ミリ秒なし)
+        var match1 = line.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})[,\d]*\s+-\s+(\S+)\s+-\s+(DEBUG|INFO|WARNING|WARN|ERROR)\s+-\s+(.*)$/i);
+        if (match1) {
+          return { date: match1[1], time: match1[2], agent: match1[3], level: match1[4].toUpperCase(), message: match1[5] };
+        }
+        // 形式3: 2026-02-02 14:30:44,955 - INFO - message (エージェント名なし)
+        var match2 = line.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})[,\d]*\s+-\s+(DEBUG|INFO|WARNING|WARN|ERROR)\s+-\s+(.*)$/i);
+        if (match2) {
+          return { date: match2[1], time: match2[2], agent: null, level: match2[3].toUpperCase(), message: match2[4] };
+        }
+        return null;
+      }
+
+      // エージェント名からCSSクラスを取得
+      function getAgentClass(agentName) {
+        if (!agentName) return '';
+        var name = agentName.toLowerCase();
+        if (name.indexOf('planner') >= 0) return 'planner';
+        if (name.indexOf('executor') >= 0 || name.indexOf('worker') >= 0) return 'worker';
+        if (name.indexOf('reviewer') >= 0 || name.indexOf('judge') >= 0) return 'judge';
+        if (name.indexOf('plan_judge') >= 0) return 'plan_judge';
+        return 'planner';
+      }
+
+      // ログレベルからCSSクラスを取得
+      function getLevelClass(level) {
+        var l = (level || '').toLowerCase();
+        if (l === 'info') return 'info';
+        if (l === 'debug') return 'debug';
+        if (l === 'warning' || l === 'warn') return 'warn';
+        if (l === 'error') return 'error';
+        return 'info';
+      }
+
       function fetchAllLogs() {
         fetch('/api/logs').then(function(r) { return r.json(); }).then(function(d) {
           var el = document.getElementById('logs-container');
+          var badge = document.getElementById('all-log-badge');
           var wasBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
-          el.textContent = d.content != null ? d.content : '(ログなし)';
+          var content = d.content != null ? d.content : '';
+          if (!content) {
+            el.innerHTML = '<div style="color: #718096; text-align: center; padding: 40px;">(ログなし)</div>';
+            badge.textContent = '0 件';
+            return;
+          }
+          var lines = content.split('\\n');
+          var html = '';
+          var logCount = 0;
+          var currentDate = '';
+          lines.forEach(function(line) {
+            line = line.trim();
+            if (!line) return;
+            // 日付セパレーター
+            var dateMatch = line.match(/^===\s+(\d{4}-\d{2}-\d{2})\s+\(/);
+            if (dateMatch) {
+              currentDate = dateMatch[1];
+              html += '<div class="log-date-separator">' + escapeHtml(currentDate) + '</div>';
+              return;
+            }
+            // ログ行をパース
+            var parsed = parseLogLine(line);
+            if (parsed) {
+              logCount++;
+              var levelClass = getLevelClass(parsed.level);
+              var levelText = parsed.level === 'WARNING' ? 'WARN' : parsed.level;
+              html += '<div class="log-row">';
+              html += '<span class="log-time">' + escapeHtml(parsed.time) + '</span>';
+              html += '<span class="log-level ' + levelClass + '">' + escapeHtml(levelText) + '</span>';
+              if (parsed.agent) {
+                var agentClass = getAgentClass(parsed.agent);
+                html += '<span class="log-agent ' + agentClass + '">[' + escapeHtml(parsed.agent) + ']</span>';
+              }
+              html += '<span class="log-msg">' + escapeHtml(parsed.message) + '</span>';
+              html += '</div>';
+            } else if (line.indexOf('===') !== 0) {
+              // パースできない行はそのまま表示
+              html += '<div class="log-row"><span class="log-msg" style="color: #a0aec0;">' + escapeHtml(line) + '</span></div>';
+            }
+          });
+          el.innerHTML = html || '<div style="color: #718096; text-align: center; padding: 40px;">(ログなし)</div>';
+          badge.textContent = logCount + ' 件';
           if (logsScrollBottom || wasBottom) {
             el.scrollTop = el.scrollHeight;
           }
         }).catch(function(e) {
-          document.getElementById('logs-container').textContent = '取得失敗: ' + e.message;
+          document.getElementById('logs-container').innerHTML = '<div style="color: #fc8181; text-align: center; padding: 40px;">取得失敗: ' + escapeHtml(e.message) + '</div>';
         });
       }
 
