@@ -22,6 +22,43 @@ def check_cursor_cli() -> bool:
         return False
 
 
+def check_claude_code_cli() -> bool:
+    """Check if Claude Code CLI is available."""
+    try:
+        result = subprocess.run(
+            ['claude', '--version'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+def check_gemini_cli() -> bool:
+    """Check if Gemini CLI is available."""
+    try:
+        result = subprocess.run(
+            ['gemini', '--version'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+def get_available_backends() -> dict:
+    """Get availability status of all supported backends."""
+    return {
+        "cursor_cli": check_cursor_cli(),
+        "claude_code_cli": check_claude_code_cli(),
+        "gemini_cli": check_gemini_cli(),
+    }
+
+
 def check_cursor_auth() -> bool:
     """Check Cursor CLI authentication status."""
     try:
@@ -163,11 +200,42 @@ def print_configuration() -> None:
     print(f"  Plan_Judge モード: ask")
     print(f"  Plan_Judge プロンプト: {config.AGENT_CONFIG['prompt_template_plan_judge']}")
 
+    # Per-agent Backend Configuration
+    planner_backends = getattr(config, "PLANNER_BACKENDS", "")
+    worker_backends = getattr(config, "WORKER_BACKENDS", "")
+    judge_backends = getattr(config, "JUDGE_BACKENDS", "")
+    if planner_backends or worker_backends or judge_backends:
+        print("\n[エージェント別バックエンド設定]")
+        if planner_backends:
+            print(f"  Planner バックエンド: {planner_backends}")
+        if worker_backends:
+            print(f"  Worker バックエンド: {worker_backends}")
+        if judge_backends:
+            print(f"  Judge バックエンド: {judge_backends}")
+
+    # Per-backend Model Configuration
+    cursor_model = getattr(config, "CURSOR_CLI_MODEL", None)
+    claude_model = getattr(config, "CLAUDE_CODE_CLI_MODEL", None)
+    gemini_model = getattr(config, "GEMINI_CLI_MODEL", None)
+    if cursor_model or claude_model or gemini_model:
+        print("\n[バックエンド別モデル設定]")
+        if cursor_model:
+            print(f"  Cursor CLI モデル: {cursor_model}")
+        if claude_model:
+            print(f"  Claude Code CLI モデル: {claude_model}")
+        if gemini_model:
+            print(f"  Gemini CLI モデル: {gemini_model}")
+
     # Environment Information
     print("\n[環境情報]")
     is_container = is_running_in_container()
     print(f"  実行環境: {'コンテナ内' if is_container else 'ホスト環境'}")
-    cursor_cli_available = check_cursor_cli()
-    print(f"  Cursor CLI: {'利用可能' if cursor_cli_available else '未検出'}")
+
+    # Check all available backends
+    backends = get_available_backends()
+    print("  利用可能なバックエンド:")
+    for backend, available in backends.items():
+        status = "利用可能" if available else "未検出"
+        print(f"    - {backend}: {status}")
 
     print("=" * 60)

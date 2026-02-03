@@ -1,0 +1,195 @@
+"""Claude Code CLI client implementation."""
+
+import logging
+import subprocess
+import threading
+from pathlib import Path
+from typing import Optional, TYPE_CHECKING
+
+from .client import LLMClient
+from orchestragent.core.exceptions import LLMError, LLMTimeoutError, LLMRateLimitError
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from orchestragent.core.logger import AgentLogger
+
+
+class ClaudeCodeCLIClient(LLMClient):
+    """Client for executing agents via Claude Code CLI.
+
+    Uses the `claude` command with `-p` flag for non-interactive mode.
+    Note: Claude Code CLI does not have mode concepts like Cursor CLI.
+    The 'mode' parameter is ignored.
+    """
+
+    def __init__(
+        self,
+        project_root: str = ".",
+        output_format: str = "text",
+        default_model: Optional[str] = None,
+    ):
+        """
+        Initialize Claude Code CLI client.
+
+        Args:
+            project_root: Project root directory
+            output_format: Output format ("text", "json", or "stream-json")
+            default_model: Default model to use (e.g., "sonnet", "opus", "haiku")
+        """
+        self.project_root = Path(project_root).resolve()
+        if not self.project_root.exists():
+            raise FileNotFoundError(
+                f"Project root directory does not exist: {self.project_root}"
+            )
+        if not self.project_root.is_dir():
+            raise NotADirectoryError(
+                f"Project root is not a directory: {self.project_root}"
+            )
+        self.output_format = output_format
+        self.default_model = default_model
+
+    def call_agent(
+        self,
+        prompt: str,
+        mode: str = "agent",
+        model: Optional[str] = None,
+        agent_name: Optional[str] = None,
+        logger: Optional["AgentLogger"] = None,
+        **kwargs,
+    ) -> str:
+        """
+        Execute agent via Claude Code CLI.
+
+        Command: claude -p "prompt" --model model --output-format format
+
+        Args:
+            prompt: Prompt string
+            mode: Mode (ignored - Claude Code CLI has no mode concept)
+            model: Model to use (e.g., "sonnet", "opus", "haiku", or full model name)
+            agent_name: Name of the agent (optional, for logging)
+            logger: Logger instance (optional, for logging command output)
+            **kwargs: Other options (e.g., timeout)
+
+        Returns:
+            Agent output (string)
+        """
+        cmd = ["claude", "-p", prompt, "--output-format", self.output_format]
+
+        effective_model = model or self.default_model
+        if effective_model:
+            cmd.extend(["--model", effective_model])
+
+        timeout = kwargs.get("timeout", 300)  # Default 5 minutes
+        command_str = " ".join(cmd[:4]) + " ..."  # Don't log full prompt
+
+        # Prepare streaming log if logger is provided
+        log_stream = None
+        if logger and agent_name:
+            try:
+                log_stream = logger.start_agent_command_stream(
+                    agent_name=agent_name, command=command_str
+                )
+            except Exception as log_error:
+                if logger:
+                    logger.warning(f"Failed to start command log stream: {log_error}")
+                log_stream = None
+
+        try:
+            # Start Claude Code CLI process with stdout/stderr merged
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                cwd=str(self.project_root),
+                bufsize=1,
+            )
+        except FileNotFoundError as e:
+            error_msg = str(e)
+            if "No such file or directory" in error_msg and str(
+                self.project_root
+            ) in error_msg:
+                raise LLMError(
+                    f"Working directory does not exist: {self.project_root}. "
+                    f"Please check TARGET_PROJECT or PROJECT_ROOT configuration.",
+                    retryable=False,
+                    original_error=e,
+                )
+            else:
+                raise LLMError(
+                    "Claude Code CLI not found. Install from: "
+                    "https://docs.anthropic.com/en/docs/claude-code/installation",
+                    retryable=False,
+                    original_error=e,
+                )
+        except Exception as e:
+            raise LLMError(
+                f"Unexpected error starting Claude Code CLI: {e}",
+                retryable=True,
+                original_error=e,
+            )
+
+        collected_output = []
+
+        def _reader():
+            """Read process output line by line and stream to log."""
+            if process.stdout is None:
+                return
+            for line in process.stdout:
+                collected_output.append(line)
+                if log_stream:
+                    try:
+                        log_stream.write(line)
+                    except OSError as e:
+                        logger.debug("Failed to write to log stream: %s", e)
+
+        reader_thread = threading.Thread(target=_reader, daemon=True)
+        reader_thread.start()
+
+        try:
+            returncode = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired as e:
+            process.kill()
+            if log_stream:
+                try:
+                    log_stream.write("\n[Claude Code CLI timed out]\n")
+                except OSError as write_error:
+                    logger.debug("Failed to write timeout message: %s", write_error)
+            raise LLMTimeoutError(timeout, e)
+        finally:
+            reader_thread.join(timeout=5)
+            if log_stream:
+                try:
+                    log_stream.close()
+                except OSError as close_error:
+                    logger.debug("Failed to close log stream: %s", close_error)
+
+        output_text = "".join(collected_output)
+
+        if returncode != 0:
+            stderr = output_text or ""
+            if "rate limit" in stderr.lower() or "429" in stderr:
+                raise LLMRateLimitError(f"Claude Code CLI rate limit: {stderr}")
+            if "timeout" in stderr.lower():
+                raise LLMTimeoutError(timeout, RuntimeError(stderr))
+            raise LLMError(f"Claude Code CLI error: {stderr}", retryable=True)
+
+        return output_text
+
+    def call_agent_from_file(
+        self,
+        prompt_file: str,
+        mode: str = "agent",
+        model: Optional[str] = None,
+        **kwargs,
+    ) -> str:
+        """Load prompt from file and execute."""
+        prompt_path = Path(prompt_file)
+        if not prompt_path.exists():
+            raise FileNotFoundError(f"Prompt file not found: {prompt_file}")
+
+        with open(prompt_path, "r", encoding="utf-8") as f:
+            prompt = f.read()
+
+        return self.call_agent(prompt, mode, model, **kwargs)

@@ -11,6 +11,7 @@ from orchestragent.core.exceptions import AgentError
 from orchestragent.core.logger import AgentLogger
 from orchestragent.llm.client import LLMClient
 from orchestragent.llm.factory import LLMClientFactory
+from orchestragent.llm.backend_config import AgentBackendConfig, LLMBackendSettings
 from orchestragent.state.manager import StateManager
 from orchestragent.state.file_lock import FileLockManager
 from orchestragent.scheduler.task_scheduler import TaskScheduler
@@ -55,6 +56,16 @@ class RunnerConfig:
     worker_model_standard: Optional[str] = None
     worker_model_powerful: Optional[str] = None
     compress_old_checkpoints: bool = True
+    # Per-agent backend configuration with fallback
+    planner_backends: str = ""
+    worker_backends: str = ""
+    judge_backends: str = ""
+    # Per-backend default models
+    cursor_cli_model: Optional[str] = None
+    claude_code_cli_model: Optional[str] = None
+    gemini_cli_model: Optional[str] = None
+    # Backend availability check
+    check_backend_availability: bool = True
 
     @classmethod
     def from_global_config(cls) -> "RunnerConfig":
@@ -86,6 +97,37 @@ class RunnerConfig:
             worker_model_standard=global_config.WORKER_MODEL_STANDARD,
             worker_model_powerful=global_config.WORKER_MODEL_POWERFUL,
             compress_old_checkpoints=global_config.COMPRESS_OLD_CHECKPOINTS,
+            planner_backends=getattr(global_config, "PLANNER_BACKENDS", ""),
+            worker_backends=getattr(global_config, "WORKER_BACKENDS", ""),
+            judge_backends=getattr(global_config, "JUDGE_BACKENDS", ""),
+            cursor_cli_model=getattr(global_config, "CURSOR_CLI_MODEL", None),
+            claude_code_cli_model=getattr(global_config, "CLAUDE_CODE_CLI_MODEL", None),
+            gemini_cli_model=getattr(global_config, "GEMINI_CLI_MODEL", None),
+            check_backend_availability=getattr(global_config, "CHECK_BACKEND_AVAILABILITY", True),
+        )
+
+    def build_backend_settings(self) -> LLMBackendSettings:
+        """Build LLMBackendSettings from this config."""
+        return LLMBackendSettings(
+            default_backend=self.llm_backend,
+            default_model=self.planner_model,  # Backward compat: use first agent model as default
+            output_format=self.llm_output_format,
+            project_root=self.working_dir,
+            cursor_cli_model=self.cursor_cli_model,
+            claude_code_cli_model=self.claude_code_cli_model,
+            gemini_cli_model=self.gemini_cli_model,
+            planner_backends=(
+                AgentBackendConfig.from_string(self.planner_backends)
+                if self.planner_backends else None
+            ),
+            worker_backends=(
+                AgentBackendConfig.from_string(self.worker_backends)
+                if self.worker_backends else None
+            ),
+            judge_backends=(
+                AgentBackendConfig.from_string(self.judge_backends)
+                if self.judge_backends else None
+            ),
         )
 
 
@@ -95,10 +137,14 @@ class LoopContext:
 
     state_manager: StateManager
     logger: AgentLogger
-    llm_client: LLMClient
+    llm_client: LLMClient  # Default client for backward compatibility
     file_lock_manager: FileLockManager
     task_scheduler: TaskScheduler
     runner_config: RunnerConfig
+    backend_settings: Optional[LLMBackendSettings] = None
+    planner_client: Optional[LLMClient] = None
+    worker_client: Optional[LLMClient] = None
+    judge_client: Optional[LLMClient] = None
 
 
 @dataclass
@@ -154,11 +200,37 @@ def initialize_session(cfg: Optional[RunnerConfig] = None) -> LoopContext:
 
     print("\n[初期化] コンポーネントを初期化しています...")
 
-    llm_client = LLMClientFactory.create(
-        backend=cfg.llm_backend,
-        project_root=cfg.working_dir,
-        output_format=cfg.llm_output_format
+    # Build backend settings for per-agent client creation
+    backend_settings = cfg.build_backend_settings()
+
+    # Create per-agent clients if configured, otherwise use default
+    has_per_agent_backends = (
+        cfg.planner_backends or cfg.worker_backends or cfg.judge_backends
     )
+
+    if has_per_agent_backends:
+        print("[初期化] エージェント別バックエンド設定を検出しました")
+        planner_client = LLMClientFactory.create_for_agent(
+            "planner", backend_settings, cfg.planner_model, cfg.check_backend_availability
+        )
+        worker_client = LLMClientFactory.create_for_agent(
+            "worker", backend_settings, cfg.worker_model, cfg.check_backend_availability
+        )
+        judge_client = LLMClientFactory.create_for_agent(
+            "judge", backend_settings, cfg.judge_model, cfg.check_backend_availability
+        )
+        # Use planner_client as default for backward compatibility
+        llm_client = planner_client
+    else:
+        # Backward compatible: single client for all agents
+        llm_client = LLMClientFactory.create(
+            backend=cfg.llm_backend,
+            project_root=cfg.working_dir,
+            output_format=cfg.llm_output_format
+        )
+        planner_client = None
+        worker_client = None
+        judge_client = None
 
     state_manager = StateManager(state_dir=cfg.state_dir)
 
@@ -198,19 +270,29 @@ def initialize_session(cfg: Optional[RunnerConfig] = None) -> LoopContext:
         file_lock_manager=file_lock_manager,
         task_scheduler=task_scheduler,
         runner_config=cfg,
+        backend_settings=backend_settings,
+        planner_client=planner_client,
+        worker_client=worker_client,
+        judge_client=judge_client,
     )
 
 
 def setup_agents(ctx: LoopContext) -> AgentContext:
     """Set up agents (Planner, Worker, Judge, Plan_Judge). Testable unit; config from ctx.runner_config."""
     cfg = ctx.runner_config
+
+    # Use per-agent clients if available, otherwise fall back to default
+    planner_llm = ctx.planner_client or ctx.llm_client
+    worker_llm = ctx.worker_client or ctx.llm_client
+    judge_llm = ctx.judge_client or ctx.llm_client
+
     planner_config = cfg.agent_config.copy()
     planner_config["mode"] = "plan"
     planner_config["model"] = cfg.planner_model
 
     planner = PlannerAgent(
         name="Planner",
-        llm_client=ctx.llm_client,
+        llm_client=planner_llm,
         state_manager=ctx.state_manager,
         logger=ctx.logger,
         config=planner_config
@@ -226,7 +308,7 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
 
     worker = WorkerAgent(
         name="Worker",
-        llm_client=ctx.llm_client,
+        llm_client=worker_llm,
         state_manager=ctx.state_manager,
         logger=ctx.logger,
         config=worker_config,
@@ -250,7 +332,7 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
 
     judge = JudgeAgent(
         name="Judge",
-        llm_client=ctx.llm_client,
+        llm_client=judge_llm,
         state_manager=ctx.state_manager,
         logger=ctx.logger,
         config=judge_config
@@ -265,7 +347,7 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
 
     plan_judge = PlanJudgeAgent(
         name="Plan_Judge",
-        llm_client=ctx.llm_client,
+        llm_client=judge_llm,
         state_manager=ctx.state_manager,
         logger=ctx.logger,
         config=plan_judge_config,
@@ -366,9 +448,11 @@ def run_work_phase(
             def run_worker_task(task_data) -> Dict[str, Any]:
                 task_id = task_data.id
                 rc = agents.runner_config
+                # Use per-agent client if available
+                worker_llm = ctx.worker_client or ctx.llm_client
                 worker_instance = WorkerAgent(
                     name=f"Worker-{task_id}",
-                    llm_client=ctx.llm_client,
+                    llm_client=worker_llm,
                     state_manager=ctx.state_manager,
                     logger=ctx.logger,
                     config=agents.worker_config,

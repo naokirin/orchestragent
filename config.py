@@ -48,6 +48,22 @@ PLANNER_MODEL = _env_or_default("PLANNER_MODEL", LLM_MODEL)
 WORKER_MODEL = _env_or_default("WORKER_MODEL", LLM_MODEL)  # Default model for workers
 JUDGE_MODEL = _env_or_default("JUDGE_MODEL", LLM_MODEL)
 
+# Per-agent backend configuration with fallback
+# Format: "backend1:model1,backend2:model2,..."
+# Example: "claude_code_cli:opus,cursor_cli:claude-3-5-sonnet"
+# If model is omitted, falls back to backend-specific -> agent-specific -> global model
+PLANNER_BACKENDS = os.getenv("PLANNER_BACKENDS", "")
+WORKER_BACKENDS = os.getenv("WORKER_BACKENDS", "")
+JUDGE_BACKENDS = os.getenv("JUDGE_BACKENDS", "")
+
+# Per-backend default models (used when not specified in *_BACKENDS)
+CURSOR_CLI_MODEL = _env_or_default("CURSOR_CLI_MODEL", None)
+CLAUDE_CODE_CLI_MODEL = _env_or_default("CLAUDE_CODE_CLI_MODEL", None)
+GEMINI_CLI_MODEL = _env_or_default("GEMINI_CLI_MODEL", None)
+
+# Backend availability check (skip unavailable backends in fallback)
+CHECK_BACKEND_AVAILABILITY = os.getenv("CHECK_BACKEND_AVAILABILITY", "true").lower() == "true"
+
 # Dynamic Model Selection for Workers
 # These models are used when dynamic selection is enabled
 WORKER_MODEL_LIGHT = os.getenv("WORKER_MODEL_LIGHT", WORKER_MODEL)  # For simple tasks

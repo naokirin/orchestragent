@@ -231,6 +231,42 @@ docker compose run --rm -p 8765:8765 -e WEB_DASHBOARD_HOST=0.0.0.0 agent python 
 | `ENABLE_PARALLEL_EXECUTION` | 並列実行の有効化                                                                                   | `true`                                 |
 | `PROMPT_PLANNER` / `PROMPT_WORKER` / `PROMPT_JUDGE` / `PROMPT_PLAN_JUDGE` | 各エージェントのプロンプトファイルのパス（任意）。未設定時は対象プロジェクトの `prompts/<name>.md`、なければデフォルトを使用。入出力契約は [PROMPT_CONTRACT.md](./docs/dev/PROMPT_CONTRACT.md) を参照 | 未設定（上記の優先順で解決）           |
 
+#### LLMバックエンド設定
+
+複数のCLIバックエンド（Cursor CLI、Claude Code CLI、Gemini CLI）をサポートしています。エージェントごとにバックエンドをフォールバック付きで設定できます。
+
+| 変数名                    | 説明                                                                                             | デフォルト値   |
+| ------------------------- | ------------------------------------------------------------------------------------------------ | -------------- |
+| `LLM_BACKEND`             | デフォルトのLLMバックエンド（`cursor_cli`, `claude_code_cli`, `gemini_cli`）                    | `cursor_cli`   |
+| `PLANNER_BACKENDS`        | Plannerエージェントのバックエンド（フォールバック付き、例: `claude_code_cli:opus,cursor_cli`）  | 空（デフォルト使用） |
+| `WORKER_BACKENDS`         | Workerエージェントのバックエンド（フォールバック付き）                                           | 空（デフォルト使用） |
+| `JUDGE_BACKENDS`          | Judgeエージェントのバックエンド（フォールバック付き）                                            | 空（デフォルト使用） |
+| `CURSOR_CLI_MODEL`        | Cursor CLIのデフォルトモデル                                                                     | 未設定         |
+| `CLAUDE_CODE_CLI_MODEL`   | Claude Code CLIのデフォルトモデル（例: `opus`, `sonnet`, `haiku`）                               | 未設定         |
+| `GEMINI_CLI_MODEL`        | Gemini CLIのデフォルトモデル（例: `gemini-2.5-flash`, `gemini-2.5-pro`）                         | 未設定         |
+| `CHECK_BACKEND_AVAILABILITY` | バックエンドの可用性チェックを有効化（`true`/`false`）                                         | `true`         |
+
+**バックエンド設定の書式**:
+```
+backend_name:model,backend_name2:model2,...
+```
+
+例:
+```bash
+# Claude Code CLIをプライマリ、Cursor CLIをフォールバックとして使用
+PLANNER_BACKENDS=claude_code_cli:opus,cursor_cli:claude-3-5-sonnet
+
+# Gemini CLIのみ使用
+JUDGE_BACKENDS=gemini_cli:gemini-2.5-flash
+```
+
+**モデル決定の優先順位**:
+1. バックエンド文字列でのモデル指定（例: `cursor_cli:claude-3-5-sonnet`）
+2. バックエンド固有モデル（`CURSOR_CLI_MODEL`等）
+3. エージェント固有モデル（`PLANNER_MODEL`等）
+4. グローバルモデル（`LLM_MODEL`）
+5. CLIのデフォルト
+
 ### プロンプトのカスタマイズ
 
 各ステップのエージェント（Planner / Worker / Judge / Plan_Judge）のプロンプトは、次のいずれかで差し替えできます。

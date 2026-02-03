@@ -42,6 +42,29 @@ class LLMRateLimitError(LLMError):
         super().__init__(message, retryable=True, original_error=original_error)
 
 
+class BackendUnavailableError(LLMError):
+    """Error when a specific backend is not available."""
+
+    def __init__(self, backend: str, original_error: Optional[Exception] = None):
+        message = f"Backend '{backend}' is not available"
+        super().__init__(message, retryable=True, original_error=original_error)
+        self.backend = backend
+
+
+class AllBackendsFailedError(LLMError):
+    """Error when all fallback backends have failed."""
+
+    def __init__(
+        self,
+        errors: list,  # List[Tuple[str, Exception]]
+        original_error: Optional[Exception] = None,
+    ):
+        error_summary = "; ".join(f"{name}: {err}" for name, err in errors)
+        message = f"All backends failed: {error_summary}"
+        super().__init__(message, retryable=False, original_error=original_error)
+        self.errors = errors
+
+
 class StateError(AgentError):
     """Error related to state management."""
 
