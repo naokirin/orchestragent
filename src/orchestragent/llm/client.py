@@ -3,6 +3,8 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from .backend_config import ModelTier
+
 
 class LLMClient(ABC):
     """Abstract base class for LLM clients.
@@ -17,6 +19,7 @@ class LLMClient(ABC):
         prompt: str,
         mode: str = "agent",
         model: Optional[str] = None,
+        model_tier: Optional[ModelTier] = None,
         **kwargs
     ) -> str:
         """
@@ -26,6 +29,8 @@ class LLMClient(ABC):
             prompt: Prompt string
             mode: Mode ("agent", "plan", "ask")
             model: Model to use (optional, depends on backend)
+            model_tier: Model tier for dynamic selection ("light", "standard", "powerful")
+                       If provided, overrides model with tier-specific model if configured
             **kwargs: Other options
 
         Returns:
@@ -42,6 +47,7 @@ class LLMClient(ABC):
         prompt_file: str,
         mode: str = "agent",
         model: Optional[str] = None,
+        model_tier: Optional[ModelTier] = None,
         **kwargs
     ) -> str:
         """
@@ -51,6 +57,7 @@ class LLMClient(ABC):
             prompt_file: Path to prompt file
             mode: Mode ("agent", "plan", "ask")
             model: Model to use (optional)
+            model_tier: Model tier for dynamic selection ("light", "standard", "powerful")
             **kwargs: Other options
 
         Returns:

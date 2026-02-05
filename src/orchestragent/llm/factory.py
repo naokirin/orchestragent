@@ -25,6 +25,9 @@ class LLMClientFactory:
         project_root: str = ".",
         output_format: str = "text",
         model: Optional[str] = None,
+        model_light: Optional[str] = None,
+        model_standard: Optional[str] = None,
+        model_powerful: Optional[str] = None,
         **kwargs,
     ) -> LLMClient:
         """
@@ -40,6 +43,9 @@ class LLMClientFactory:
             project_root: Project root directory
             output_format: Output format ("text", "json", "stream-json")
             model: Default model for the backend
+            model_light: Model for light tasks (dynamic selection)
+            model_standard: Model for standard tasks (dynamic selection)
+            model_powerful: Model for powerful tasks (dynamic selection)
             **kwargs: Backend-specific settings
 
         Returns:
@@ -52,18 +58,27 @@ class LLMClientFactory:
             return CursorCLIClient(
                 project_root=project_root,
                 output_format=output_format,
+                model_light=model_light,
+                model_standard=model_standard,
+                model_powerful=model_powerful,
             )
         elif backend == "claude_code_cli":
             return ClaudeCodeCLIClient(
                 project_root=project_root,
                 output_format=output_format,
                 default_model=model,
+                model_light=model_light,
+                model_standard=model_standard,
+                model_powerful=model_powerful,
             )
         elif backend == "gemini_cli":
             return GeminiCLIClient(
                 project_root=project_root,
                 output_format=output_format,
                 default_model=model,
+                model_light=model_light,
+                model_standard=model_standard,
+                model_powerful=model_powerful,
             )
         else:
             raise ValueError(
@@ -113,6 +128,9 @@ class LLMClientFactory:
                     project_root=project_root,
                     output_format=backend_cfg.output_format or output_format,
                     model=backend_cfg.model,
+                    model_light=backend_cfg.model_light,
+                    model_standard=backend_cfg.model_standard,
+                    model_powerful=backend_cfg.model_powerful,
                 )
                 clients.append((backend_cfg.name, client))
             except Exception as e:

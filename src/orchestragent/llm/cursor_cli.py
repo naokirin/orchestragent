@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional, TYPE_CHECKING
 
 from .client import LLMClient
+from .backend_config import ModelTier
 from orchestragent.core.exceptions import LLMError, LLMTimeoutError, LLMRateLimitError
 
 logger = logging.getLogger(__name__)
@@ -18,13 +19,23 @@ if TYPE_CHECKING:
 class CursorCLIClient(LLMClient):
     """Client for executing agents via Cursor CLI."""
 
-    def __init__(self, project_root: str = ".", output_format: str = "text"):
+    def __init__(
+        self,
+        project_root: str = ".",
+        output_format: str = "text",
+        model_light: Optional[str] = None,
+        model_standard: Optional[str] = None,
+        model_powerful: Optional[str] = None,
+    ):
         """
         Initialize Cursor CLI client.
 
         Args:
             project_root: Project root directory
             output_format: Output format ("text" or "json")
+            model_light: Model for light tasks (dynamic selection)
+            model_standard: Model for standard tasks (dynamic selection)
+            model_powerful: Model for powerful tasks (dynamic selection)
         """
         self.project_root = Path(project_root).resolve()
         if not self.project_root.exists():
@@ -36,12 +47,43 @@ class CursorCLIClient(LLMClient):
                 f"Project root is not a directory: {self.project_root}"
             )
         self.output_format = output_format
+        # Dynamic model selection
+        self.model_light = model_light
+        self.model_standard = model_standard
+        self.model_powerful = model_powerful
+
+    def _resolve_model(
+        self, model: Optional[str], model_tier: Optional[ModelTier]
+    ) -> Optional[str]:
+        """
+        Resolve the model based on tier.
+
+        Args:
+            model: Explicitly specified model (takes precedence)
+            model_tier: Model tier for dynamic selection
+
+        Returns:
+            Resolved model name, or None to use CLI default
+        """
+        if model:
+            return model
+
+        if model_tier:
+            tier_models = {
+                "light": self.model_light,
+                "standard": self.model_standard,
+                "powerful": self.model_powerful,
+            }
+            return tier_models.get(model_tier)
+
+        return None
 
     def call_agent(
         self,
         prompt: str,
         mode: str = "agent",
         model: Optional[str] = None,
+        model_tier: Optional[ModelTier] = None,
         agent_name: Optional[str] = None,
         logger: Optional["AgentLogger"] = None,
         **kwargs
@@ -53,6 +95,7 @@ class CursorCLIClient(LLMClient):
             prompt: Prompt string
             mode: Mode ("agent", "plan", "ask")
             model: Model to use (optional)
+            model_tier: Model tier for dynamic selection ("light", "standard", "powerful")
             agent_name: Name of the agent (optional, for logging)
             logger: Logger instance (optional, for logging command output)
             **kwargs: Other options (e.g., timeout)
@@ -60,13 +103,14 @@ class CursorCLIClient(LLMClient):
         Returns:
             Agent output (string)
         """
+        resolved_model = self._resolve_model(model, model_tier)
         cmd = ['agent', '-p', prompt, '--output-format', self.output_format]
 
         if mode != "agent":
             cmd.extend(['--mode', mode])
 
-        if model:
-            cmd.extend(['--model', model])
+        if resolved_model:
+            cmd.extend(['--model', resolved_model])
 
         timeout = kwargs.get('timeout', 300)  # Default 5 minutes
         command_str = ' '.join(cmd)
@@ -175,6 +219,7 @@ class CursorCLIClient(LLMClient):
         prompt_file: str,
         mode: str = "agent",
         model: Optional[str] = None,
+        model_tier: Optional[ModelTier] = None,
         **kwargs
     ) -> str:
         """Load prompt from file and execute."""
@@ -185,4 +230,4 @@ class CursorCLIClient(LLMClient):
         with open(prompt_path, 'r', encoding='utf-8') as f:
             prompt = f.read()
 
-        return self.call_agent(prompt, mode, model, **kwargs)
+        return self.call_agent(prompt, mode, model, model_tier=model_tier, **kwargs)

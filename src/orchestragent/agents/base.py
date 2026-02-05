@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from orchestragent.llm.client import LLMClient
+from orchestragent.llm.backend_config import ModelTier
 from orchestragent.state.manager import StateManager
 from orchestragent.core.logger import AgentLogger
 from orchestragent.core.exceptions import AgentError, LLMError
@@ -52,6 +53,8 @@ class BaseAgent:
         self.logger = logger
         self.config = config or {}
         self.mode = self.config.get("mode", "agent")
+        # Model tier for dynamic model selection (set by subclasses if needed)
+        self._model_tier: Optional[ModelTier] = None
 
     def load_user_prompt(
         self,
@@ -198,14 +201,16 @@ class BaseAgent:
         # 3. Call LLM
         # Log which model/mode this agent will use for this run
         current_model = self.config.get("model") or "default"
+        tier_info = f", tier={self._model_tier}" if self._model_tier else ""
         self.logger.info(
             f"[{self.name}] Starting run "
-            f"(mode={self.mode}, model={current_model}, iteration={iteration})"
+            f"(mode={self.mode}, model={current_model}{tier_info}, iteration={iteration})"
         )
         response = self.llm_client.call_agent(
             prompt=prompt,
             mode=self.mode,
             model=self.config.get("model"),
+            model_tier=self._model_tier,
             agent_name=self.name,
             logger=self.logger
         )

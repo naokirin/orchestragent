@@ -4,14 +4,43 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 
 
+# Model tier types for dynamic model selection
+ModelTier = str  # "light", "standard", "powerful"
+
+
 @dataclass
 class BackendConfig:
     """Configuration for a single LLM backend."""
 
     name: str  # "cursor_cli", "claude_code_cli", "gemini_cli"
-    model: Optional[str] = None  # Model to use for this backend
+    model: Optional[str] = None  # Default model to use for this backend
     output_format: str = "text"
     enabled: bool = True
+    # Dynamic model selection models (per-backend)
+    model_light: Optional[str] = None
+    model_standard: Optional[str] = None
+    model_powerful: Optional[str] = None
+
+    def get_model_for_tier(self, tier: Optional[ModelTier] = None) -> Optional[str]:
+        """
+        Get the model for a specific complexity tier.
+
+        Args:
+            tier: "light", "standard", "powerful", or None (use default model)
+
+        Returns:
+            Model name for the tier, or default model if tier not specified
+        """
+        if tier is None:
+            return self.model
+
+        tier_models = {
+            "light": self.model_light,
+            "standard": self.model_standard,
+            "powerful": self.model_powerful,
+        }
+        # Fall back to default model if tier-specific model not set
+        return tier_models.get(tier) or self.model
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
@@ -20,6 +49,9 @@ class BackendConfig:
             "model": self.model,
             "output_format": self.output_format,
             "enabled": self.enabled,
+            "model_light": self.model_light,
+            "model_standard": self.model_standard,
+            "model_powerful": self.model_powerful,
         }
 
 
@@ -85,6 +117,15 @@ class AgentBackendConfig:
 
 
 @dataclass
+class BackendDynamicModels:
+    """Dynamic model selection models for a specific backend."""
+
+    model_light: Optional[str] = None
+    model_standard: Optional[str] = None
+    model_powerful: Optional[str] = None
+
+
+@dataclass
 class LLMBackendSettings:
     """
     Complete LLM backend settings for all agents.
@@ -92,6 +133,7 @@ class LLMBackendSettings:
     Supports:
     1. Global default backend (backward compatible)
     2. Per-agent backend configuration with fallback
+    3. Per-backend dynamic model selection
     """
 
     default_backend: str = "cursor_cli"
@@ -103,6 +145,11 @@ class LLMBackendSettings:
     cursor_cli_model: Optional[str] = None
     claude_code_cli_model: Optional[str] = None
     gemini_cli_model: Optional[str] = None
+
+    # Per-backend dynamic model selection
+    cursor_cli_dynamic_models: Optional[BackendDynamicModels] = None
+    claude_code_cli_dynamic_models: Optional[BackendDynamicModels] = None
+    gemini_cli_dynamic_models: Optional[BackendDynamicModels] = None
 
     # Per-agent overrides (None = use default)
     planner_backends: Optional[AgentBackendConfig] = None
@@ -117,6 +164,15 @@ class LLMBackendSettings:
             "gemini_cli": self.gemini_cli_model,
         }
         return models.get(backend_name)
+
+    def get_backend_dynamic_models(self, backend_name: str) -> Optional[BackendDynamicModels]:
+        """Get the dynamic model settings for a specific backend."""
+        dynamic_models = {
+            "cursor_cli": self.cursor_cli_dynamic_models,
+            "claude_code_cli": self.claude_code_cli_dynamic_models,
+            "gemini_cli": self.gemini_cli_dynamic_models,
+        }
+        return dynamic_models.get(backend_name)
 
     def get_agent_config(
         self, agent_type: str, agent_model: Optional[str] = None
@@ -143,6 +199,9 @@ class LLMBackendSettings:
             # Apply model fallback for backends without explicit model
             resolved_backends = []
             for backend in agent_config.backends:
+                # Get dynamic models for this backend
+                dynamic_models = self.get_backend_dynamic_models(backend.name)
+
                 if backend.model is None:
                     # Fallback order: backend-specific -> agent-specific -> global
                     resolved_model = (
@@ -150,16 +209,29 @@ class LLMBackendSettings:
                         or agent_model
                         or self.default_model
                     )
-                    resolved_backends.append(
-                        BackendConfig(
-                            name=backend.name,
-                            model=resolved_model,
-                            output_format=backend.output_format,
-                            enabled=backend.enabled,
-                        )
-                    )
                 else:
-                    resolved_backends.append(backend)
+                    resolved_model = backend.model
+
+                # Apply dynamic models if available
+                model_light = None
+                model_standard = None
+                model_powerful = None
+                if dynamic_models:
+                    model_light = dynamic_models.model_light
+                    model_standard = dynamic_models.model_standard
+                    model_powerful = dynamic_models.model_powerful
+
+                resolved_backends.append(
+                    BackendConfig(
+                        name=backend.name,
+                        model=resolved_model,
+                        output_format=backend.output_format,
+                        enabled=backend.enabled,
+                        model_light=model_light,
+                        model_standard=model_standard,
+                        model_powerful=model_powerful,
+                    )
+                )
             return AgentBackendConfig(backends=resolved_backends)
 
         # Fall back to default backend with model fallback
@@ -168,4 +240,20 @@ class LLMBackendSettings:
             or agent_model
             or self.default_model
         )
-        return AgentBackendConfig.single(name=self.default_backend, model=resolved_model)
+        # Get dynamic models for default backend
+        dynamic_models = self.get_backend_dynamic_models(self.default_backend)
+        model_light = dynamic_models.model_light if dynamic_models else None
+        model_standard = dynamic_models.model_standard if dynamic_models else None
+        model_powerful = dynamic_models.model_powerful if dynamic_models else None
+
+        return AgentBackendConfig(
+            backends=[
+                BackendConfig(
+                    name=self.default_backend,
+                    model=resolved_model,
+                    model_light=model_light,
+                    model_standard=model_standard,
+                    model_powerful=model_powerful,
+                )
+            ]
+        )

@@ -11,7 +11,11 @@ from orchestragent.core.exceptions import AgentError
 from orchestragent.core.logger import AgentLogger
 from orchestragent.llm.client import LLMClient
 from orchestragent.llm.factory import LLMClientFactory
-from orchestragent.llm.backend_config import AgentBackendConfig, LLMBackendSettings
+from orchestragent.llm.backend_config import (
+    AgentBackendConfig,
+    LLMBackendSettings,
+    BackendDynamicModels,
+)
 from orchestragent.state.manager import StateManager
 from orchestragent.state.file_lock import FileLockManager
 from orchestragent.scheduler.task_scheduler import TaskScheduler
@@ -64,6 +68,16 @@ class RunnerConfig:
     cursor_cli_model: Optional[str] = None
     claude_code_cli_model: Optional[str] = None
     gemini_cli_model: Optional[str] = None
+    # Per-backend dynamic model selection
+    cursor_cli_model_light: Optional[str] = None
+    cursor_cli_model_standard: Optional[str] = None
+    cursor_cli_model_powerful: Optional[str] = None
+    claude_code_cli_model_light: Optional[str] = None
+    claude_code_cli_model_standard: Optional[str] = None
+    claude_code_cli_model_powerful: Optional[str] = None
+    gemini_cli_model_light: Optional[str] = None
+    gemini_cli_model_standard: Optional[str] = None
+    gemini_cli_model_powerful: Optional[str] = None
     # Backend availability check
     check_backend_availability: bool = True
 
@@ -103,11 +117,45 @@ class RunnerConfig:
             cursor_cli_model=getattr(global_config, "CURSOR_CLI_MODEL", None),
             claude_code_cli_model=getattr(global_config, "CLAUDE_CODE_CLI_MODEL", None),
             gemini_cli_model=getattr(global_config, "GEMINI_CLI_MODEL", None),
+            cursor_cli_model_light=getattr(global_config, "CURSOR_CLI_MODEL_LIGHT", None),
+            cursor_cli_model_standard=getattr(global_config, "CURSOR_CLI_MODEL_STANDARD", None),
+            cursor_cli_model_powerful=getattr(global_config, "CURSOR_CLI_MODEL_POWERFUL", None),
+            claude_code_cli_model_light=getattr(global_config, "CLAUDE_CODE_CLI_MODEL_LIGHT", None),
+            claude_code_cli_model_standard=getattr(global_config, "CLAUDE_CODE_CLI_MODEL_STANDARD", None),
+            claude_code_cli_model_powerful=getattr(global_config, "CLAUDE_CODE_CLI_MODEL_POWERFUL", None),
+            gemini_cli_model_light=getattr(global_config, "GEMINI_CLI_MODEL_LIGHT", None),
+            gemini_cli_model_standard=getattr(global_config, "GEMINI_CLI_MODEL_STANDARD", None),
+            gemini_cli_model_powerful=getattr(global_config, "GEMINI_CLI_MODEL_POWERFUL", None),
             check_backend_availability=getattr(global_config, "CHECK_BACKEND_AVAILABILITY", True),
         )
 
     def build_backend_settings(self) -> LLMBackendSettings:
         """Build LLMBackendSettings from this config."""
+        # Build per-backend dynamic models
+        cursor_dynamic = None
+        if any([self.cursor_cli_model_light, self.cursor_cli_model_standard, self.cursor_cli_model_powerful]):
+            cursor_dynamic = BackendDynamicModels(
+                model_light=self.cursor_cli_model_light,
+                model_standard=self.cursor_cli_model_standard,
+                model_powerful=self.cursor_cli_model_powerful,
+            )
+
+        claude_dynamic = None
+        if any([self.claude_code_cli_model_light, self.claude_code_cli_model_standard, self.claude_code_cli_model_powerful]):
+            claude_dynamic = BackendDynamicModels(
+                model_light=self.claude_code_cli_model_light,
+                model_standard=self.claude_code_cli_model_standard,
+                model_powerful=self.claude_code_cli_model_powerful,
+            )
+
+        gemini_dynamic = None
+        if any([self.gemini_cli_model_light, self.gemini_cli_model_standard, self.gemini_cli_model_powerful]):
+            gemini_dynamic = BackendDynamicModels(
+                model_light=self.gemini_cli_model_light,
+                model_standard=self.gemini_cli_model_standard,
+                model_powerful=self.gemini_cli_model_powerful,
+            )
+
         return LLMBackendSettings(
             default_backend=self.llm_backend,
             default_model=self.planner_model,  # Backward compat: use first agent model as default
@@ -116,6 +164,9 @@ class RunnerConfig:
             cursor_cli_model=self.cursor_cli_model,
             claude_code_cli_model=self.claude_code_cli_model,
             gemini_cli_model=self.gemini_cli_model,
+            cursor_cli_dynamic_models=cursor_dynamic,
+            claude_code_cli_dynamic_models=claude_dynamic,
+            gemini_cli_dynamic_models=gemini_dynamic,
             planner_backends=(
                 AgentBackendConfig.from_string(self.planner_backends)
                 if self.planner_backends else None

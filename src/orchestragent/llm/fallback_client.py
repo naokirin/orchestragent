@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple, TYPE_CHECKING
 
 from .client import LLMClient
+from .backend_config import ModelTier
 from orchestragent.core.exceptions import LLMError
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ class FallbackLLMClient(LLMClient):
         prompt: str,
         mode: str = "agent",
         model: Optional[str] = None,
+        model_tier: Optional[ModelTier] = None,
         agent_name: Optional[str] = None,
         logger_instance: Optional["AgentLogger"] = None,
         **kwargs,
@@ -55,6 +57,7 @@ class FallbackLLMClient(LLMClient):
             prompt: Prompt string
             mode: Mode ("agent", "plan", "ask")
             model: Model to use (optional, backend may override)
+            model_tier: Model tier for dynamic selection ("light", "standard", "powerful")
             agent_name: Name of the agent (optional, for logging)
             logger_instance: Logger instance (optional)
             **kwargs: Other options (e.g., timeout)
@@ -75,6 +78,7 @@ class FallbackLLMClient(LLMClient):
                     prompt=prompt,
                     mode=mode,
                     model=model,
+                    model_tier=model_tier,
                     agent_name=agent_name,
                     logger=logger_instance,
                     **kwargs,
@@ -114,6 +118,7 @@ class FallbackLLMClient(LLMClient):
         prompt_file: str,
         mode: str = "agent",
         model: Optional[str] = None,
+        model_tier: Optional[ModelTier] = None,
         **kwargs,
     ) -> str:
         """Load prompt from file and delegate to call_agent."""
@@ -124,7 +129,7 @@ class FallbackLLMClient(LLMClient):
         with open(prompt_path, "r", encoding="utf-8") as f:
             prompt = f.read()
 
-        return self.call_agent(prompt, mode, model, **kwargs)
+        return self.call_agent(prompt, mode, model, model_tier=model_tier, **kwargs)
 
     @property
     def last_successful_backend(self) -> Optional[str]:

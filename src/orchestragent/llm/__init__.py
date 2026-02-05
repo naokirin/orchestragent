@@ -11,6 +11,8 @@ from .backend_config import (
     BackendConfig,
     AgentBackendConfig,
     LLMBackendSettings,
+    BackendDynamicModels,
+    ModelTier,
 )
 
 __all__ = [
@@ -24,4 +26,6 @@ __all__ = [
     "BackendConfig",
     "AgentBackendConfig",
     "LLMBackendSettings",
+    "BackendDynamicModels",
+    "ModelTier",
 ]

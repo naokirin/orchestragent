@@ -267,6 +267,38 @@ JUDGE_BACKENDS=gemini_cli:gemini-2.5-flash
 4. グローバルモデル（`LLM_MODEL`）
 5. CLIのデフォルト
 
+#### バックエンド別動的モデル選択
+
+`MODEL_SELECTION_ENABLED=true` の場合、Workerエージェントはタスクの複雑度に応じてモデルを動的に選択します。各バックエンドごとに異なるモデルを設定できます。
+
+| 変数名                           | 説明                                              | デフォルト値 |
+| -------------------------------- | ------------------------------------------------- | ------------ |
+| `CURSOR_CLI_MODEL_LIGHT`         | Cursor CLI: 軽量タスク用モデル                    | `CURSOR_CLI_MODEL` または `WORKER_MODEL_LIGHT` |
+| `CURSOR_CLI_MODEL_STANDARD`      | Cursor CLI: 標準タスク用モデル                    | `CURSOR_CLI_MODEL` または `WORKER_MODEL_STANDARD` |
+| `CURSOR_CLI_MODEL_POWERFUL`      | Cursor CLI: 複雑タスク用モデル                    | `CURSOR_CLI_MODEL` または `WORKER_MODEL_POWERFUL` |
+| `CLAUDE_CODE_CLI_MODEL_LIGHT`    | Claude Code CLI: 軽量タスク用モデル               | `CLAUDE_CODE_CLI_MODEL` または `WORKER_MODEL_LIGHT` |
+| `CLAUDE_CODE_CLI_MODEL_STANDARD` | Claude Code CLI: 標準タスク用モデル               | `CLAUDE_CODE_CLI_MODEL` または `WORKER_MODEL_STANDARD` |
+| `CLAUDE_CODE_CLI_MODEL_POWERFUL` | Claude Code CLI: 複雑タスク用モデル               | `CLAUDE_CODE_CLI_MODEL` または `WORKER_MODEL_POWERFUL` |
+| `GEMINI_CLI_MODEL_LIGHT`         | Gemini CLI: 軽量タスク用モデル                    | `GEMINI_CLI_MODEL` または `WORKER_MODEL_LIGHT` |
+| `GEMINI_CLI_MODEL_STANDARD`      | Gemini CLI: 標準タスク用モデル                    | `GEMINI_CLI_MODEL` または `WORKER_MODEL_STANDARD` |
+| `GEMINI_CLI_MODEL_POWERFUL`      | Gemini CLI: 複雑タスク用モデル                    | `GEMINI_CLI_MODEL` または `WORKER_MODEL_POWERFUL` |
+
+例:
+```bash
+# 動的モデル選択を有効化
+MODEL_SELECTION_ENABLED=true
+
+# Claude Code CLI用（Claude固有のモデル名）
+CLAUDE_CODE_CLI_MODEL_LIGHT=haiku
+CLAUDE_CODE_CLI_MODEL_STANDARD=sonnet
+CLAUDE_CODE_CLI_MODEL_POWERFUL=opus
+
+# Gemini CLI用
+GEMINI_CLI_MODEL_LIGHT=gemini-2.5-flash
+GEMINI_CLI_MODEL_STANDARD=gemini-2.5-pro
+GEMINI_CLI_MODEL_POWERFUL=gemini-2.5-pro
+```
+
 ### プロンプトのカスタマイズ
 
 各ステップのエージェント（Planner / Worker / Judge / Plan_Judge）のプロンプトは、次のいずれかで差し替えできます。

@@ -287,25 +287,23 @@ class WorkerAgent(BaseAgent):
         if not task:
             raise ValueError(f"Task {self.current_task_id} not found")
 
-        # Select model based on task complexity (if enabled)
-        original_model = self.config.get("model")
-        selected_model = self.model_selector.select_model(task)
+        # Select model tier based on task complexity (if enabled)
+        # This uses the new model_tier approach for per-backend dynamic models
+        model_tier = self.model_selector.select_model_tier(task)
 
-        if selected_model != original_model:
-            # Temporarily update model in config
-            self.config["model"] = selected_model
-            complexity_category = self.model_selector.get_complexity_category(task)
+        if model_tier:
             complexity_score = self.model_selector.calculate_complexity_score(task)
             self.logger.info(
-                f"[Worker] Model selected: {selected_model} "
-                f"(category: {complexity_category}, score: {complexity_score:.2f})"
+                f"[Worker] Model tier selected: {model_tier} "
+                f"(score: {complexity_score:.2f})"
             )
+            # Set model tier for the LLM client call
+            self._model_tier = model_tier
 
         try:
-            # Call parent's _run_internal() with selected model
+            # Call parent's _run_internal() which will use self._model_tier
             result = super()._run_internal(iteration, start_time)
             return result
         finally:
-            # Restore original model in config
-            if selected_model != original_model:
-                self.config["model"] = original_model
+            # Reset model tier
+            self._model_tier = None

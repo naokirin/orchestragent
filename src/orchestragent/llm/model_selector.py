@@ -3,6 +3,7 @@
 from typing import Dict, Any, Optional, Union
 
 from orchestragent.models import Task, TaskPriority
+from .backend_config import ModelTier
 
 
 class ModelSelector:
@@ -112,18 +113,22 @@ class ModelSelector:
 
         return selected_model
 
-    def get_complexity_category(self, task: Union[Task, Dict[str, Any]]) -> str:
+    def select_model_tier(self, task: Union[Task, Dict[str, Any]]) -> Optional[ModelTier]:
         """
-        Get complexity category for a task (for logging/debugging).
+        Select the model tier for a task based on complexity.
+
+        This method returns the tier ("light", "standard", "powerful") rather than
+        the model name itself. The client will then resolve the actual model
+        based on the tier and backend configuration.
 
         Args:
             task: Task object or dictionary
 
         Returns:
-            Category name: "light", "standard", or "powerful"
+            Model tier ("light", "standard", "powerful"), or None if selection is disabled
         """
         if not self.enabled:
-            return "default"
+            return None
 
         complexity_score = self.calculate_complexity_score(task)
 
@@ -133,3 +138,16 @@ class ModelSelector:
             return "powerful"
         else:
             return "standard"
+
+    def get_complexity_category(self, task: Union[Task, Dict[str, Any]]) -> str:
+        """
+        Get complexity category for a task (for logging/debugging).
+
+        Args:
+            task: Task object or dictionary
+
+        Returns:
+            Category name: "light", "standard", "powerful", or "default"
+        """
+        tier = self.select_model_tier(task)
+        return tier if tier else "default"
