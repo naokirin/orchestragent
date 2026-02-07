@@ -194,3 +194,6 @@ ENABLE_PARALLEL_EXECUTION = os.getenv("ENABLE_PARALLEL_EXECUTION", "true").lower
 # Planning Review Configuration
 # ===========================================
 MAX_PLAN_REVISIONS = int(os.getenv("MAX_PLAN_REVISIONS", "3"))
+
+# Plan_Judge: score がこの値未満のときは accept を revise に上書きする（0.0 = 無効、LLM の decision をそのまま使用）
+PLAN_JUDGE_ACCEPT_THRESHOLD = float(os.getenv("PLAN_JUDGE_ACCEPT_THRESHOLD", "0.0"))

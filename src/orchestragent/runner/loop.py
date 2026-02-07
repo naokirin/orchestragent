@@ -44,6 +44,7 @@ class RunnerConfig:
     log_fsync: bool
     agent_config: Dict[str, Any] = field(default_factory=dict)
     max_plan_revisions: int = 3
+    plan_judge_accept_threshold: float = 0.0
     max_retries: int = 3
     enable_parallel_execution: bool = True
     max_parallel_workers: int = 3
@@ -89,6 +90,7 @@ class RunnerConfig:
             log_fsync=global_config.LOG_FSYNC,
             agent_config=global_config.AGENT_CONFIG.copy(),
             max_plan_revisions=global_config.MAX_PLAN_REVISIONS,
+            plan_judge_accept_threshold=global_config.PLAN_JUDGE_ACCEPT_THRESHOLD,
             max_retries=global_config.MAX_RETRIES,
             enable_parallel_execution=global_config.ENABLE_PARALLEL_EXECUTION,
             max_parallel_workers=global_config.MAX_PARALLEL_WORKERS,
@@ -431,7 +433,11 @@ def run_plan_phase(
                 iteration=iteration, max_retries=cfg.max_retries
             )
             decision = plan_judge_result.get("decision", "accept")
-            print(f"[Plan_Judge] 完了 (decision: {decision})")
+            score = plan_judge_result.get("score", 0.5)
+            # 内部判定ライン: score が閾値未満なら revise に上書き
+            if score < cfg.plan_judge_accept_threshold:
+                decision = "revise"
+            print(f"[Plan_Judge] 完了 (decision: {decision}, score: {score})")
 
             if decision != "revise":
                 break
