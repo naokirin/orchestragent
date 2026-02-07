@@ -149,7 +149,7 @@ class TaskManager:
             return data
 
         self._file.update_json("tasks.json", update)
-        task_id = task_dict["id"]
+        task_id = str(task_dict["id"])
         self._save_task_state(task_id, task_dict)
         return task_id
 

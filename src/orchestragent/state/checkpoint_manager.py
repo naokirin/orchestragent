@@ -1,5 +1,6 @@
 """Checkpoint and backup operations for state directory."""
 
+import io
 import json
 import logging
 import shutil
@@ -235,10 +236,12 @@ class CheckpointManager:
                         except KeyError:
                             logger.debug("Metadata not found in archive %s", path.name)
                             continue
-                        f = tar.extractfile(member)
-                        if f is None:
+                        fp = tar.extractfile(member)
+                        if fp is None:
                             continue
-                        metadata_dict = json.load(f)
+                        metadata_dict = json.load(
+                            io.TextIOWrapper(fp, encoding="utf-8")
+                        )
                         checkpoints.append(CheckpointMetadata.from_dict(metadata_dict))
                 except (tarfile.TarError, json.JSONDecodeError, KeyError, OSError) as e:
                     logger.debug(

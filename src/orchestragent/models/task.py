@@ -84,7 +84,7 @@ class TaskResult:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        result = {"report": self.report}
+        result: Dict[str, Any] = {"report": self.report}
         if not self.success:
             result["success"] = self.success
         if self.error_message:
@@ -139,7 +139,7 @@ class Task:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        data = {
+        data: Dict[str, Any] = {
             "id": self.id,
             "title": self.title,
             "description": self.description,

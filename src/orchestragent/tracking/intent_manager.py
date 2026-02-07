@@ -3,7 +3,7 @@
 import logging
 import yaml
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, cast
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class IntentManager:
             return None
 
         with open(filepath, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
+            return cast(Optional[Dict[str, Any]], yaml.safe_load(f))
 
     def get_all_intents(self) -> List[Dict[str, Any]]:
         """

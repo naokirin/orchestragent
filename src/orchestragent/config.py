@@ -13,12 +13,13 @@ load_dotenv(_REPO_ROOT / ".env")
 
 
 # Project root
-PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT", ".")).resolve()
+PROJECT_ROOT: Path = Path(os.getenv("PROJECT_ROOT", ".")).resolve()
 
 # Target project (optional) - this is the host-side path
-TARGET_PROJECT = os.getenv("TARGET_PROJECT", None)
-if TARGET_PROJECT:
-    TARGET_PROJECT = Path(TARGET_PROJECT).resolve()
+_TARGET_PROJECT_RAW = os.getenv("TARGET_PROJECT", None)
+TARGET_PROJECT: Path | None = (
+    Path(_TARGET_PROJECT_RAW).resolve() if _TARGET_PROJECT_RAW else None
+)
 
 
 def _env_or_none(name: str) -> str | None:
@@ -93,6 +94,26 @@ GEMINI_CLI_MODEL_STANDARD = (
 )
 GEMINI_CLI_MODEL_POWERFUL = (
     _env_or_none("GEMINI_CLI_MODEL_POWERFUL") or GEMINI_CLI_MODEL
+)
+
+# Display-only: primary/default model for UI (first available per backend)
+LLM_MODEL: str | None = CURSOR_CLI_MODEL or CLAUDE_CODE_CLI_MODEL or GEMINI_CLI_MODEL
+# Per-agent display (parsed from *_BACKENDS or None; UI shows "(デフォルト)" when None)
+PLANNER_MODEL: str | None = None
+WORKER_MODEL: str | None = None
+JUDGE_MODEL: str | None = None
+WORKER_MODEL_LIGHT: str | None = (
+    CURSOR_CLI_MODEL_LIGHT or CLAUDE_CODE_CLI_MODEL_LIGHT or GEMINI_CLI_MODEL_LIGHT
+)
+WORKER_MODEL_STANDARD: str | None = (
+    CURSOR_CLI_MODEL_STANDARD
+    or CLAUDE_CODE_CLI_MODEL_STANDARD
+    or GEMINI_CLI_MODEL_STANDARD
+)
+WORKER_MODEL_POWERFUL: str | None = (
+    CURSOR_CLI_MODEL_POWERFUL
+    or CLAUDE_CODE_CLI_MODEL_POWERFUL
+    or GEMINI_CLI_MODEL_POWERFUL
 )
 
 # ===========================================

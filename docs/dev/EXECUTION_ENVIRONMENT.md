@@ -45,9 +45,10 @@ RUN curl https://cursor.com/install -fsS | bash
 # 作業ディレクトリを設定
 WORKDIR /workspace
 
-# Python依存関係をインストール
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Python依存関係をインストール（pyproject.toml から）
+COPY pyproject.toml .
+COPY src/ src/
+RUN pip install --no-cache-dir -e .
 
 # エントリーポイント
 COPY . .
@@ -170,8 +171,8 @@ apt-get install -y \
 # Cursor CLIをインストール
 curl https://cursor.com/install -fsS | bash
 
-# Python依存関係をインストール
-pip install -r requirements.txt
+# Python依存関係をインストール（pyproject.toml から）
+pip install -e .
 
 echo "Setup completed!"
 ```

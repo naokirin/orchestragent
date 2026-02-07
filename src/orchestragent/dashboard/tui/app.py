@@ -192,10 +192,10 @@ class DashboardApp(App):
             except Exception:
                 pass
 
-        # Update overview if visible
+        # Update overview if visible (query_one raises if not mounted)
         try:
-            overview = self.query_one("#overview-widget", default=None)
-            if overview and hasattr(overview, "update_content"):
+            overview = self.query_one("#overview-widget")
+            if hasattr(overview, "update_content"):
                 overview.update_content()
         except Exception:
             pass
@@ -297,7 +297,7 @@ class DashboardApp(App):
         content.mount(settings)
         self.settings_widget = settings  # Store reference for updates
 
-    def action_quit(self) -> None:
+    async def action_quit(self) -> None:
         """Handle quit action."""
         self._main_loop_running = False
         self.exit()

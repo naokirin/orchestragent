@@ -26,9 +26,6 @@ build/
 *.swo
 .DS_Store
 
-# Cursor CLI config (contains auth tokens)
-.cursor/
-
 # Claude Code config
 .claude/settings.local.json
 

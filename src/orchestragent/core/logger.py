@@ -6,7 +6,7 @@ import os
 import threading
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 from logging.handlers import RotatingFileHandler
 import traceback
 
@@ -208,9 +208,9 @@ class AgentLogger:
         """Log error message."""
         self.logger.error(message)
 
-    def debug(self, message: str) -> None:
-        """Log debug message."""
-        self.logger.debug(message)
+    def debug(self, message: str, *args: Any, **kwargs: Any) -> None:
+        """Log debug message. Accepts same %-format args as logging.Logger.debug."""
+        self.logger.debug(message, *args, **kwargs)
 
     def exception(self, message: str, exc_info: bool = True) -> None:
         """Log exception with traceback."""

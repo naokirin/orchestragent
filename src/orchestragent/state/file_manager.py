@@ -4,7 +4,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, cast
 
 
 class FileManager:
@@ -38,7 +38,7 @@ class FileManager:
 
         try:
             with open(filepath, "r", encoding="utf-8") as f:
-                return json.load(f)
+                return cast(Dict[str, Any], json.load(f))
         except json.JSONDecodeError as e:
             from orchestragent.core.exceptions import StateCorruptionError
 

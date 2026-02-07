@@ -73,8 +73,10 @@ class BaseAgent:
         """Return path to prompts/system/ (system template directory)."""
         from orchestragent import config as _config
 
-        return self.config.get(
-            "system_prompts_dir", _config.AGENT_CONFIG["system_prompts_dir"]
+        return str(
+            self.config.get(
+                "system_prompts_dir", _config.AGENT_CONFIG["system_prompts_dir"]
+            )
         )
 
     def _load_system_template(self, filename: str, **kwargs: Any) -> str:

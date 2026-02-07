@@ -180,7 +180,8 @@ class CursorCLIClient(LLMClient):
                         log_stream.write(line)
                     except OSError as e:
                         # Logging failure should not break main flow
-                        logger.debug("Failed to write to log stream: %s", e)
+                        if logger:
+                            logger.debug("Failed to write to log stream: %s", e)
 
         reader_thread = threading.Thread(target=_reader, daemon=True)
         reader_thread.start()
@@ -194,7 +195,8 @@ class CursorCLIClient(LLMClient):
                 try:
                     log_stream.write("\n[Cursor CLI timed out]\n")
                 except OSError as write_error:
-                    logger.debug("Failed to write timeout message: %s", write_error)
+                    if logger:
+                        logger.debug("Failed to write timeout message: %s", write_error)
             raise LLMTimeoutError(timeout, e)
         finally:
             # Ensure reader thread finishes
@@ -203,7 +205,8 @@ class CursorCLIClient(LLMClient):
                 try:
                     log_stream.close()
                 except OSError as close_error:
-                    logger.debug("Failed to close log stream: %s", close_error)
+                    if logger:
+                        logger.debug("Failed to close log stream: %s", close_error)
 
         output_text = "".join(collected_output)
 

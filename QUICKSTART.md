@@ -9,7 +9,7 @@
 - `Dockerfile` - Dockerイメージの定義
 - `docker-compose.yml` - Docker Composeの設定
 - `.env.example` - 環境変数のテンプレート（初回実行時に`.env`として自動作成）
-- `requirements.txt` - Python依存関係
+- `pyproject.toml` - プロジェクト設定とPython依存関係
 - `main.py` - メインエントリーポイント
 - `config.py` - 設定管理
 - `agents/` - エージェント実装

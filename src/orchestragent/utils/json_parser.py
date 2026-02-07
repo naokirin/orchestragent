@@ -2,7 +2,7 @@
 
 import json
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 
 def extract_json_from_response(response: str) -> Optional[Dict[str, Any]]:
@@ -26,7 +26,7 @@ def extract_json_from_response(response: str) -> Optional[Dict[str, Any]]:
     json_match = re.search(r"```json\n(.*?)\n```", response, re.DOTALL)
     if json_match:
         try:
-            return json.loads(json_match.group(1))
+            return cast(Dict[str, Any], json.loads(json_match.group(1)))
         except json.JSONDecodeError:
             pass
 
@@ -34,7 +34,7 @@ def extract_json_from_response(response: str) -> Optional[Dict[str, Any]]:
     json_match = re.search(r"\{.*\}", response, re.DOTALL)
     if json_match:
         try:
-            return json.loads(json_match.group(0))
+            return cast(Dict[str, Any], json.loads(json_match.group(0)))
         except json.JSONDecodeError:
             pass
 

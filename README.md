@@ -176,8 +176,8 @@ PROJECT_GOAL=REST APIを実装する
 #### ローカルで起動
 
 ```bash
-# プロジェクトルートで実行（依存: fastapi, uvicorn, jinja2）
-pip install -r requirements.txt
+# プロジェクトルートで実行（依存は pyproject.toml からインストール）
+pip install -e .
 PYTHONPATH=src python -m orchestragent.dashboard.web
 ```
 

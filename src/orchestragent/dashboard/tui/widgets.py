@@ -333,7 +333,8 @@ class TasksWidget(ScrollableContainer):
         """Handle task selection (Enter key)."""
         task_id = event.row_key.value
         self.selected_task_id = task_id
-        self._show_task_detail(task_id)
+        if task_id is not None:
+            self._show_task_detail(str(task_id))
 
     def _show_task_detail(self, task_id: str) -> None:
         """Show task detail."""
@@ -361,11 +362,12 @@ class TasksWidget(ScrollableContainer):
         """.strip()
 
         if task.is_completed() and task.result:
-            result_report = (
-                task.result.report
-                if hasattr(task.result, "report")
-                else task.result.get("report", "N/A")
-            )
+            if hasattr(task.result, "report"):
+                result_report = task.result.report
+            elif isinstance(task.result, dict):
+                result_report = task.result.get("report", "N/A")
+            else:
+                result_report = "N/A"
             detail_text += f"\n\n[bold]結果:[/bold]\n{result_report}"
         elif task.is_failed() and task.error:
             detail_text += f"\n\n[bold]エラー:[/bold]\n[red]{task.error}[/red]"
@@ -609,7 +611,11 @@ class IntentsWidget(ScrollableContainer):
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle intent selection."""
         task_id = event.row_key.value
-        self.selected_intent = self.intent_manager.get_intent(task_id)
+        self.selected_intent = (
+            self.intent_manager.get_intent(str(task_id))
+            if task_id is not None
+            else None
+        )
         self._show_intent_detail()
         self._show_diff()
         self._show_adr()

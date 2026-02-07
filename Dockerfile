@@ -19,15 +19,13 @@ RUN agent --version || (echo "Cursor CLI verification failed" && exit 1)
 # Set working directory
 WORKDIR /workspace
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY . .
-
-# Install package so orchestragent and config are importable without sys.path
+# Copy project and install package (dependencies from pyproject.toml)
+COPY pyproject.toml .
+COPY src/ src/
 RUN pip install --no-cache-dir -e .
+
+# Copy rest of application (scripts, prompts, etc.)
+COPY . .
 
 # Allow all operations for Cursor CLI (inside container)
 ENV CURSOR_CONFIG_DIR="/root/.orchestragent"

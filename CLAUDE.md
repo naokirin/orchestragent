@@ -22,8 +22,7 @@ Python project implementing a planner–worker style autonomous agent system (Pl
 | `docs/adr/` | Architecture Decision Records (ADR) |
 | `prompts/` | Agent prompts (planner, worker, judge, plan_judge, etc.) |
 | `state/`, `logs/` | Runtime state and logs (file-based) |
-| `pyproject.toml` | Project config and dependencies; Ruff/mypy config here or elsewhere |
-| `requirements.txt`, `requirements-dev.txt` | Runtime and dev dependencies |
+| `pyproject.toml` | Project config, runtime dependencies, optional `[dev]` deps (pytest, mypy, ruff) |
 
 Entry point: `main.py` (main loop). Web dashboard: `python -m orchestragent.dashboard.web`.
 

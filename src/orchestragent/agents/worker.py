@@ -1,7 +1,7 @@
 """Worker agent implementation."""
 
 import re
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from .base import BaseAgent
 from orchestragent.models import Task
@@ -28,7 +28,7 @@ class WorkerAgent(BaseAgent):
         """Initialize worker agent. Config is injected; state_dir, adr_dir use defaults when omitted."""
         super().__init__(*args, **kwargs)
         self.mode = "agent"  # Worker uses agent mode (not plan)
-        self.current_task_id = None
+        self.current_task_id: Optional[str] = None
 
         # Initialize model selector from injected config
         # Model selection now uses model_tier, not explicit model names
@@ -103,7 +103,7 @@ class WorkerAgent(BaseAgent):
                 report = response
 
             # Extract Intent information from response (includes commits list)
-            intent_data = IntentParser.parse(response, self.current_task_id)
+            intent_data = IntentParser.parse(response, self.current_task_id or "")
 
             # Build commits list: use intent_data["commits"] if present, else extract with regex
             commits = []
@@ -128,7 +128,7 @@ class WorkerAgent(BaseAgent):
                     msg = msg_matches[i].strip() if i < len(msg_matches) else ""
                     commits.append({"hash": h, "message": msg})
 
-            result = {
+            result: Dict[str, Any] = {
                 "report": report,
                 "commits": commits,
                 "task_id": self.current_task_id,
