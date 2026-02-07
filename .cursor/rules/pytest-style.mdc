@@ -1,0 +1,14 @@
+---
+description: pytest test style and structure
+globs: "**/test_*.py"
+alwaysApply: false
+---
+
+# pytest Test Style
+
+- **Structure**: Use `class` or plain functions with descriptive names. Use `def test_...` for test functions. Use `pytest.fixture` for shared setup; avoid deep nesting.
+- **Naming**: Describe behaviour, not implementation. Prefer `test_<scenario>_<expected>` or similar. Use clear, unique names so failures are easy to locate.
+- **Assertions**: Prefer plain `assert` or pytest helpers (`assert x == y`, `pytest.raises`). Use the most specific check available. Keep expected values as literals or named constants when they aid readability.
+- **Setup**: Use fixtures for shared setup; prefer fresh state per test to avoid order-dependent failures. Mock only when necessary; prefer real dependencies for integration-style tests when fast enough.
+- **Async**: Use `pytest-asyncio` for async tests when needed; mark with `@pytest.mark.asyncio`. Await coroutines properly.
+- **Coverage**: Focus tests on behaviour and boundaries; avoid testing implementation details. Run pytest to verify; use `/run-tests-python` when available.

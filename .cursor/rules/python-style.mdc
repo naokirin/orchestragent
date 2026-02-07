@@ -1,0 +1,13 @@
+---
+description: Python style (naming, formatting, imports)
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Python Style
+
+- **Naming**: snake_case for variables, functions, and modules; PascalCase for classes. Use descriptive names; avoid single-letter names except in short loops or comprehensions. UPPER_SNAKE_CASE for constants.
+- **Imports**: Group imports: (1) standard library, (2) third-party, (3) local. Use absolute imports when clear; use `from x import y` when it improves readability. Avoid `import *`.
+- **Format**: Follow Ruff (or Black) formatter per project config. Line length per project (often 88 or 100). No trailing whitespace; blank lines per PEP 8.
+- **Files**: One logical module per file; prefer co-locating related code. Use `__init__.py` only when needed for packages.
+- **Async**: Prefer `async`/`await` for async code; handle errors with try/except at boundaries. Do not leave unhandled coroutines.

@@ -1,0 +1,13 @@
+---
+description: Python idioms (types, errors, patterns)
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Python Idioms
+
+- **Types**: Prefer explicit return types and parameter types for public functions. Use `Optional[T]` or `T | None` for optional values. Avoid `Any` unless necessary; use `object` or generics when appropriate.
+- **Nullability**: Use `x is None` / `x is not None` for identity checks. Use optional chaining patterns and early returns to avoid deep nesting.
+- **Error handling**: Prefer specific exception types; catch at boundaries. Use `raise ... from e` when re-raising. Avoid bare `except:`; log or re-raise.
+- **Data structures**: Prefer `list`, `dict`, and type hints (e.g. `list[str]`) for clarity. Use dataclasses or Pydantic when structured data is needed.
+- **Testing**: Place tests in `tests/` or `test_*.py` per project convention. Use descriptive test names; prefer one logical assertion focus per test when it improves clarity.
