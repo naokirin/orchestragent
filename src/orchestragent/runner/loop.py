@@ -43,9 +43,6 @@ class RunnerConfig:
     log_level: str
     log_fsync: bool
     agent_config: Dict[str, Any] = field(default_factory=dict)
-    planner_model: Optional[str] = None
-    worker_model: Optional[str] = None
-    judge_model: Optional[str] = None
     max_plan_revisions: int = 3
     max_retries: int = 3
     enable_parallel_execution: bool = True
@@ -56,9 +53,6 @@ class RunnerConfig:
     model_selection_enabled: bool = False
     model_complexity_threshold_light: float = 10.0
     model_complexity_threshold_powerful: float = 30.0
-    worker_model_light: Optional[str] = None
-    worker_model_standard: Optional[str] = None
-    worker_model_powerful: Optional[str] = None
     compress_old_checkpoints: bool = True
     # Per-agent backend configuration with fallback
     planner_backends: str = ""
@@ -94,39 +88,33 @@ class RunnerConfig:
             log_level=global_config.LOG_LEVEL,
             log_fsync=global_config.LOG_FSYNC,
             agent_config=global_config.AGENT_CONFIG.copy(),
-            planner_model=global_config.PLANNER_MODEL,
-            worker_model=global_config.WORKER_MODEL,
-            judge_model=global_config.JUDGE_MODEL,
             max_plan_revisions=global_config.MAX_PLAN_REVISIONS,
             max_retries=global_config.MAX_RETRIES,
             enable_parallel_execution=global_config.ENABLE_PARALLEL_EXECUTION,
             max_parallel_workers=global_config.MAX_PARALLEL_WORKERS,
             wait_time_seconds=global_config.WAIT_TIME_SECONDS,
             max_iterations=global_config.MAX_ITERATIONS,
-            adr_dir=getattr(global_config, "ADR_DIR", "docs/adr"),
+            adr_dir=global_config.ADR_DIR,
             model_selection_enabled=global_config.MODEL_SELECTION_ENABLED,
             model_complexity_threshold_light=global_config.MODEL_COMPLEXITY_THRESHOLD_LIGHT,
             model_complexity_threshold_powerful=global_config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL,
-            worker_model_light=global_config.WORKER_MODEL_LIGHT,
-            worker_model_standard=global_config.WORKER_MODEL_STANDARD,
-            worker_model_powerful=global_config.WORKER_MODEL_POWERFUL,
             compress_old_checkpoints=global_config.COMPRESS_OLD_CHECKPOINTS,
-            planner_backends=getattr(global_config, "PLANNER_BACKENDS", ""),
-            worker_backends=getattr(global_config, "WORKER_BACKENDS", ""),
-            judge_backends=getattr(global_config, "JUDGE_BACKENDS", ""),
-            cursor_cli_model=getattr(global_config, "CURSOR_CLI_MODEL", None),
-            claude_code_cli_model=getattr(global_config, "CLAUDE_CODE_CLI_MODEL", None),
-            gemini_cli_model=getattr(global_config, "GEMINI_CLI_MODEL", None),
-            cursor_cli_model_light=getattr(global_config, "CURSOR_CLI_MODEL_LIGHT", None),
-            cursor_cli_model_standard=getattr(global_config, "CURSOR_CLI_MODEL_STANDARD", None),
-            cursor_cli_model_powerful=getattr(global_config, "CURSOR_CLI_MODEL_POWERFUL", None),
-            claude_code_cli_model_light=getattr(global_config, "CLAUDE_CODE_CLI_MODEL_LIGHT", None),
-            claude_code_cli_model_standard=getattr(global_config, "CLAUDE_CODE_CLI_MODEL_STANDARD", None),
-            claude_code_cli_model_powerful=getattr(global_config, "CLAUDE_CODE_CLI_MODEL_POWERFUL", None),
-            gemini_cli_model_light=getattr(global_config, "GEMINI_CLI_MODEL_LIGHT", None),
-            gemini_cli_model_standard=getattr(global_config, "GEMINI_CLI_MODEL_STANDARD", None),
-            gemini_cli_model_powerful=getattr(global_config, "GEMINI_CLI_MODEL_POWERFUL", None),
-            check_backend_availability=getattr(global_config, "CHECK_BACKEND_AVAILABILITY", True),
+            planner_backends=global_config.PLANNER_BACKENDS,
+            worker_backends=global_config.WORKER_BACKENDS,
+            judge_backends=global_config.JUDGE_BACKENDS,
+            cursor_cli_model=global_config.CURSOR_CLI_MODEL,
+            claude_code_cli_model=global_config.CLAUDE_CODE_CLI_MODEL,
+            gemini_cli_model=global_config.GEMINI_CLI_MODEL,
+            cursor_cli_model_light=global_config.CURSOR_CLI_MODEL_LIGHT,
+            cursor_cli_model_standard=global_config.CURSOR_CLI_MODEL_STANDARD,
+            cursor_cli_model_powerful=global_config.CURSOR_CLI_MODEL_POWERFUL,
+            claude_code_cli_model_light=global_config.CLAUDE_CODE_CLI_MODEL_LIGHT,
+            claude_code_cli_model_standard=global_config.CLAUDE_CODE_CLI_MODEL_STANDARD,
+            claude_code_cli_model_powerful=global_config.CLAUDE_CODE_CLI_MODEL_POWERFUL,
+            gemini_cli_model_light=global_config.GEMINI_CLI_MODEL_LIGHT,
+            gemini_cli_model_standard=global_config.GEMINI_CLI_MODEL_STANDARD,
+            gemini_cli_model_powerful=global_config.GEMINI_CLI_MODEL_POWERFUL,
+            check_backend_availability=global_config.CHECK_BACKEND_AVAILABILITY,
         )
 
     def build_backend_settings(self) -> LLMBackendSettings:
@@ -158,7 +146,6 @@ class RunnerConfig:
 
         return LLMBackendSettings(
             default_backend=self.llm_backend,
-            default_model=self.planner_model,  # Backward compat: use first agent model as default
             output_format=self.llm_output_format,
             project_root=self.working_dir,
             cursor_cli_model=self.cursor_cli_model,
@@ -262,15 +249,15 @@ def initialize_session(cfg: Optional[RunnerConfig] = None) -> LoopContext:
     if has_per_agent_backends:
         print("[初期化] エージェント別バックエンド設定を検出しました")
         planner_client = LLMClientFactory.create_for_agent(
-            "planner", backend_settings, cfg.planner_model, cfg.check_backend_availability
+            "planner", backend_settings, None, cfg.check_backend_availability
         )
         worker_client = LLMClientFactory.create_for_agent(
-            "worker", backend_settings, cfg.worker_model, cfg.check_backend_availability
+            "worker", backend_settings, None, cfg.check_backend_availability
         )
         judge_client = LLMClientFactory.create_for_agent(
-            "judge", backend_settings, cfg.judge_model, cfg.check_backend_availability
+            "judge", backend_settings, None, cfg.check_backend_availability
         )
-        # Use planner_client as default for backward compatibility
+        # Use planner_client as default
         llm_client = planner_client
     else:
         # Backward compatible: single client for all agents
@@ -339,7 +326,6 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
 
     planner_config = cfg.agent_config.copy()
     planner_config["mode"] = "plan"
-    planner_config["model"] = cfg.planner_model
 
     planner = PlannerAgent(
         name="Planner",
@@ -355,7 +341,6 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
     worker_config["prompt_template"] = cfg.agent_config.get(
         "prompt_template_worker", _cfg.AGENT_CONFIG["prompt_template_worker"]
     )
-    worker_config["model"] = cfg.worker_model
 
     worker = WorkerAgent(
         name="Worker",
@@ -368,10 +353,6 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
         model_selection_enabled=cfg.model_selection_enabled,
         model_complexity_threshold_light=cfg.model_complexity_threshold_light,
         model_complexity_threshold_powerful=cfg.model_complexity_threshold_powerful,
-        worker_model_light=cfg.worker_model_light,
-        worker_model_standard=cfg.worker_model_standard,
-        worker_model_powerful=cfg.worker_model_powerful,
-        worker_model_default=cfg.worker_model,
     )
 
     judge_config = cfg.agent_config.copy()
@@ -379,7 +360,6 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
     judge_config["prompt_template"] = cfg.agent_config.get(
         "prompt_template_judge", _cfg.AGENT_CONFIG["prompt_template_judge"]
     )
-    judge_config["model"] = cfg.judge_model
 
     judge = JudgeAgent(
         name="Judge",
@@ -394,7 +374,6 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
     plan_judge_config["prompt_template"] = cfg.agent_config.get(
         "prompt_template_plan_judge", _cfg.AGENT_CONFIG["prompt_template_plan_judge"]
     )
-    plan_judge_config["model"] = cfg.judge_model
 
     plan_judge = PlanJudgeAgent(
         name="Plan_Judge",
@@ -512,10 +491,6 @@ def run_work_phase(
                     model_selection_enabled=rc.model_selection_enabled,
                     model_complexity_threshold_light=rc.model_complexity_threshold_light,
                     model_complexity_threshold_powerful=rc.model_complexity_threshold_powerful,
-                    worker_model_light=rc.worker_model_light,
-                    worker_model_standard=rc.worker_model_standard,
-                    worker_model_powerful=rc.worker_model_powerful,
-                    worker_model_default=rc.worker_model,
                 )
 
                 result: Dict[str, Any] = {

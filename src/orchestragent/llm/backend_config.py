@@ -131,13 +131,13 @@ class LLMBackendSettings:
     Complete LLM backend settings for all agents.
 
     Supports:
-    1. Global default backend (backward compatible)
+    1. Global default backend
     2. Per-agent backend configuration with fallback
-    3. Per-backend dynamic model selection
+    3. Per-backend default models (*_CLI_MODEL)
+    4. Per-backend dynamic model selection (*_CLI_MODEL_LIGHT/STANDARD/POWERFUL)
     """
 
     default_backend: str = "cursor_cli"
-    default_model: Optional[str] = None
     output_format: str = "text"
     project_root: str = "."
 
@@ -151,7 +151,7 @@ class LLMBackendSettings:
     claude_code_cli_dynamic_models: Optional[BackendDynamicModels] = None
     gemini_cli_dynamic_models: Optional[BackendDynamicModels] = None
 
-    # Per-agent overrides (None = use default)
+    # Per-agent overrides (None = use default backend)
     planner_backends: Optional[AgentBackendConfig] = None
     worker_backends: Optional[AgentBackendConfig] = None
     judge_backends: Optional[AgentBackendConfig] = None
@@ -182,7 +182,7 @@ class LLMBackendSettings:
 
         Args:
             agent_type: "planner", "worker", or "judge"
-            agent_model: Agent-specific model from existing config (e.g., PLANNER_MODEL)
+            agent_model: Deprecated, ignored (kept for signature compatibility)
 
         Returns:
             AgentBackendConfig for the agent
@@ -203,12 +203,8 @@ class LLMBackendSettings:
                 dynamic_models = self.get_backend_dynamic_models(backend.name)
 
                 if backend.model is None:
-                    # Fallback order: backend-specific -> agent-specific -> global
-                    resolved_model = (
-                        self.get_backend_model(backend.name)
-                        or agent_model
-                        or self.default_model
-                    )
+                    # Fallback: use backend-specific default model
+                    resolved_model = self.get_backend_model(backend.name)
                 else:
                     resolved_model = backend.model
 
@@ -234,12 +230,8 @@ class LLMBackendSettings:
                 )
             return AgentBackendConfig(backends=resolved_backends)
 
-        # Fall back to default backend with model fallback
-        resolved_model = (
-            self.get_backend_model(self.default_backend)
-            or agent_model
-            or self.default_model
-        )
+        # Fall back to default backend with backend-specific model
+        resolved_model = self.get_backend_model(self.default_backend)
         # Get dynamic models for default backend
         dynamic_models = self.get_backend_dynamic_models(self.default_backend)
         model_light = dynamic_models.model_light if dynamic_models else None

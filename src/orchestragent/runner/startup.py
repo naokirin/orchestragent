@@ -146,28 +146,38 @@ def print_configuration() -> None:
 
     # LLM Configuration
     print("\n[LLM設定]")
-    print(f"  バックエンド: {config.LLM_BACKEND}")
+    print(f"  デフォルトバックエンド: {config.LLM_BACKEND}")
     print(f"  出力形式: {config.LLM_OUTPUT_FORMAT}")
-    if config.LLM_MODEL:
-        print(f"  デフォルトモデル: {config.LLM_MODEL}")
-    else:
-        print(f"  デフォルトモデル: (未設定)")
 
-    # Model Configuration
-    print("\n[モデル設定]")
-    print(f"  Planner モデル: {config.PLANNER_MODEL or '(デフォルト)'}")
-    print(f"  Worker モデル: {config.WORKER_MODEL or '(デフォルト)'}")
-    print(f"  Judge モデル: {config.JUDGE_MODEL or '(デフォルト)'}")
+    # Per-agent Backend Configuration
+    print("\n[エージェント別バックエンド設定]")
+    print(f"  Planner: {config.PLANNER_BACKENDS or '(デフォルト)'}")
+    print(f"  Worker: {config.WORKER_BACKENDS or '(デフォルト)'}")
+    print(f"  Judge: {config.JUDGE_BACKENDS or '(デフォルト)'}")
+
+    # Per-backend Model Configuration
+    print("\n[バックエンド別モデル設定]")
+    print(f"  Cursor CLI: {config.CURSOR_CLI_MODEL or '(CLI デフォルト)'}")
+    print(f"  Claude Code CLI: {config.CLAUDE_CODE_CLI_MODEL or '(CLI デフォルト)'}")
+    print(f"  Gemini CLI: {config.GEMINI_CLI_MODEL or '(CLI デフォルト)'}")
 
     # Dynamic Model Selection
     print(f"\n[動的モデル選択]")
     print(f"  有効: {'有効' if config.MODEL_SELECTION_ENABLED else '無効'}")
     if config.MODEL_SELECTION_ENABLED:
-        print(f"  軽量タスク用モデル: {config.WORKER_MODEL_LIGHT or '(デフォルト)'}")
-        print(f"  標準タスク用モデル: {config.WORKER_MODEL_STANDARD or '(デフォルト)'}")
-        print(f"  複雑タスク用モデル: {config.WORKER_MODEL_POWERFUL or '(デフォルト)'}")
-        print(f"  軽量判定閾値: {config.MODEL_COMPLEXITY_THRESHOLD_LIGHT}")
-        print(f"  複雑判定閾値: {config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL}")
+        print(f"  閾値 (軽量 < {config.MODEL_COMPLEXITY_THRESHOLD_LIGHT} < 標準 < {config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL} < 複雑)")
+        print("  [Cursor CLI]")
+        print(f"    軽量: {config.CURSOR_CLI_MODEL_LIGHT or '(デフォルト)'}")
+        print(f"    標準: {config.CURSOR_CLI_MODEL_STANDARD or '(デフォルト)'}")
+        print(f"    複雑: {config.CURSOR_CLI_MODEL_POWERFUL or '(デフォルト)'}")
+        print("  [Claude Code CLI]")
+        print(f"    軽量: {config.CLAUDE_CODE_CLI_MODEL_LIGHT or '(デフォルト)'}")
+        print(f"    標準: {config.CLAUDE_CODE_CLI_MODEL_STANDARD or '(デフォルト)'}")
+        print(f"    複雑: {config.CLAUDE_CODE_CLI_MODEL_POWERFUL or '(デフォルト)'}")
+        print("  [Gemini CLI]")
+        print(f"    軽量: {config.GEMINI_CLI_MODEL_LIGHT or '(デフォルト)'}")
+        print(f"    標準: {config.GEMINI_CLI_MODEL_STANDARD or '(デフォルト)'}")
+        print(f"    複雑: {config.GEMINI_CLI_MODEL_POWERFUL or '(デフォルト)'}")
 
     # State Configuration
     print("\n[状態管理設定]")
@@ -188,43 +198,6 @@ def print_configuration() -> None:
     print(f"  並列実行: {'有効' if config.ENABLE_PARALLEL_EXECUTION else '無効'}")
     if config.ENABLE_PARALLEL_EXECUTION:
         print(f"  最大並列Worker数: {config.MAX_PARALLEL_WORKERS}")
-
-    # Agent Configuration
-    print("\n[エージェント設定]")
-    print(f"  Planner モード: plan")
-    print(f"  Planner プロンプト: {config.AGENT_CONFIG['prompt_template']}")
-    print(f"  Worker モード: agent")
-    print(f"  Worker プロンプト: {config.AGENT_CONFIG['prompt_template_worker']}")
-    print(f"  Judge モード: ask")
-    print(f"  Judge プロンプト: {config.AGENT_CONFIG['prompt_template_judge']}")
-    print(f"  Plan_Judge モード: ask")
-    print(f"  Plan_Judge プロンプト: {config.AGENT_CONFIG['prompt_template_plan_judge']}")
-
-    # Per-agent Backend Configuration
-    planner_backends = getattr(config, "PLANNER_BACKENDS", "")
-    worker_backends = getattr(config, "WORKER_BACKENDS", "")
-    judge_backends = getattr(config, "JUDGE_BACKENDS", "")
-    if planner_backends or worker_backends or judge_backends:
-        print("\n[エージェント別バックエンド設定]")
-        if planner_backends:
-            print(f"  Planner バックエンド: {planner_backends}")
-        if worker_backends:
-            print(f"  Worker バックエンド: {worker_backends}")
-        if judge_backends:
-            print(f"  Judge バックエンド: {judge_backends}")
-
-    # Per-backend Model Configuration
-    cursor_model = getattr(config, "CURSOR_CLI_MODEL", None)
-    claude_model = getattr(config, "CLAUDE_CODE_CLI_MODEL", None)
-    gemini_model = getattr(config, "GEMINI_CLI_MODEL", None)
-    if cursor_model or claude_model or gemini_model:
-        print("\n[バックエンド別モデル設定]")
-        if cursor_model:
-            print(f"  Cursor CLI モデル: {cursor_model}")
-        if claude_model:
-            print(f"  Claude Code CLI モデル: {claude_model}")
-        if gemini_model:
-            print(f"  Gemini CLI モデル: {gemini_model}")
 
     # Environment Information
     print("\n[環境情報]")

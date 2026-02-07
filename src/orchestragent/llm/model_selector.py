@@ -7,17 +7,18 @@ from .backend_config import ModelTier
 
 
 class ModelSelector:
-    """Selects appropriate model based on task complexity."""
+    """Selects appropriate model tier based on task complexity.
+
+    Note: This class now returns model tiers ("light", "standard", "powerful")
+    instead of explicit model names. The LLM client resolves the actual model
+    based on the tier and per-backend configuration.
+    """
 
     def __init__(
         self,
         enabled: bool = False,
         threshold_light: float = 10.0,
         threshold_powerful: float = 30.0,
-        model_light: Optional[str] = None,
-        model_standard: Optional[str] = None,
-        model_powerful: Optional[str] = None,
-        model_default: Optional[str] = None
     ):
         """
         Initialize model selector.
@@ -26,18 +27,10 @@ class ModelSelector:
             enabled: Whether dynamic model selection is enabled
             threshold_light: Complexity threshold for light model (below this)
             threshold_powerful: Complexity threshold for powerful model (above this)
-            model_light: Model to use for simple tasks
-            model_standard: Model to use for standard tasks
-            model_powerful: Model to use for complex tasks
-            model_default: Default model to use when selection is disabled or no match
         """
         self.enabled = enabled
         self.threshold_light = threshold_light
         self.threshold_powerful = threshold_powerful
-        self.model_light = model_light
-        self.model_standard = model_standard
-        self.model_powerful = model_powerful
-        self.model_default = model_default
 
     def calculate_complexity_score(self, task: Union[Task, Dict[str, Any]]) -> float:
         """
@@ -85,33 +78,18 @@ class ModelSelector:
 
     def select_model(self, task: Union[Task, Dict[str, Any]]) -> Optional[str]:
         """
-        Select appropriate model for a task based on complexity.
+        Deprecated: Use select_model_tier() instead.
+
+        This method is kept for backward compatibility but now returns None.
+        The LLM client handles model resolution based on tier and backend config.
 
         Args:
             task: Task object or dictionary
 
         Returns:
-            Selected model name, or None to use default
+            None (use select_model_tier for tier-based selection)
         """
-        # If selection is disabled, use default
-        if not self.enabled:
-            return self.model_default
-
-        # Calculate complexity score
-        complexity_score = self.calculate_complexity_score(task)
-
-        # Select model based on complexity
-        if complexity_score < self.threshold_light:
-            # Simple task - use light model
-            selected_model = self.model_light or self.model_default
-        elif complexity_score >= self.threshold_powerful:
-            # Complex task - use powerful model
-            selected_model = self.model_powerful or self.model_default
-        else:
-            # Standard task - use standard model
-            selected_model = self.model_standard or self.model_default
-
-        return selected_model
+        return None
 
     def select_model_tier(self, task: Union[Task, Dict[str, Any]]) -> Optional[ModelTier]:
         """

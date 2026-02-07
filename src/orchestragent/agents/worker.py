@@ -23,26 +23,19 @@ class WorkerAgent(BaseAgent):
         model_selection_enabled: bool = False,
         model_complexity_threshold_light: float = 10.0,
         model_complexity_threshold_powerful: float = 30.0,
-        worker_model_light: Optional[str] = None,
-        worker_model_standard: Optional[str] = None,
-        worker_model_powerful: Optional[str] = None,
-        worker_model_default: Optional[str] = None,
         **kwargs,
     ):
-        """Initialize worker agent. Config is injected; state_dir, adr_dir, model_* use defaults when omitted."""
+        """Initialize worker agent. Config is injected; state_dir, adr_dir use defaults when omitted."""
         super().__init__(*args, **kwargs)
         self.mode = "agent"  # Worker uses agent mode (not plan)
         self.current_task_id = None
 
         # Initialize model selector from injected config
+        # Model selection now uses model_tier, not explicit model names
         self.model_selector = ModelSelector(
             enabled=model_selection_enabled,
             threshold_light=model_complexity_threshold_light,
             threshold_powerful=model_complexity_threshold_powerful,
-            model_light=worker_model_light,
-            model_standard=worker_model_standard,
-            model_powerful=worker_model_powerful,
-            model_default=worker_model_default,
         )
 
         # Initialize intent manager and ADR manager from injected config
