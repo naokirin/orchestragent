@@ -1,6 +1,5 @@
 """Tests for core.environment (container detection)."""
 
-import pytest
 from unittest.mock import patch, mock_open
 
 

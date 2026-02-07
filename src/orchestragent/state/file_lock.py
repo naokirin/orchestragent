@@ -2,12 +2,10 @@
 
 import os
 import time
-import fcntl
 from pathlib import Path
 from typing import Set, Optional, List
 from datetime import datetime
 
-from orchestragent.core.exceptions import StateError
 
 
 class FileLockManager:
@@ -66,7 +64,7 @@ class FileLockManager:
                     continue
                 # Wait a bit before retrying
                 time.sleep(0.1)
-            except Exception as e:
+            except Exception:
                 # Other errors
                 return False
 

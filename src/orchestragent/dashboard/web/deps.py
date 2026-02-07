@@ -9,8 +9,8 @@ _repo_root = Path(__file__).resolve().parent.parent.parent.parent.parent
 if _repo_root not in [Path(p).resolve() for p in sys.path]:
     sys.path.insert(0, str(_repo_root))
 
-import config
-from orchestragent.state.manager import StateManager
+import config  # noqa: E402
+from orchestragent.state.manager import StateManager  # noqa: E402
 
 _state_manager: StateManager | None = None
 

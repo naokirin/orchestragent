@@ -1,7 +1,7 @@
 """Worker agent implementation."""
 
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from .base import BaseAgent
 from orchestragent.models import Task

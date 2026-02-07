@@ -1,12 +1,9 @@
 """Tests for agents.planner (PlannerAgent)."""
 
-import json
 import pytest
-from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, patch
 
 from orchestragent.agents.planner import PlannerAgent
-from orchestragent.models.task import TaskStatus
 
 
 class TestPlannerAgentInit:

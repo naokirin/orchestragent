@@ -1,7 +1,6 @@
 """Tests for tracking.intent_manager (IntentManager)."""
 
 import pytest
-import yaml
 from pathlib import Path
 
 from orchestragent.tracking.intent_manager import IntentManager
@@ -12,7 +11,7 @@ class TestIntentManagerInit:
 
     def test_init_creates_intents_directory(self, temp_dir):
         """Create intents directory on init."""
-        manager = IntentManager(state_dir=str(temp_dir))
+        IntentManager(state_dir=str(temp_dir))
 
         intents_dir = temp_dir / "intents"
         assert intents_dir.exists()

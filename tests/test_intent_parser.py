@@ -1,6 +1,5 @@
 """Tests for IntentParser class."""
 
-import pytest
 from datetime import datetime
 
 from orchestragent.tracking.intent_parser import IntentParser

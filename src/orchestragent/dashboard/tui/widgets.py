@@ -3,13 +3,11 @@
 import sys
 from textual.widgets import Static, DataTable, RichLog, TabbedContent, TabPane
 from textual.containers import Vertical, Horizontal, ScrollableContainer
-from textual import events
 from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from pathlib import Path
 
 import config
 from orchestragent.state.manager import StateManager
-from orchestragent.models import Task
 
 if TYPE_CHECKING:
     from orchestragent.tracking.intent_manager import IntentManager
@@ -190,7 +188,7 @@ class LogsWidget(RichLog):
                             self.write(line)
 
                     self.last_position = f.tell()
-        except Exception as e:
+        except Exception:
             # Silently ignore read errors (including NoActiveAppError)
             pass
 
@@ -444,7 +442,6 @@ Judge モデル: {config.JUDGE_MODEL or '(デフォルト)'}
 
         # Environment information
         env_widget = self.query_one("#env-info", Static)
-        import os
         from orchestragent.core.environment import is_running_in_container
         from orchestragent.runner.startup import check_cursor_cli
 

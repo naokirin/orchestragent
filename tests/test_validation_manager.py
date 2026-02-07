@@ -1,10 +1,8 @@
 """Tests for state.ValidationManager."""
 
 import pytest
-from pathlib import Path
 from unittest.mock import MagicMock
 
-from orchestragent.models import ValidationResult
 from orchestragent.state.validation_manager import ValidationManager
 
 

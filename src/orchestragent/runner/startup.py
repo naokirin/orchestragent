@@ -162,7 +162,7 @@ def print_configuration() -> None:
     print(f"  Gemini CLI: {config.GEMINI_CLI_MODEL or '(CLI デフォルト)'}")
 
     # Dynamic Model Selection
-    print(f"\n[動的モデル選択]")
+    print("\n[動的モデル選択]")
     print(f"  有効: {'有効' if config.MODEL_SELECTION_ENABLED else '無効'}")
     if config.MODEL_SELECTION_ENABLED:
         print(f"  閾値 (軽量 < {config.MODEL_COMPLEXITY_THRESHOLD_LIGHT} < 標準 < {config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL} < 複雑)")

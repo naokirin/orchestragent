@@ -1,6 +1,5 @@
 """Tests for json_parser utility."""
 
-import pytest
 
 from orchestragent.utils.json_parser import extract_json_from_response
 

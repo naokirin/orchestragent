@@ -1,12 +1,10 @@
 """Pytest configuration and shared fixtures."""
 
 import json
-import os
 import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, Generator, Optional
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -19,7 +17,6 @@ from orchestragent.models.task import (
     TaskPriority,
     TaskResult,
     TasksFile,
-    TaskStatistics,
     TaskStatus,
 )
 from orchestragent.llm.client import LLMClient

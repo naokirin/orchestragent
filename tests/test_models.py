@@ -1,7 +1,6 @@
 """Tests for data models."""
 
 import pytest
-from datetime import datetime
 
 from orchestragent.models import Status, CheckpointMetadata, ValidationResult
 from orchestragent.models.task import (

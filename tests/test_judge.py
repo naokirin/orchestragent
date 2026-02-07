@@ -4,7 +4,6 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 from orchestragent.agents.judge import JudgeAgent
-from orchestragent.models.task import TaskStatus
 
 
 class TestJudgeAgentInit:

@@ -1,6 +1,5 @@
 """Tests for Intent-related data models."""
 
-import pytest
 from datetime import datetime
 
 from orchestragent.models.intent import Commit, IntentData, Intent

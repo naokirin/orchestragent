@@ -1,7 +1,7 @@
 """Tests for TaskScheduler class."""
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from orchestragent.scheduler.task_scheduler import TaskScheduler
 from orchestragent.models import Task, TaskStatus, TaskPriority

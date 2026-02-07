@@ -229,7 +229,7 @@ def initialize_session(cfg: Optional[RunnerConfig] = None) -> LoopContext:
         cursor_config_dir = Path.home() / '.cursor'
         cursor_config_auth = Path.home() / '.config' / 'cursor' / 'auth.json'
         if cursor_config_dir.exists() or cursor_config_auth.exists():
-            print(f"[情報] Cursor設定ディレクトリが存在します:")
+            print("[情報] Cursor設定ディレクトリが存在します:")
             if cursor_config_dir.exists():
                 print(f"  - {cursor_config_dir}")
             if cursor_config_auth.exists():

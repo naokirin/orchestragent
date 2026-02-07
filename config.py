@@ -11,8 +11,8 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 # Load environment variables
 load_dotenv()
 
-# Import from new package structure
-from orchestragent.core.environment import is_running_in_container
+# Import from new package structure (after sys.path)
+from orchestragent.core.environment import is_running_in_container  # noqa: E402
 
 
 # Project root

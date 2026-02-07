@@ -13,12 +13,12 @@ _repo_root = Path(__file__).resolve().parent.parent.parent.parent.parent
 if _repo_root not in [Path(p).resolve() for p in sys.path]:
     sys.path.insert(0, str(_repo_root))
 
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI  # noqa: E402
+from fastapi.responses import HTMLResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 
-from orchestragent.dashboard.web.routes import overview, settings as settings_route, tasks, logs, intents, plan
-from orchestragent.dashboard.web.templates import render_dashboard
+from orchestragent.dashboard.web.routes import overview, settings as settings_route, tasks, logs, intents, plan  # noqa: E402
+from orchestragent.dashboard.web.templates import render_dashboard  # noqa: E402
 
 app = FastAPI(
     title="orchestragent Web Dashboard",

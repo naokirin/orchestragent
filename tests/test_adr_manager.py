@@ -1,7 +1,6 @@
 """Tests for tracking.adr_manager (ADRManager)."""
 
 import pytest
-from pathlib import Path
 
 from orchestragent.tracking.adr_manager import ADRManager
 
@@ -12,14 +11,14 @@ class TestADRManagerInit:
     def test_init_creates_adr_directory(self, temp_dir):
         """Create ADR directory on init."""
         adr_dir = temp_dir / "docs" / "adr"
-        manager = ADRManager(adr_dir=str(adr_dir))
+        ADRManager(adr_dir=str(adr_dir))
 
         assert adr_dir.exists()
 
     def test_init_creates_template_file(self, temp_dir):
         """Create template file on init."""
         adr_dir = temp_dir / "adr"
-        manager = ADRManager(adr_dir=str(adr_dir))
+        ADRManager(adr_dir=str(adr_dir))
 
         template_path = adr_dir / "template.md"
         assert template_path.exists()
@@ -31,7 +30,7 @@ class TestADRManagerInit:
         template_path = adr_dir / "template.md"
         template_path.write_text("Custom template content")
 
-        manager = ADRManager(adr_dir=str(adr_dir))
+        ADRManager(adr_dir=str(adr_dir))
 
         assert template_path.read_text() == "Custom template content"
 

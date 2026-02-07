@@ -4,7 +4,6 @@ import logging
 from typing import Dict, Any
 
 from .base import BaseAgent
-from orchestragent.models import Task
 from orchestragent.utils.json_parser import extract_json_from_response
 
 logger = logging.getLogger(__name__)

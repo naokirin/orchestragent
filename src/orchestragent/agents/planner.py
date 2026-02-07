@@ -4,7 +4,6 @@ import json
 from typing import Dict, Any
 
 from .base import BaseAgent
-from orchestragent.models import Task
 from orchestragent.utils.file_extractor import extract_file_paths_from_text
 from orchestragent.utils.json_parser import extract_json_from_response
 

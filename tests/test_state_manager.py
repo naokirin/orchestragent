@@ -1,16 +1,12 @@
 """Tests for StateManager."""
 
-import json
 import pytest
-from pathlib import Path
 
 from orchestragent.state.manager import StateManager
 from orchestragent.models.task import (
     Task,
-    TaskIndex,
     TaskPriority,
     TaskResult,
-    TasksFile,
     TaskStatus,
 )
 
@@ -23,7 +19,7 @@ class TestStateManagerInit:
         state_dir = temp_dir / "new_state"
         backup_dir = temp_dir / "new_backup"
 
-        manager = StateManager(str(state_dir), str(backup_dir))
+        StateManager(str(state_dir), str(backup_dir))
 
         assert state_dir.exists()
         assert backup_dir.exists()

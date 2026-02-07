@@ -143,7 +143,7 @@ class FileManager:
                     with open(filepath, "w", encoding="utf-8") as f:
                         json.dump(updated_data, f, indent=2, ensure_ascii=False)
                     return updated_data
-            except Exception as e:
+            except Exception:
                 if attempt < max_retries - 1:
                     time.sleep(0.1 * (attempt + 1))
                     continue

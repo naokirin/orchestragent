@@ -17,6 +17,6 @@ def is_running_in_container() -> bool:
     try:
         with open('/proc/self/cgroup', 'r') as f:
             return 'docker' in f.read()
-    except:
+    except OSError:
         pass
     return False

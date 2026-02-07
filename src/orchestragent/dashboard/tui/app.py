@@ -2,9 +2,8 @@
 
 import threading
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical
-from textual.widgets import Tabs, Tab, Static, Log
-from textual import events
+from textual.containers import Container
+from textual.widgets import Tabs, Tab, Static
 from typing import Optional, Any
 
 # Try to import on decorator (different versions have different import paths)

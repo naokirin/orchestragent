@@ -1,8 +1,6 @@
 """Tests for FileLockManager class."""
 
 import pytest
-import time
-from pathlib import Path
 
 from orchestragent.state.file_lock import FileLockManager
 
