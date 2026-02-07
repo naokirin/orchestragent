@@ -57,6 +57,7 @@ class TestJudgeBuildPrompt:
 
         # Make only prompt template files raise FileNotFoundError
         original_open = open
+
         def mock_open_func(path, *args, **kwargs):
             if "prompts/" in str(path):
                 raise FileNotFoundError
@@ -73,7 +74,9 @@ class TestJudgeBuildPrompt:
             or "完了タスク" in prompt
         )
 
-    def test_build_prompt_includes_completed_task_results(self, judge_agent, state_manager):
+    def test_build_prompt_includes_completed_task_results(
+        self, judge_agent, state_manager
+    ):
         """Completed task results are included in prompt."""
         task_id = state_manager.add_task({"title": "Test Task", "description": "Desc"})
         state_manager.assign_task(task_id, "worker")
@@ -83,6 +86,7 @@ class TestJudgeBuildPrompt:
 
         # Make only prompt template raise FileNotFoundError
         original_open = open
+
         def mock_open_func(path, *args, **kwargs):
             if "prompts/" in str(path):
                 raise FileNotFoundError
@@ -110,12 +114,12 @@ class TestJudgeParseResponse:
 
     def test_parse_response_valid_json(self, judge_agent):
         """Parse and return when JSON is valid."""
-        response = '''{
+        response = """{
             "should_continue": true,
             "reason": "進捗良好",
             "progress_score": 0.8,
             "drift_detected": false
-        }'''
+        }"""
         result = judge_agent.parse_response(response)
 
         assert result["should_continue"] is True
@@ -124,14 +128,14 @@ class TestJudgeParseResponse:
 
     def test_parse_response_json_in_code_block(self, judge_agent):
         """JSON inside code block is also parsed."""
-        response = '''```json
+        response = """```json
 {
     "should_continue": false,
     "reason": "目標達成",
     "progress_score": 1.0,
     "drift_detected": false
 }
-```'''
+```"""
         result = judge_agent.parse_response(response)
 
         assert result["should_continue"] is False
@@ -222,7 +226,9 @@ class TestJudgeUpdateState:
 
         judge_agent.logger.info.assert_called()
 
-    def test_update_state_uses_defaults_for_missing_keys(self, judge_agent, state_manager):
+    def test_update_state_uses_defaults_for_missing_keys(
+        self, judge_agent, state_manager
+    ):
         """Use default values when keys are missing."""
         result = {}  # empty result
         judge_agent.update_state(result)

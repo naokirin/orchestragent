@@ -11,53 +11,59 @@ class IntentParser:
 
     # Regular expression pattern definitions (English and Japanese headers)
     INTENT_SECTION_PATTERN = re.compile(
-        r'## (?:Intent|変更意図\s*\(Intent\))\s*\n(.*?)(?=## (?:Implementation|実装内容)|## (?:Changed Files|変更したファイル)|$)',
-        re.DOTALL | re.IGNORECASE
+        r"## (?:Intent|変更意図\s*\(Intent\))\s*\n(.*?)(?=## (?:Implementation|実装内容)|## (?:Changed Files|変更したファイル)|$)",
+        re.DOTALL | re.IGNORECASE,
     )
     GOAL_PATTERN = re.compile(
-        r'### (?:Goal|目標\s*\(Goal\))\s*\n(.+?)(?=###|$)', re.DOTALL | re.IGNORECASE
+        r"### (?:Goal|目標\s*\(Goal\))\s*\n(.+?)(?=###|$)", re.DOTALL | re.IGNORECASE
     )
     RATIONALE_PATTERN = re.compile(
-        r'### (?:Rationale|理由\s*\(Rationale\))\s*\n(.+?)(?=###|$)', re.DOTALL | re.IGNORECASE
+        r"### (?:Rationale|理由\s*\(Rationale\))\s*\n(.+?)(?=###|$)",
+        re.DOTALL | re.IGNORECASE,
     )
     EXPECTED_CHANGE_PATTERN = re.compile(
-        r'### (?:Expected Change|期待される変更\s*\(Expected Change\))\s*\n(.+?)(?=###|$)', re.DOTALL | re.IGNORECASE
+        r"### (?:Expected Change|期待される変更\s*\(Expected Change\))\s*\n(.+?)(?=###|$)",
+        re.DOTALL | re.IGNORECASE,
     )
     NON_GOALS_PATTERN = re.compile(
-        r'### (?:Non-Goals|非目標\s*\(Non-Goals\))\s*\n(.+?)(?=###|$)', re.DOTALL | re.IGNORECASE
+        r"### (?:Non-Goals|非目標\s*\(Non-Goals\))\s*\n(.+?)(?=###|$)",
+        re.DOTALL | re.IGNORECASE,
     )
     RISK_PATTERN = re.compile(
-        r'### (?:Risk|リスク\s*\(Risk\))\s*\n(.+?)(?=###|##|$)', re.DOTALL | re.IGNORECASE
+        r"### (?:Risk|リスク\s*\(Risk\))\s*\n(.+?)(?=###|##|$)",
+        re.DOTALL | re.IGNORECASE,
     )
     # Commit info: "Commit hash: xxx" / "コミットハッシュ: xxx" and similar
     COMMIT_HASH_PATTERN = re.compile(
-        r'[-*]*\s*\**(?:Commit hash|コミットハッシュ)[:\*\s]+`?([a-f0-9]+)`?', re.IGNORECASE
+        r"[-*]*\s*\**(?:Commit hash|コミットハッシュ)[:\*\s]+`?([a-f0-9]+)`?",
+        re.IGNORECASE,
     )
     COMMIT_MSG_PATTERN = re.compile(
-        r'[-*]*\s*\**(?:Commit message|コミットメッセージ)[:\*\s]+`?(.+)`?', re.MULTILINE | re.IGNORECASE
+        r"[-*]*\s*\**(?:Commit message|コミットメッセージ)[:\*\s]+`?(.+)`?",
+        re.MULTILINE | re.IGNORECASE,
     )
     RELATED_ADR_PATTERN = re.compile(
-        r'(?:Related ADR|関連ADR)[:\s]+(ADR-)?(\d+)', re.IGNORECASE
+        r"(?:Related ADR|関連ADR)[:\s]+(ADR-)?(\d+)", re.IGNORECASE
     )
 
     # New ADR section (when Worker proposes an architecture/design decision)
     ADR_SECTION_PATTERN = re.compile(
-        r'## (?:New ADR|新規ADR).*?(?=\n## |\Z)', re.DOTALL | re.IGNORECASE
+        r"## (?:New ADR|新規ADR).*?(?=\n## |\Z)", re.DOTALL | re.IGNORECASE
     )
     ADR_TITLE_PATTERN = re.compile(
-        r'### (?:Title|タイトル)\s*\n(.+?)(?=###|$)', re.DOTALL | re.IGNORECASE
+        r"### (?:Title|タイトル)\s*\n(.+?)(?=###|$)", re.DOTALL | re.IGNORECASE
     )
     ADR_CONTEXT_PATTERN = re.compile(
-        r'### (?:Context|コンテキスト)\s*\n(.+?)(?=###|$)', re.DOTALL | re.IGNORECASE
+        r"### (?:Context|コンテキスト)\s*\n(.+?)(?=###|$)", re.DOTALL | re.IGNORECASE
     )
     ADR_DECISION_PATTERN = re.compile(
-        r'### (?:Decision|決定)\s*\n(.+?)(?=###|$)', re.DOTALL | re.IGNORECASE
+        r"### (?:Decision|決定)\s*\n(.+?)(?=###|$)", re.DOTALL | re.IGNORECASE
     )
     ADR_RATIONALE_PATTERN = re.compile(
-        r'### (?:Rationale|理由)\s*\n(.+?)(?=###|$)', re.DOTALL | re.IGNORECASE
+        r"### (?:Rationale|理由)\s*\n(.+?)(?=###|$)", re.DOTALL | re.IGNORECASE
     )
     ADR_CONSEQUENCES_PATTERN = re.compile(
-        r'### (?:Consequences|結果)\s*\n(.+?)(?=###|## |$)', re.DOTALL | re.IGNORECASE
+        r"### (?:Consequences|結果)\s*\n(.+?)(?=###|## |$)", re.DOTALL | re.IGNORECASE
     )
 
     @classmethod
@@ -139,7 +145,9 @@ class IntentParser:
 
         # Try to extract goal from "Implementation" / "実装内容" section
         impl_match = re.search(
-            r'## (?:Implementation|実装内容)\s*\n(.+?)(?=##|$)', response, re.DOTALL | re.IGNORECASE
+            r"## (?:Implementation|実装内容)\s*\n(.+?)(?=##|$)",
+            response,
+            re.DOTALL | re.IGNORECASE,
         )
         goal = impl_match.group(1).strip()[:200] if impl_match else None
 
@@ -172,7 +180,11 @@ class IntentParser:
             return None
         section = section_match.group(0)
         # Skip if section only says "None" / "なし" / "該当しない"
-        if re.search(r'^(?:None|なし|該当しない)\s*$', section.strip(), re.IGNORECASE | re.MULTILINE):
+        if re.search(
+            r"^(?:None|なし|該当しない)\s*$",
+            section.strip(),
+            re.IGNORECASE | re.MULTILINE,
+        ):
             return None
         title = cls._extract_single(cls.ADR_TITLE_PATTERN, section)
         if not title or not title.strip() or title.strip().lower() in ("なし", "none"):
@@ -206,11 +218,13 @@ class IntentParser:
         commits = []
         for i, h in enumerate(hashes):
             msg = messages[i].strip() if i < len(messages) else ""
-            commits.append({
-                "hash": h,
-                "message": msg,
-                "timestamp": now,
-            })
+            commits.append(
+                {
+                    "hash": h,
+                    "message": msg,
+                    "timestamp": now,
+                }
+            )
         return commits
 
     @classmethod
@@ -230,7 +244,7 @@ class IntentParser:
 
         content = match.group(1)
         # Parse markdown list items (both - and * markers)
-        items = re.findall(r'^[-*]\s+(.+)$', content, re.MULTILINE)
+        items = re.findall(r"^[-*]\s+(.+)$", content, re.MULTILINE)
         return [item.strip() for item in items if item.strip()]
 
     @classmethod

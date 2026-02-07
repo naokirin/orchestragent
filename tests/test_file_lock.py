@@ -41,7 +41,9 @@ class TestAcquireReleaseLock:
         """Test acquiring a lock successfully."""
         result = lock_manager.acquire_lock("src/main.py", "task-001")
         assert result is True
-        assert "src/main.py" in lock_manager._active_locks or "src_main.py" in str(lock_manager._active_locks)
+        assert "src/main.py" in lock_manager._active_locks or "src_main.py" in str(
+            lock_manager._active_locks
+        )
 
     def test_acquire_lock_same_file_fails(self, lock_manager):
         """Test acquiring lock on already locked file fails."""

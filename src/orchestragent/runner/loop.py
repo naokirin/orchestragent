@@ -35,6 +35,7 @@ from .startup import (
 @dataclass(frozen=True)
 class RunnerConfig:
     """Configuration for the main loop and agents. Used for dependency injection; tests can pass a mock RunnerConfig."""
+
     llm_backend: str
     working_dir: str
     llm_output_format: str
@@ -80,6 +81,7 @@ class RunnerConfig:
     def from_global_config(cls) -> "RunnerConfig":
         """Build RunnerConfig from the global config module."""
         from orchestragent import config as global_config
+
         return cls(
             llm_backend=global_config.LLM_BACKEND,
             working_dir=str(global_config.WORKING_DIR),
@@ -123,7 +125,13 @@ class RunnerConfig:
         """Build LLMBackendSettings from this config."""
         # Build per-backend dynamic models
         cursor_dynamic = None
-        if any([self.cursor_cli_model_light, self.cursor_cli_model_standard, self.cursor_cli_model_powerful]):
+        if any(
+            [
+                self.cursor_cli_model_light,
+                self.cursor_cli_model_standard,
+                self.cursor_cli_model_powerful,
+            ]
+        ):
             cursor_dynamic = BackendDynamicModels(
                 model_light=self.cursor_cli_model_light,
                 model_standard=self.cursor_cli_model_standard,
@@ -131,7 +139,13 @@ class RunnerConfig:
             )
 
         claude_dynamic = None
-        if any([self.claude_code_cli_model_light, self.claude_code_cli_model_standard, self.claude_code_cli_model_powerful]):
+        if any(
+            [
+                self.claude_code_cli_model_light,
+                self.claude_code_cli_model_standard,
+                self.claude_code_cli_model_powerful,
+            ]
+        ):
             claude_dynamic = BackendDynamicModels(
                 model_light=self.claude_code_cli_model_light,
                 model_standard=self.claude_code_cli_model_standard,
@@ -139,7 +153,13 @@ class RunnerConfig:
             )
 
         gemini_dynamic = None
-        if any([self.gemini_cli_model_light, self.gemini_cli_model_standard, self.gemini_cli_model_powerful]):
+        if any(
+            [
+                self.gemini_cli_model_light,
+                self.gemini_cli_model_standard,
+                self.gemini_cli_model_powerful,
+            ]
+        ):
             gemini_dynamic = BackendDynamicModels(
                 model_light=self.gemini_cli_model_light,
                 model_standard=self.gemini_cli_model_standard,
@@ -158,15 +178,18 @@ class RunnerConfig:
             gemini_cli_dynamic_models=gemini_dynamic,
             planner_backends=(
                 AgentBackendConfig.from_string(self.planner_backends)
-                if self.planner_backends else None
+                if self.planner_backends
+                else None
             ),
             worker_backends=(
                 AgentBackendConfig.from_string(self.worker_backends)
-                if self.worker_backends else None
+                if self.worker_backends
+                else None
             ),
             judge_backends=(
                 AgentBackendConfig.from_string(self.judge_backends)
-                if self.judge_backends else None
+                if self.judge_backends
+                else None
             ),
         )
 
@@ -215,7 +238,9 @@ def initialize_session(cfg: Optional[RunnerConfig] = None) -> LoopContext:
     print_configuration()
 
     if not is_running_in_container():
-        print("\n[警告] コンテナ外で実行されています。Docker/DevContainerでの実行を推奨します。")
+        print(
+            "\n[警告] コンテナ外で実行されています。Docker/DevContainerでの実行を推奨します。"
+        )
 
     if not check_cursor_cli():
         raise RuntimeError(
@@ -226,8 +251,8 @@ def initialize_session(cfg: Optional[RunnerConfig] = None) -> LoopContext:
     auth_status = check_cursor_auth()
     if not auth_status:
         print("\n[警告] 認証状態の確認に失敗しました。")
-        cursor_config_dir = Path.home() / '.cursor'
-        cursor_config_auth = Path.home() / '.config' / 'cursor' / 'auth.json'
+        cursor_config_dir = Path.home() / ".cursor"
+        cursor_config_auth = Path.home() / ".config" / "cursor" / "auth.json"
         if cursor_config_dir.exists() or cursor_config_auth.exists():
             print("[情報] Cursor設定ディレクトリが存在します:")
             if cursor_config_dir.exists():
@@ -266,7 +291,7 @@ def initialize_session(cfg: Optional[RunnerConfig] = None) -> LoopContext:
         llm_client = LLMClientFactory.create(
             backend=cfg.llm_backend,
             project_root=cfg.working_dir,
-            output_format=cfg.llm_output_format
+            output_format=cfg.llm_output_format,
         )
         planner_client = None
         worker_client = None
@@ -290,7 +315,9 @@ def initialize_session(cfg: Optional[RunnerConfig] = None) -> LoopContext:
 
     recovered_tasks = state_manager.recover_in_progress_tasks()
     if recovered_tasks:
-        print(f"\n[復元] {len(recovered_tasks)}個の中断されたタスクを再実行可能にしました:")
+        print(
+            f"\n[復元] {len(recovered_tasks)}個の中断されたタスクを再実行可能にしました:"
+        )
         for task_id in recovered_tasks:
             print(f"  - {task_id}")
 
@@ -334,10 +361,11 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
         llm_client=planner_llm,
         state_manager=ctx.state_manager,
         logger=ctx.logger,
-        config=planner_config
+        config=planner_config,
     )
 
     from orchestragent import config as _cfg
+
     worker_config = cfg.agent_config.copy()
     worker_config["mode"] = "agent"
     worker_config["prompt_template"] = cfg.agent_config.get(
@@ -368,7 +396,7 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
         llm_client=judge_llm,
         state_manager=ctx.state_manager,
         logger=ctx.logger,
-        config=judge_config
+        config=judge_config,
     )
 
     plan_judge_config = cfg.agent_config.copy()
@@ -408,7 +436,9 @@ def run_plan_phase(
 
     cfg = ctx.runner_config
     for plan_attempt in range(1, cfg.max_plan_revisions + 1):
-        print(f"\n[1/3] Planner実行中... (attempt {plan_attempt}/{cfg.max_plan_revisions})")
+        print(
+            f"\n[1/3] Planner実行中... (attempt {plan_attempt}/{cfg.max_plan_revisions})"
+        )
         try:
             agents.planner.run(iteration=iteration, max_retries=cfg.max_retries)
             print("[Planner] 完了")
@@ -441,17 +471,23 @@ def run_plan_phase(
 
             if decision != "revise":
                 break
-            print("[Plan_Judge] 計画の再検討が必要と判断されました。Planner を再実行します...")
+            print(
+                "[Plan_Judge] 計画の再検討が必要と判断されました。Planner を再実行します..."
+            )
         except AgentError as e:
             ctx.logger.log_error_with_traceback(
-                "Plan_Judge", e, context={"iteration": iteration, "attempt": plan_attempt}
+                "Plan_Judge",
+                e,
+                context={"iteration": iteration, "attempt": plan_attempt},
             )
             print(f"[Plan_Judge] エラー: {e}")
             plan_loop_failed = True
             break
         except Exception as e:
             ctx.logger.log_error_with_traceback(
-                "Plan_Judge", e, context={"iteration": iteration, "attempt": plan_attempt}
+                "Plan_Judge",
+                e,
+                context={"iteration": iteration, "attempt": plan_attempt},
             )
             print(f"[Plan_Judge] 予期しないエラー: {e}")
             plan_loop_failed = True
@@ -502,14 +538,16 @@ def run_work_phase(
                 result: Dict[str, Any] = {
                     "task_id": task_id,
                     "success": False,
-                    "error": None
+                    "error": None,
                 }
 
                 try:
                     task_files = ctx.task_scheduler._extract_task_files(task_data)
                     locks_acquired = []
                     for filepath in task_files:
-                        if ctx.file_lock_manager.acquire_lock(filepath, task_id, timeout=10.0):
+                        if ctx.file_lock_manager.acquire_lock(
+                            filepath, task_id, timeout=10.0
+                        ):
                             locks_acquired.append(filepath)
                         else:
                             for locked_file in locks_acquired:
@@ -520,8 +558,7 @@ def run_work_phase(
                     if worker_instance.assign_task(task_id):
                         try:
                             worker_instance.run(
-                                iteration=iteration,
-                                max_retries=cfg.max_retries
+                                iteration=iteration, max_retries=cfg.max_retries
                             )
                             result["success"] = True
                             ctx.logger.info(f"[Worker-{task_id}] Task completed")
@@ -531,7 +568,7 @@ def run_work_phase(
                             ctx.logger.log_error_with_traceback(
                                 f"Worker-{task_id}",
                                 e,
-                                context={"iteration": iteration, "task_id": task_id}
+                                context={"iteration": iteration, "task_id": task_id},
                             )
                     else:
                         result["error"] = "Failed to assign task"
@@ -544,7 +581,7 @@ def run_work_phase(
                     ctx.logger.log_error_with_traceback(
                         f"Worker-{task_id}",
                         e,
-                        context={"iteration": iteration, "task_id": task_id}
+                        context={"iteration": iteration, "task_id": task_id},
                     )
 
                 return result
@@ -568,17 +605,21 @@ def run_work_phase(
                             print(f"[Worker] タスク {task_id} 完了: {task.title}")
                         else:
                             failed_count += 1
-                            print(f"[Worker] タスク {task_id} 失敗: {result.get('error', 'Unknown error')}")
+                            print(
+                                f"[Worker] タスク {task_id} 失敗: {result.get('error', 'Unknown error')}"
+                            )
                     except Exception as e:
                         failed_count += 1
                         ctx.logger.log_error_with_traceback(
                             f"Worker-{task_id}",
                             e,
-                            context={"iteration": iteration, "task_id": task_id}
+                            context={"iteration": iteration, "task_id": task_id},
                         )
                         print(f"[Worker] タスク {task_id} 例外: {e}")
 
-                print(f"[Worker] 並列実行完了: {completed_count}成功, {failed_count}失敗")
+                print(
+                    f"[Worker] 並列実行完了: {completed_count}成功, {failed_count}失敗"
+                )
 
             stale_locks = ctx.file_lock_manager.cleanup_stale_locks(timeout=300.0)
             if stale_locks > 0:
@@ -601,7 +642,7 @@ def run_work_phase(
                     ctx.logger.log_error_with_traceback(
                         "Worker",
                         e,
-                        context={"iteration": iteration, "task_id": task_id}
+                        context={"iteration": iteration, "task_id": task_id},
                     )
                     ctx.state_manager.fail_task(task_id, str(e))
                     print(f"[Worker] エラー: {e}")
@@ -609,7 +650,7 @@ def run_work_phase(
                     ctx.logger.log_error_with_traceback(
                         "Worker",
                         e,
-                        context={"iteration": iteration, "task_id": task_id}
+                        context={"iteration": iteration, "task_id": task_id},
                     )
                     ctx.state_manager.fail_task(task_id, str(e))
                     print(f"[Worker] 予期しないエラー: {e}")
@@ -629,10 +670,14 @@ def run_judge_phase(
         agents.judge.run(iteration=iteration, max_retries=cfg.max_retries)
         print("[Judge] 完了")
     except AgentError as e:
-        ctx.logger.log_error_with_traceback("Judge", e, context={"iteration": iteration})
+        ctx.logger.log_error_with_traceback(
+            "Judge", e, context={"iteration": iteration}
+        )
         print(f"[Judge] エラー: {e}")
     except Exception as e:
-        ctx.logger.log_error_with_traceback("Judge", e, context={"iteration": iteration})
+        ctx.logger.log_error_with_traceback(
+            "Judge", e, context={"iteration": iteration}
+        )
         print(f"[Judge] 予期しないエラー: {e}")
 
 
@@ -645,7 +690,9 @@ def run_plan_finalize_on_judge_completion(
     Judgeが正常終了を判定した際に、Planner を「最終化」モードで実行し、
     state/plan.md 全体を現状（完了サマリ・残タスクの解消など）に合わせて更新する。
     """
-    print("\n[計画の最終化] Planner を実行して state/plan.md を現状に合わせて更新します...")
+    print(
+        "\n[計画の最終化] Planner を実行して state/plan.md を現状に合わせて更新します..."
+    )
     cfg = ctx.runner_config
     try:
         agents.planner.run(
@@ -740,7 +787,7 @@ def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
                 total_tasks=task_stats.total,
                 completed_tasks=task_stats.completed,
                 failed_tasks=task_stats.failed,
-                pending_tasks=task_stats.pending
+                pending_tasks=task_stats.pending,
             )
 
             print(f"\n[判定] 継続判定: {should_continue}")
@@ -757,12 +804,16 @@ def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
                         if n > 0:
                             ctx.logger.info(f"Compressed {n} old checkpoint(s)")
                 except Exception as e:
-                    ctx.logger.warning(f"Failed to create checkpoint on completion: {e}")
+                    ctx.logger.warning(
+                        f"Failed to create checkpoint on completion: {e}"
+                    )
                 break
 
             try:
                 checkpoint_path = ctx.state_manager.create_checkpoint()
-                ctx.logger.info(f"Checkpoint created after iteration {iteration}: {checkpoint_path}")
+                ctx.logger.info(
+                    f"Checkpoint created after iteration {iteration}: {checkpoint_path}"
+                )
                 if cfg.compress_old_checkpoints:
                     n = ctx.state_manager.compress_old_checkpoints(keep_latest_n=1)
                     if n > 0:
@@ -778,7 +829,9 @@ def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
                     ctx.logger.warning(f"Failed to create backup: {e}")
 
             if iteration < cfg.max_iterations:
-                print(f"\n[待機] 次のイテレーションまで {cfg.wait_time_seconds}秒待機中...")
+                print(
+                    f"\n[待機] 次のイテレーションまで {cfg.wait_time_seconds}秒待機中..."
+                )
                 time.sleep(cfg.wait_time_seconds)
 
         if iteration >= cfg.max_iterations:
@@ -814,17 +867,23 @@ def run_main_loop(cfg: Optional[RunnerConfig] = None) -> None:
         except Exception as e:
             ctx.logger.warning(f"Failed to create checkpoint before exit: {e}")
     except Exception as e:
-        ctx.logger.log_error_with_traceback("MainLoop", e, context={"iteration": iteration})
+        ctx.logger.log_error_with_traceback(
+            "MainLoop", e, context={"iteration": iteration}
+        )
         if cfg.enable_parallel_execution:
             ctx.file_lock_manager.release_all_locks()
         try:
             checkpoint_path = ctx.state_manager.create_checkpoint("error")
             ctx.logger.info(f"Checkpoint created after error: {checkpoint_path}")
-            print(f"[チェックポイント] エラー発生時の状態を保存しました: {checkpoint_path}")
+            print(
+                f"[チェックポイント] エラー発生時の状態を保存しました: {checkpoint_path}"
+            )
             if cfg.compress_old_checkpoints:
                 ctx.state_manager.compress_old_checkpoints(keep_latest_n=1)
         except Exception as checkpoint_error:
-            ctx.logger.warning(f"Failed to create checkpoint after error: {checkpoint_error}")
+            ctx.logger.warning(
+                f"Failed to create checkpoint after error: {checkpoint_error}"
+            )
         raise
 
     print("\n[Phase 2] メインループ完了")

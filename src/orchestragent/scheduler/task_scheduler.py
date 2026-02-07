@@ -55,7 +55,9 @@ class TaskScheduler:
             # Check if any files are already locked
             conflicts = False
             for filepath in task_files:
-                if filepath in locked_files or self.file_lock_manager.is_locked(filepath):
+                if filepath in locked_files or self.file_lock_manager.is_locked(
+                    filepath
+                ):
                     conflicts = True
                     break
 

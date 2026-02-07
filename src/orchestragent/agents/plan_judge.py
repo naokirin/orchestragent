@@ -21,6 +21,7 @@ class PlanJudgeAgent(BaseAgent):
     def build_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for plan judge. Role/instructions come from prompt file; context and output format are injected by the system."""
         from orchestragent import config as _config
+
         user_part = self.load_user_prompt(
             "prompt_template",
             _config.AGENT_CONFIG["prompt_template_plan_judge"],

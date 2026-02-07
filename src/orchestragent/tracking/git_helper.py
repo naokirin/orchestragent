@@ -29,11 +29,11 @@ class GitHelper:
         """
         try:
             result = subprocess.run(
-                ['git', 'rev-parse', '--is-inside-work-tree'],
+                ["git", "rev-parse", "--is-inside-work-tree"],
                 capture_output=True,
                 text=True,
                 cwd=str(self.repo_path),
-                timeout=5
+                timeout=5,
             )
             return result.returncode == 0
         except (subprocess.SubprocessError, OSError) as e:
@@ -53,24 +53,30 @@ class GitHelper:
         try:
             # Get commit details
             result = subprocess.run(
-                ['git', 'show', '--no-patch', '--format=%H%n%s%n%b%n%ai%n%an', commit_hash],
+                [
+                    "git",
+                    "show",
+                    "--no-patch",
+                    "--format=%H%n%s%n%b%n%ai%n%an",
+                    commit_hash,
+                ],
                 capture_output=True,
                 text=True,
                 cwd=str(self.repo_path),
-                timeout=10
+                timeout=10,
             )
 
             if result.returncode != 0:
                 return None
 
-            lines = result.stdout.strip().split('\n')
+            lines = result.stdout.strip().split("\n")
             if len(lines) < 4:
                 return None
 
             return {
                 "hash": lines[0],
                 "message": lines[1],
-                "body": '\n'.join(lines[2:-2]).strip() if len(lines) > 4 else "",
+                "body": "\n".join(lines[2:-2]).strip() if len(lines) > 4 else "",
                 "timestamp": lines[-2],
                 "author": lines[-1],
             }
@@ -91,22 +97,25 @@ class GitHelper:
         """
         try:
             result = subprocess.run(
-                ['git', 'show', '--format=', commit_hash],
+                ["git", "show", "--format=", commit_hash],
                 capture_output=True,
                 text=True,
                 cwd=str(self.repo_path),
-                timeout=30
+                timeout=30,
             )
 
             if result.returncode != 0:
                 return None
 
             diff = result.stdout
-            lines = diff.split('\n')
+            lines = diff.split("\n")
 
             if len(lines) > max_lines:
-                truncated = '\n'.join(lines[:max_lines])
-                return truncated + f"\n\n... ({len(lines) - max_lines} more lines truncated)"
+                truncated = "\n".join(lines[:max_lines])
+                return (
+                    truncated
+                    + f"\n\n... ({len(lines) - max_lines} more lines truncated)"
+                )
 
             return diff
         except (subprocess.SubprocessError, OSError) as e:
@@ -125,17 +134,17 @@ class GitHelper:
         """
         try:
             result = subprocess.run(
-                ['git', 'show', '--name-only', '--format=', commit_hash],
+                ["git", "show", "--name-only", "--format=", commit_hash],
                 capture_output=True,
                 text=True,
                 cwd=str(self.repo_path),
-                timeout=10
+                timeout=10,
             )
 
             if result.returncode != 0:
                 return []
 
-            return [f.strip() for f in result.stdout.strip().split('\n') if f.strip()]
+            return [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
         except (subprocess.SubprocessError, OSError) as e:
             logger.warning("Failed to get commit files for %s: %s", commit_hash, e)
             return []
@@ -152,28 +161,30 @@ class GitHelper:
         """
         try:
             result = subprocess.run(
-                ['git', 'log', f'-{count}', '--format=%H|%s|%ai|%an'],
+                ["git", "log", f"-{count}", "--format=%H|%s|%ai|%an"],
                 capture_output=True,
                 text=True,
                 cwd=str(self.repo_path),
-                timeout=10
+                timeout=10,
             )
 
             if result.returncode != 0:
                 return []
 
             commits = []
-            for line in result.stdout.strip().split('\n'):
+            for line in result.stdout.strip().split("\n"):
                 if not line:
                     continue
-                parts = line.split('|', 3)
+                parts = line.split("|", 3)
                 if len(parts) >= 4:
-                    commits.append({
-                        "hash": parts[0],
-                        "message": parts[1],
-                        "timestamp": parts[2],
-                        "author": parts[3],
-                    })
+                    commits.append(
+                        {
+                            "hash": parts[0],
+                            "message": parts[1],
+                            "timestamp": parts[2],
+                            "author": parts[3],
+                        }
+                    )
 
             return commits
         except (subprocess.SubprocessError, OSError) as e:
@@ -192,28 +203,30 @@ class GitHelper:
         """
         try:
             result = subprocess.run(
-                ['git', 'log', '--all', f'--grep={task_id}', '--format=%H|%s|%ai|%an'],
+                ["git", "log", "--all", f"--grep={task_id}", "--format=%H|%s|%ai|%an"],
                 capture_output=True,
                 text=True,
                 cwd=str(self.repo_path),
-                timeout=10
+                timeout=10,
             )
 
             if result.returncode != 0:
                 return []
 
             commits = []
-            for line in result.stdout.strip().split('\n'):
+            for line in result.stdout.strip().split("\n"):
                 if not line:
                     continue
-                parts = line.split('|', 3)
+                parts = line.split("|", 3)
                 if len(parts) >= 4:
-                    commits.append({
-                        "hash": parts[0],
-                        "message": parts[1],
-                        "timestamp": parts[2],
-                        "author": parts[3],
-                    })
+                    commits.append(
+                        {
+                            "hash": parts[0],
+                            "message": parts[1],
+                            "timestamp": parts[2],
+                            "author": parts[3],
+                        }
+                    )
 
             return commits
         except (subprocess.SubprocessError, OSError) as e:
@@ -221,10 +234,7 @@ class GitHelper:
             return []
 
     def get_diff_between_commits(
-        self,
-        commit1: str,
-        commit2: str,
-        max_lines: int = 1000
+        self, commit1: str, commit2: str, max_lines: int = 1000
     ) -> Optional[str]:
         """
         Get diff between two commits.
@@ -239,26 +249,31 @@ class GitHelper:
         """
         try:
             result = subprocess.run(
-                ['git', 'diff', commit1, commit2],
+                ["git", "diff", commit1, commit2],
                 capture_output=True,
                 text=True,
                 cwd=str(self.repo_path),
-                timeout=30
+                timeout=30,
             )
 
             if result.returncode != 0:
                 return None
 
             diff = result.stdout
-            lines = diff.split('\n')
+            lines = diff.split("\n")
 
             if len(lines) > max_lines:
-                truncated = '\n'.join(lines[:max_lines])
-                return truncated + f"\n\n... ({len(lines) - max_lines} more lines truncated)"
+                truncated = "\n".join(lines[:max_lines])
+                return (
+                    truncated
+                    + f"\n\n... ({len(lines) - max_lines} more lines truncated)"
+                )
 
             return diff
         except (subprocess.SubprocessError, OSError) as e:
-            logger.warning("Failed to get diff between %s and %s: %s", commit1, commit2, e)
+            logger.warning(
+                "Failed to get diff between %s and %s: %s", commit1, commit2, e
+            )
             return None
 
     def get_file_at_commit(self, commit_hash: str, file_path: str) -> Optional[str]:
@@ -274,11 +289,11 @@ class GitHelper:
         """
         try:
             result = subprocess.run(
-                ['git', 'show', f'{commit_hash}:{file_path}'],
+                ["git", "show", f"{commit_hash}:{file_path}"],
                 capture_output=True,
                 text=True,
                 cwd=str(self.repo_path),
-                timeout=10
+                timeout=10,
             )
 
             if result.returncode != 0:
@@ -286,7 +301,9 @@ class GitHelper:
 
             return result.stdout
         except (subprocess.SubprocessError, OSError) as e:
-            logger.warning("Failed to get file %s at commit %s: %s", file_path, commit_hash, e)
+            logger.warning(
+                "Failed to get file %s at commit %s: %s", file_path, commit_hash, e
+            )
             return None
 
     def get_current_branch(self) -> Optional[str]:
@@ -298,11 +315,11 @@ class GitHelper:
         """
         try:
             result = subprocess.run(
-                ['git', 'branch', '--show-current'],
+                ["git", "branch", "--show-current"],
                 capture_output=True,
                 text=True,
                 cwd=str(self.repo_path),
-                timeout=5
+                timeout=5,
             )
 
             if result.returncode != 0:
@@ -322,11 +339,11 @@ class GitHelper:
         """
         try:
             result = subprocess.run(
-                ['git', 'rev-parse', 'HEAD'],
+                ["git", "rev-parse", "HEAD"],
                 capture_output=True,
                 text=True,
                 cwd=str(self.repo_path),
-                timeout=5
+                timeout=5,
             )
 
             if result.returncode != 0:

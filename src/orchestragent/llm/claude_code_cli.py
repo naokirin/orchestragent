@@ -148,9 +148,10 @@ class ClaudeCodeCLIClient(LLMClient):
             )
         except FileNotFoundError as e:
             error_msg = str(e)
-            if "No such file or directory" in error_msg and str(
-                self.project_root
-            ) in error_msg:
+            if (
+                "No such file or directory" in error_msg
+                and str(self.project_root) in error_msg
+            ):
                 raise LLMError(
                     f"Working directory does not exist: {self.project_root}. "
                     f"Please check TARGET_PROJECT or PROJECT_ROOT configuration.",

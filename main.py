@@ -10,18 +10,18 @@ def main():
     Supports --dashboard option to run in dashboard mode.
     """
     parser = argparse.ArgumentParser(
-        description='プランナー・ワーカースタイル自律エージェントシステム',
+        description="プランナー・ワーカースタイル自律エージェントシステム",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 例:
   python main.py                    # 簡易ログ形式（デフォルト）
   python main.py --dashboard         # ダッシュボード形式
-        """
+        """,
     )
     parser.add_argument(
-        '--dashboard',
-        action='store_true',
-        help='ダッシュボード形式で表示（インタラクティブなUI）'
+        "--dashboard",
+        action="store_true",
+        help="ダッシュボード形式で表示（インタラクティブなUI）",
     )
 
     args = parser.parse_args()
@@ -30,16 +30,20 @@ def main():
         # Dashboard mode
         try:
             from orchestragent.dashboard.tui.app import DashboardApp
+
             app = DashboardApp()
             app.run()
         except ImportError as e:
-            print(f"エラー: ダッシュボードモードに必要なライブラリがインストールされていません: {e}")
+            print(
+                f"エラー: ダッシュボードモードに必要なライブラリがインストールされていません: {e}"
+            )
             print("以下のコマンドでインストールしてください:")
             print("  pip install rich textual")
             sys.exit(1)
     else:
         # Normal mode (default behavior)
         from orchestragent.runner.loop import run_main_loop
+
         run_main_loop()
 
 

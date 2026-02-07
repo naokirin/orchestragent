@@ -23,7 +23,7 @@ def extract_json_from_response(response: str) -> Optional[Dict[str, Any]]:
         return None
 
     # Try to extract from JSON code block
-    json_match = re.search(r'```json\n(.*?)\n```', response, re.DOTALL)
+    json_match = re.search(r"```json\n(.*?)\n```", response, re.DOTALL)
     if json_match:
         try:
             return json.loads(json_match.group(1))
@@ -31,7 +31,7 @@ def extract_json_from_response(response: str) -> Optional[Dict[str, Any]]:
             pass
 
     # Try to find JSON object directly
-    json_match = re.search(r'\{.*\}', response, re.DOTALL)
+    json_match = re.search(r"\{.*\}", response, re.DOTALL)
     if json_match:
         try:
             return json.loads(json_match.group(0))

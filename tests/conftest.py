@@ -39,19 +39,17 @@ class MockLLMClient(LLMClient):
         self.default_response = '{"status": "ok", "message": "Mock response"}'
 
     def call_agent(
-        self,
-        prompt: str,
-        mode: str = "agent",
-        model: Optional[str] = None,
-        **kwargs
+        self, prompt: str, mode: str = "agent", model: Optional[str] = None, **kwargs
     ) -> str:
         """Mock agent call that records the call and returns configured response."""
-        self.call_history.append({
-            "prompt": prompt,
-            "mode": mode,
-            "model": model,
-            "kwargs": kwargs,
-        })
+        self.call_history.append(
+            {
+                "prompt": prompt,
+                "mode": mode,
+                "model": model,
+                "kwargs": kwargs,
+            }
+        )
 
         # Check for matching response pattern
         for pattern, response in self.responses.items():
@@ -65,7 +63,7 @@ class MockLLMClient(LLMClient):
         prompt_file: str,
         mode: str = "agent",
         model: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """Mock agent call from file."""
         prompt = f"[From file: {prompt_file}]"

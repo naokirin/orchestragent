@@ -65,7 +65,7 @@ class TestGetCommitInfo:
         """Test get_commit_info returns commit details."""
         mock_run.return_value = MagicMock(
             returncode=0,
-            stdout="abc123def456\nCommit message\nBody text\n2024-01-15 10:00:00 +0900\nJohn Doe"
+            stdout="abc123def456\nCommit message\nBody text\n2024-01-15 10:00:00 +0900\nJohn Doe",
         )
         result = git_helper.get_commit_info("abc123")
         assert result is not None
@@ -106,8 +106,7 @@ class TestGetCommitDiff:
     def test_get_commit_diff_success(self, mock_run, git_helper):
         """Test get_commit_diff returns diff."""
         mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="diff --git a/file.py b/file.py\n+added line"
+            returncode=0, stdout="diff --git a/file.py b/file.py\n+added line"
         )
         result = git_helper.get_commit_diff("abc123")
         assert result is not None
@@ -141,8 +140,7 @@ class TestGetCommitFiles:
     def test_get_commit_files_success(self, mock_run, git_helper):
         """Test get_commit_files returns file list."""
         mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="src/main.py\ntests/test_main.py\nREADME.md"
+            returncode=0, stdout="src/main.py\ntests/test_main.py\nREADME.md"
         )
         result = git_helper.get_commit_files("abc123")
         assert len(result) == 3
@@ -176,7 +174,7 @@ class TestGetRecentCommits:
         """Test get_recent_commits returns commit list."""
         mock_run.return_value = MagicMock(
             returncode=0,
-            stdout="abc123|First commit|2024-01-15 10:00:00|John\ndef456|Second commit|2024-01-14 10:00:00|Jane"
+            stdout="abc123|First commit|2024-01-15 10:00:00|John\ndef456|Second commit|2024-01-14 10:00:00|Jane",
         )
         result = git_helper.get_recent_commits(count=2)
         assert len(result) == 2
@@ -210,8 +208,7 @@ class TestGetCommitsForTask:
     def test_get_commits_for_task_success(self, mock_run, git_helper):
         """Test get_commits_for_task returns commits."""
         mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="abc123|task-001: Fix bug|2024-01-15|John"
+            returncode=0, stdout="abc123|task-001: Fix bug|2024-01-15|John"
         )
         result = git_helper.get_commits_for_task("task-001")
         assert len(result) == 1
@@ -236,8 +233,7 @@ class TestGetDiffBetweenCommits:
     def test_get_diff_between_commits_success(self, mock_run, git_helper):
         """Test get_diff_between_commits returns diff."""
         mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="diff --git a/file.py b/file.py\n-old\n+new"
+            returncode=0, stdout="diff --git a/file.py b/file.py\n-old\n+new"
         )
         result = git_helper.get_diff_between_commits("abc123", "def456")
         assert result is not None
@@ -263,8 +259,7 @@ class TestGetFileAtCommit:
     def test_get_file_at_commit_success(self, mock_run, git_helper):
         """Test get_file_at_commit returns file content."""
         mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="def hello():\n    print('hello')"
+            returncode=0, stdout="def hello():\n    print('hello')"
         )
         result = git_helper.get_file_at_commit("abc123", "src/main.py")
         assert result is not None
@@ -310,10 +305,7 @@ class TestGetHeadCommit:
     @patch("subprocess.run")
     def test_get_head_commit_success(self, mock_run, git_helper):
         """Test get_head_commit returns commit hash."""
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="abc123def456789\n"
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="abc123def456789\n")
         result = git_helper.get_head_commit()
         assert result == "abc123def456789"
 

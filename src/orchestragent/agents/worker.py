@@ -51,6 +51,7 @@ class WorkerAgent(BaseAgent):
             raise ValueError(f"Task {self.current_task_id} not found")
 
         from orchestragent import config as _config
+
         user_part = self.load_user_prompt(
             "prompt_template",
             _config.AGENT_CONFIG["prompt_template_worker"],
@@ -91,7 +92,9 @@ class WorkerAgent(BaseAgent):
             # Extract report from response
             # Try to find markdown report section
             report_match = re.search(
-                r'# (?:Task Report|タスク完了レポート)[:\s].*', response, re.DOTALL | re.IGNORECASE
+                r"# (?:Task Report|タスク完了レポート)[:\s].*",
+                response,
+                re.DOTALL | re.IGNORECASE,
             )
             if report_match:
                 report = report_match.group(0)
@@ -112,14 +115,14 @@ class WorkerAgent(BaseAgent):
             else:
                 # Fallback: extract all commit hashes and messages by regex
                 hash_matches = re.findall(
-                    r'[-*]*\s*\**(?:Commit hash|コミットハッシュ)[:\*\s]+`?([a-f0-9]+)`?',
+                    r"[-*]*\s*\**(?:Commit hash|コミットハッシュ)[:\*\s]+`?([a-f0-9]+)`?",
                     response,
-                    re.IGNORECASE
+                    re.IGNORECASE,
                 )
                 msg_matches = re.findall(
-                    r'[-*]*\s*\**(?:Commit message|コミットメッセージ)[:\*\s]+`?(.+)`?',
+                    r"[-*]*\s*\**(?:Commit message|コミットメッセージ)[:\*\s]+`?(.+)`?",
                     response,
-                    re.MULTILINE | re.IGNORECASE
+                    re.MULTILINE | re.IGNORECASE,
                 )
                 for i, h in enumerate(hash_matches):
                     msg = msg_matches[i].strip() if i < len(msg_matches) else ""
@@ -128,7 +131,7 @@ class WorkerAgent(BaseAgent):
             result = {
                 "report": report,
                 "commits": commits,
-                "task_id": self.current_task_id
+                "task_id": self.current_task_id,
             }
             # Backward compat: first commit as commit_hash / commit_message
             if commits:
@@ -144,7 +147,9 @@ class WorkerAgent(BaseAgent):
 
             if intent_data:
                 result["intent"] = intent_data
-                self.logger.info(f"[Worker] Intent extracted for task {self.current_task_id}")
+                self.logger.info(
+                    f"[Worker] Intent extracted for task {self.current_task_id}"
+                )
 
             return result
         except Exception as e:
@@ -156,7 +161,7 @@ class WorkerAgent(BaseAgent):
                 "commit_hash": None,
                 "commit_message": None,
                 "task_id": self.current_task_id,
-                "error": str(e)
+                "error": str(e),
             }
 
     def update_state(self, result: Dict[str, Any]) -> None:
@@ -196,7 +201,9 @@ class WorkerAgent(BaseAgent):
                     )
                     # Link this intent to the new ADR (overwrite related_adr)
                     intent_data["related_adr"] = adr_number
-                    self.logger.info(f"[Worker] ADR-{adr_number} created and linked to task {task_id}")
+                    self.logger.info(
+                        f"[Worker] ADR-{adr_number} created and linked to task {task_id}"
+                    )
                 except Exception as e:
                     self.logger.warning(f"[Worker] Failed to create ADR: {e}")
             # Remove adr_to_create so we don't persist it in the intent YAML
@@ -206,18 +213,20 @@ class WorkerAgent(BaseAgent):
         if "intent" in result and result["intent"]:
             try:
                 filepath = self.intent_manager.save_intent(result["intent"])
-                self.logger.info(f"[Worker] Intent saved for task {task_id}: {filepath}")
+                self.logger.info(
+                    f"[Worker] Intent saved for task {task_id}: {filepath}"
+                )
 
                 # Add all commits to Intent (intent_data already has commits; add_commit dedupes)
                 for c in result.get("commits", []):
                     ch = c.get("hash")
                     if ch:
                         self.intent_manager.add_commit_to_intent(
-                            task_id,
-                            ch,
-                            c.get("message") or ""
+                            task_id, ch, c.get("message") or ""
                         )
-                        self.logger.info(f"[Worker] Commit {ch[:8]} added to Intent {task_id}")
+                        self.logger.info(
+                            f"[Worker] Commit {ch[:8]} added to Intent {task_id}"
+                        )
             except Exception as e:
                 self.logger.warning(f"[Worker] Failed to save intent: {e}")
 
@@ -226,13 +235,13 @@ class WorkerAgent(BaseAgent):
         completed_count = task_stats.completed
 
         self.state_manager.update_status(
-            last_worker_run=self._get_timestamp(),
-            completed_tasks=completed_count
+            last_worker_run=self._get_timestamp(), completed_tasks=completed_count
         )
 
     def _get_timestamp(self) -> str:
         """Get current timestamp."""
         from datetime import datetime
+
         return datetime.now().isoformat()
 
     def assign_task(self, task_id: str) -> bool:
@@ -251,7 +260,9 @@ class WorkerAgent(BaseAgent):
             return False
 
         if not task.is_pending():
-            self.logger.warning(f"[Worker] Task {task_id} is not pending (status: {task.status.value})")
+            self.logger.warning(
+                f"[Worker] Task {task_id} is not pending (status: {task.status.value})"
+            )
             return False
 
         # Set current_task_id before assigning (used in build_prompt)

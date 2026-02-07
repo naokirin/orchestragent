@@ -41,9 +41,12 @@ class FileManager:
                 return json.load(f)
         except json.JSONDecodeError as e:
             from orchestragent.core.exceptions import StateCorruptionError
+
             raise StateCorruptionError(filename, e)
 
-    def save_json(self, filename: str, data: Dict[str, Any], *, sync: bool = False) -> None:
+    def save_json(
+        self, filename: str, data: Dict[str, Any], *, sync: bool = False
+    ) -> None:
         """
         Save dictionary to JSON file in state directory.
 
@@ -89,7 +92,6 @@ class FileManager:
         filepath.parent.mkdir(parents=True, exist_ok=True)
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(content)
-
 
     def update_json(
         self,

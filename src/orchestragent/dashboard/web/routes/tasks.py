@@ -16,8 +16,12 @@ def list_tasks(state=Depends(get_state_manager)):
             {
                 "id": t.id,
                 "title": t.title,
-                "status": t.status.value if hasattr(t.status, "value") else str(t.status),
-                "priority": t.priority.value if hasattr(t.priority, "value") else str(t.priority),
+                "status": t.status.value
+                if hasattr(t.status, "value")
+                else str(t.status),
+                "priority": t.priority.value
+                if hasattr(t.priority, "value")
+                else str(t.priority),
             }
             for t in all_tasks
         ]

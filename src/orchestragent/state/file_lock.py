@@ -7,7 +7,6 @@ from typing import Set, Optional, List
 from datetime import datetime
 
 
-
 class FileLockManager:
     """Manages file locks to prevent concurrent edits by multiple workers."""
 
@@ -47,7 +46,7 @@ class FileLockManager:
 
                 # Write lock metadata
                 lock_info = f"task_id={task_id}\ntimestamp={datetime.now().isoformat()}\nfilepath={filepath}\n"
-                os.write(lock_fd, lock_info.encode('utf-8'))
+                os.write(lock_fd, lock_info.encode("utf-8"))
                 os.close(lock_fd)
 
                 # Track in this process
@@ -119,12 +118,12 @@ class FileLockManager:
 
         for lock_file in self.lock_dir.glob("*.lock"):
             try:
-                with open(lock_file, 'r', encoding='utf-8') as f:
+                with open(lock_file, "r", encoding="utf-8") as f:
                     content = f.read()
                     # Extract filepath from lock file
-                    for line in content.split('\n'):
-                        if line.startswith('filepath='):
-                            filepath = line.split('=', 1)[1]
+                    for line in content.split("\n"):
+                        if line.startswith("filepath="):
+                            filepath = line.split("=", 1)[1]
                             if not self._is_lock_stale(lock_file, timeout=30.0):
                                 locked_files.append(filepath)
             except Exception:
@@ -149,11 +148,11 @@ class FileLockManager:
             return None
 
         try:
-            with open(lock_file, 'r', encoding='utf-8') as f:
+            with open(lock_file, "r", encoding="utf-8") as f:
                 content = f.read()
-                for line in content.split('\n'):
-                    if line.startswith('task_id='):
-                        return line.split('=', 1)[1]
+                for line in content.split("\n"):
+                    if line.startswith("task_id="):
+                        return line.split("=", 1)[1]
         except Exception:
             pass
 
@@ -162,7 +161,7 @@ class FileLockManager:
     def _normalize_path(self, filepath: str) -> str:
         """Normalize file path for consistent locking."""
         # Remove leading/trailing slashes and normalize
-        normalized = filepath.strip('/').replace('\\', '/')
+        normalized = filepath.strip("/").replace("\\", "/")
         return normalized
 
     def _is_lock_stale(self, lock_file: Path, timeout: float) -> bool:

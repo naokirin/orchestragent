@@ -18,7 +18,9 @@ except ImportError:
             def decorator(func):
                 func._textual_on = (message_type, selector)
                 return func
+
             return decorator
+
 
 from orchestragent.runner.loop import run_main_loop
 
@@ -124,19 +126,21 @@ class DashboardApp(App):
             Tab("タスク", id="tasks"),
             Tab("Intent", id="intents"),
             Tab("設定", id="settings"),
-            id="tabs"
+            id="tabs",
         )
         yield Container(id="content")
-        yield Static("[q] 終了  [d] ダークモード切替  [tab] タブ/コンテンツ切替", id="footer-bar", markup=False)
+        yield Static(
+            "[q] 終了  [d] ダークモード切替  [tab] タブ/コンテンツ切替",
+            id="footer-bar",
+            markup=False,
+        )
 
     def on_mount(self) -> None:
         """Called when app starts."""
         # Start main loop in background thread
         self._main_loop_running = True
         self.main_loop_thread = threading.Thread(
-            target=self._run_main_loop,
-            daemon=True,
-            name="MainLoop"
+            target=self._run_main_loop, daemon=True, name="MainLoop"
         )
         self.main_loop_thread.start()
 
@@ -173,7 +177,7 @@ class DashboardApp(App):
             pass
 
         # Update logs if logs widget is visible and mounted
-        if self.logs_widget and hasattr(self.logs_widget, 'update_logs'):
+        if self.logs_widget and hasattr(self.logs_widget, "update_logs"):
             try:
                 # Check if widget is still in the DOM (has a parent)
                 if self.logs_widget._parent is not None:
@@ -182,7 +186,7 @@ class DashboardApp(App):
                 pass  # Silently ignore update errors
 
         # Update tasks if tasks widget is visible
-        if self.tasks_widget and hasattr(self.tasks_widget, 'update_tasks'):
+        if self.tasks_widget and hasattr(self.tasks_widget, "update_tasks"):
             try:
                 self.tasks_widget.update_tasks()
             except Exception:
@@ -191,13 +195,13 @@ class DashboardApp(App):
         # Update overview if visible
         try:
             overview = self.query_one("#overview-widget", default=None)
-            if overview and hasattr(overview, 'update_content'):
+            if overview and hasattr(overview, "update_content"):
                 overview.update_content()
         except Exception:
             pass
 
         # Update settings if visible
-        if self.settings_widget and hasattr(self.settings_widget, 'update_content'):
+        if self.settings_widget and hasattr(self.settings_widget, "update_content"):
             try:
                 self.settings_widget.update_content()
             except Exception:
@@ -275,9 +279,11 @@ class DashboardApp(App):
 
         content = self.query_one("#content", Container)
         intent_manager = IntentManager(state_dir=config.STATE_DIR)
-        adr_manager = ADRManager(adr_dir=getattr(config, 'ADR_DIR', 'docs/adr'))
+        adr_manager = ADRManager(adr_dir=getattr(config, "ADR_DIR", "docs/adr"))
         # Use WORKING_DIR which is properly set for both container and host environments
-        git_helper = GitHelper(repo_path=str(config.WORKING_DIR) if config.WORKING_DIR else '.')
+        git_helper = GitHelper(
+            repo_path=str(config.WORKING_DIR) if config.WORKING_DIR else "."
+        )
         intents = IntentsWidget(intent_manager, adr_manager, git_helper)
         content.mount(intents)
         self.intents_widget = intents  # Store reference for updates

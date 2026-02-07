@@ -10,7 +10,14 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from orchestragent.dashboard.web.routes import overview, settings as settings_route, tasks, logs, intents, plan
+from orchestragent.dashboard.web.routes import (
+    overview,
+    settings as settings_route,
+    tasks,
+    logs,
+    intents,
+    plan,
+)
 from orchestragent.dashboard.web.templates import render_dashboard
 
 app = FastAPI(

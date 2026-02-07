@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Optional
 class ADRManager:
     """Manages ADR files."""
 
-    ADR_PATTERN = re.compile(r'^(\d{4})-(.+)\.md$')
+    ADR_PATTERN = re.compile(r"^(\d{4})-(.+)\.md$")
 
     def __init__(self, adr_dir: str = "docs/adr"):
         """
@@ -25,7 +25,7 @@ class ADRManager:
         """Ensure ADR template exists."""
         template_path = self.adr_dir / "template.md"
         if not template_path.exists():
-            template = '''# ADR-{number}: {title}
+            template = """# ADR-{number}: {title}
 
 ## Status
 Proposed / Accepted / Deprecated / Superseded
@@ -44,8 +44,8 @@ Proposed / Accepted / Deprecated / Superseded
 
 ## Related Intent
 - [List related task IDs]
-'''
-            with open(template_path, 'w', encoding='utf-8') as f:
+"""
+            with open(template_path, "w", encoding="utf-8") as f:
                 f.write(template)
 
     def get_next_number(self) -> int:
@@ -66,7 +66,7 @@ Proposed / Accepted / Deprecated / Superseded
         rationale: str = "",
         consequences: str = "",
         related_intents: Optional[List[str]] = None,
-        status: str = "Proposed"
+        status: str = "Proposed",
     ) -> str:
         """
         Create new ADR file.
@@ -94,7 +94,7 @@ Proposed / Accepted / Deprecated / Superseded
         else:
             intents_text = "- None"
 
-        content = f'''# ADR-{number_str}: {title}
+        content = f"""# ADR-{number_str}: {title}
 
 ## Status
 {status}
@@ -113,10 +113,10 @@ Proposed / Accepted / Deprecated / Superseded
 
 ## Related Intent
 {intents_text}
-'''
+"""
 
         filepath = self.adr_dir / filename
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(content)
 
         return number_str
@@ -135,64 +135,76 @@ Proposed / Accepted / Deprecated / Superseded
         number = number.zfill(4)
 
         for filepath in self.adr_dir.glob(f"{number}-*.md"):
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, "r", encoding="utf-8") as f:
                 content = f.read()
 
             # Parse title
-            title_match = re.search(r'^# ADR-\d+: (.+)$', content, re.MULTILINE)
+            title_match = re.search(r"^# ADR-\d+: (.+)$", content, re.MULTILINE)
             title = title_match.group(1) if title_match else "Unknown"
 
             # Parse status (English or Japanese header)
             status_match = re.search(
-                r'^## (?:Status|ステータス)\s*\n(.+?)(?=\n##|\Z)',
+                r"^## (?:Status|ステータス)\s*\n(.+?)(?=\n##|\Z)",
                 content,
-                re.MULTILINE | re.DOTALL | re.IGNORECASE
+                re.MULTILINE | re.DOTALL | re.IGNORECASE,
             )
-            status = status_match.group(1).strip().split('\n')[0] if status_match else "Unknown"
+            status = (
+                status_match.group(1).strip().split("\n")[0]
+                if status_match
+                else "Unknown"
+            )
 
             # Parse context
             context_match = re.search(
-                r'^## (?:Context|コンテキスト)\s*\n(.+?)(?=\n##|\Z)',
+                r"^## (?:Context|コンテキスト)\s*\n(.+?)(?=\n##|\Z)",
                 content,
-                re.MULTILINE | re.DOTALL | re.IGNORECASE
+                re.MULTILINE | re.DOTALL | re.IGNORECASE,
             )
             context = context_match.group(1).strip() if context_match else ""
 
             # Parse decision
             decision_match = re.search(
-                r'^## (?:Decision|決定)\s*\n(.+?)(?=\n##|\Z)',
+                r"^## (?:Decision|決定)\s*\n(.+?)(?=\n##|\Z)",
                 content,
-                re.MULTILINE | re.DOTALL | re.IGNORECASE
+                re.MULTILINE | re.DOTALL | re.IGNORECASE,
             )
             decision = decision_match.group(1).strip() if decision_match else ""
 
             # Parse rationale
             rationale_match = re.search(
-                r'^## (?:Rationale|理由)\s*\n(.+?)(?=\n##|\Z)',
+                r"^## (?:Rationale|理由)\s*\n(.+?)(?=\n##|\Z)",
                 content,
-                re.MULTILINE | re.DOTALL | re.IGNORECASE
+                re.MULTILINE | re.DOTALL | re.IGNORECASE,
             )
             rationale = rationale_match.group(1).strip() if rationale_match else ""
 
             # Parse consequences
             consequences_match = re.search(
-                r'^## (?:Consequences|結果)\s*\n(.+?)(?=\n##|\Z)',
+                r"^## (?:Consequences|結果)\s*\n(.+?)(?=\n##|\Z)",
                 content,
-                re.MULTILINE | re.DOTALL | re.IGNORECASE
+                re.MULTILINE | re.DOTALL | re.IGNORECASE,
             )
-            consequences = consequences_match.group(1).strip() if consequences_match else ""
+            consequences = (
+                consequences_match.group(1).strip() if consequences_match else ""
+            )
 
             # Parse related intents (English or Japanese header)
             intents_match = re.search(
-                r'^## (?:Related Intent|関連Intent)\s*\n(.+?)(?=\n##|\Z)',
+                r"^## (?:Related Intent|関連Intent)\s*\n(.+?)(?=\n##|\Z)",
                 content,
-                re.MULTILINE | re.DOTALL | re.IGNORECASE
+                re.MULTILINE | re.DOTALL | re.IGNORECASE,
             )
             related_intents = []
             if intents_match:
                 intents_text = intents_match.group(1)
-                related_intents = re.findall(r'^[-*]\s+(.+)$', intents_text, re.MULTILINE)
-                related_intents = [i.strip() for i in related_intents if i.strip() not in ("なし", "None")]
+                related_intents = re.findall(
+                    r"^[-*]\s+(.+)$", intents_text, re.MULTILINE
+                )
+                related_intents = [
+                    i.strip()
+                    for i in related_intents
+                    if i.strip() not in ("なし", "None")
+                ]
 
             return {
                 "number": number,
@@ -246,13 +258,13 @@ Proposed / Accepted / Deprecated / Superseded
 
         # Replace status (English or Japanese header)
         new_content = re.sub(
-            r'(^## (?:Status|ステータス)\s*\n)(.+?)(?=\n##|\Z)',
-            f'\\g<1>{new_status}',
+            r"(^## (?:Status|ステータス)\s*\n)(.+?)(?=\n##|\Z)",
+            f"\\g<1>{new_status}",
             content,
-            flags=re.MULTILINE | re.DOTALL | re.IGNORECASE
+            flags=re.MULTILINE | re.DOTALL | re.IGNORECASE,
         )
 
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(new_content)
 
         return True
@@ -281,9 +293,9 @@ Proposed / Accepted / Deprecated / Superseded
 
         # Find the related intents section and add new task (English or Japanese header)
         intents_match = re.search(
-            r'(^## (?:Related Intent|関連Intent)\s*\n)(.+?)(?=\n##|\Z)',
+            r"(^## (?:Related Intent|関連Intent)\s*\n)(.+?)(?=\n##|\Z)",
             content,
-            re.MULTILINE | re.DOTALL | re.IGNORECASE
+            re.MULTILINE | re.DOTALL | re.IGNORECASE,
         )
 
         if intents_match:
@@ -293,12 +305,16 @@ Proposed / Accepted / Deprecated / Superseded
             else:
                 new_intents = f"{existing}\n- {task_id}"
 
-            new_content = content[:intents_match.start(2)] + new_intents + content[intents_match.end(2):]
+            new_content = (
+                content[: intents_match.start(2)]
+                + new_intents
+                + content[intents_match.end(2) :]
+            )
         else:
             # Add section at end
             new_content = content.rstrip() + f"\n\n## Related Intent\n- {task_id}\n"
 
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(new_content)
 
         return True
@@ -309,6 +325,6 @@ Proposed / Accepted / Deprecated / Superseded
         # Replace Japanese characters with romanji or keep simple chars
         text = text.lower()
         # Remove special characters, keep alphanumeric, hyphens, and underscores
-        text = re.sub(r'[^\w\s-]', '', text)
-        text = re.sub(r'[-\s]+', '-', text)
-        return text.strip('-')[:50]
+        text = re.sub(r"[^\w\s-]", "", text)
+        text = re.sub(r"[-\s]+", "-", text)
+        return text.strip("-")[:50]

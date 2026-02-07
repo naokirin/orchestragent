@@ -111,7 +111,10 @@ Fixed the bug in the authentication module
         assert result["task_id"] == "task-004"
         assert len(result["commits"]) == 1
         assert result["intent"]["goal"] is not None
-        assert "authentication" in result["intent"]["goal"].lower() or "bug" in result["intent"]["goal"].lower()
+        assert (
+            "authentication" in result["intent"]["goal"].lower()
+            or "bug" in result["intent"]["goal"].lower()
+        )
 
     def test_parse_fallback_no_commits(self):
         """Test fallback returns None when no commits found."""
@@ -248,7 +251,8 @@ class TestExtractMethods:
     def test_extract_single(self):
         """Test _extract_single method."""
         import re
-        pattern = re.compile(r'Name: (.+)')
+
+        pattern = re.compile(r"Name: (.+)")
         text = "Name: John Doe"
         result = IntentParser._extract_single(pattern, text)
         assert result == "John Doe"
@@ -256,7 +260,8 @@ class TestExtractMethods:
     def test_extract_single_no_match(self):
         """Test _extract_single returns None when no match."""
         import re
-        pattern = re.compile(r'Name: (.+)')
+
+        pattern = re.compile(r"Name: (.+)")
         text = "No name here"
         result = IntentParser._extract_single(pattern, text)
         assert result is None
@@ -264,7 +269,8 @@ class TestExtractMethods:
     def test_extract_list(self):
         """Test _extract_list method."""
         import re
-        pattern = re.compile(r'Items:\n(.+?)(?=\n\n|$)', re.DOTALL)
+
+        pattern = re.compile(r"Items:\n(.+?)(?=\n\n|$)", re.DOTALL)
         text = """Items:
 - First item
 - Second item
@@ -281,7 +287,8 @@ Other content
     def test_extract_list_no_match(self):
         """Test _extract_list returns empty list when no match."""
         import re
-        pattern = re.compile(r'Items:\n(.+?)(?=\n\n|$)', re.DOTALL)
+
+        pattern = re.compile(r"Items:\n(.+?)(?=\n\n|$)", re.DOTALL)
         text = "No items section"
         result = IntentParser._extract_list(pattern, text)
         assert result == []
@@ -289,7 +296,8 @@ Other content
     def test_extract_all(self):
         """Test _extract_all method."""
         import re
-        pattern = re.compile(r'@(\w+)')
+
+        pattern = re.compile(r"@(\w+)")
         text = "Hello @alice and @bob and @charlie"
         result = IntentParser._extract_all(pattern, text)
         assert len(result) == 3

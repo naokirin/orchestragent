@@ -35,7 +35,7 @@ class BaseAgent:
         llm_client: LLMClient,
         state_manager: StateManager,
         logger: AgentLogger,
-        config: Optional[Dict[str, Any]] = None
+        config: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize base agent.
@@ -72,7 +72,10 @@ class BaseAgent:
     def _system_prompts_dir(self) -> str:
         """Return path to prompts/system/ (system template directory)."""
         from orchestragent import config as _config
-        return self.config.get("system_prompts_dir", _config.AGENT_CONFIG["system_prompts_dir"])
+
+        return self.config.get(
+            "system_prompts_dir", _config.AGENT_CONFIG["system_prompts_dir"]
+        )
 
     def _load_system_template(self, filename: str, **kwargs: Any) -> str:
         """Load and format a system template (context or output format)."""
@@ -142,7 +145,7 @@ class BaseAgent:
                 return self._run_internal(iteration, start_time)
             except LLMError as e:
                 if e.retryable and attempt < max_retries - 1:
-                    wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s, ...
+                    wait_time = 2**attempt  # Exponential backoff: 1s, 2s, 4s, ...
                     self.logger.warning(
                         f"[{self.name}] LLM error (attempt {attempt + 1}/{max_retries}), "
                         f"retrying in {wait_time} seconds: {e}"
@@ -156,30 +159,30 @@ class BaseAgent:
                     context={
                         "iteration": iteration,
                         "attempt": attempt + 1,
-                        "max_retries": max_retries
-                    }
+                        "max_retries": max_retries,
+                    },
                 )
                 raise
             except AgentError as e:
                 # Other agent errors are not retryable
                 self.logger.log_error_with_traceback(
-                    self.name,
-                    e,
-                    context={"iteration": iteration}
+                    self.name, e, context={"iteration": iteration}
                 )
                 raise
             except Exception as e:
                 # Unexpected errors
                 self.logger.log_error_with_traceback(
-                    self.name,
-                    e,
-                    context={"iteration": iteration}
+                    self.name, e, context={"iteration": iteration}
                 )
                 # Wrap in AgentError
-                raise AgentError(f"Unexpected error: {e}", retryable=False, original_error=e)
+                raise AgentError(
+                    f"Unexpected error: {e}", retryable=False, original_error=e
+                )
 
         # This should never be reached due to raise statements in the loop
-        raise AgentError("Unexpected: all retries exhausted without returning", retryable=False)
+        raise AgentError(
+            "Unexpected: all retries exhausted without returning", retryable=False
+        )
 
     def _run_internal(self, iteration: int, start_time: float) -> Dict[str, Any]:
         """
@@ -212,7 +215,7 @@ class BaseAgent:
             model=self.config.get("model"),
             model_tier=self._model_tier,
             agent_name=self.name,
-            logger=self.logger
+            logger=self.logger,
         )
 
         # 4. Parse response
@@ -220,14 +223,13 @@ class BaseAgent:
             result = self.parse_response(response)
             # Ensure result is a dictionary
             if not isinstance(result, dict):
-                raise ValueError(f"parse_response() must return a dict, got {type(result)}")
+                raise ValueError(
+                    f"parse_response() must return a dict, got {type(result)}"
+                )
         except Exception as e:
             self.logger.error(f"[{self.name}] Error parsing response: {e}")
             # Create a fallback result
-            result = {
-                "response": response,
-                "error": str(e)
-            }
+            result = {"response": response, "error": str(e)}
 
         # 5. Update state
         try:
@@ -245,7 +247,7 @@ class BaseAgent:
             response=response,
             duration=duration,
             mode=self.mode,
-            model=self.config.get("model")
+            model=self.config.get("model"),
         )
 
         return result
@@ -260,5 +262,5 @@ class BaseAgent:
         return {
             "plan": self.state_manager.get_plan(),
             "tasks": self.state_manager.get_tasks(),
-            "status": self.state_manager.get_status()
+            "status": self.state_manager.get_status(),
         }

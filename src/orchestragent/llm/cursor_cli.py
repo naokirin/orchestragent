@@ -86,7 +86,7 @@ class CursorCLIClient(LLMClient):
         model_tier: Optional[ModelTier] = None,
         agent_name: Optional[str] = None,
         logger: Optional["AgentLogger"] = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """
         Execute agent via Cursor CLI.
@@ -104,24 +104,23 @@ class CursorCLIClient(LLMClient):
             Agent output (string)
         """
         resolved_model = self._resolve_model(model, model_tier)
-        cmd = ['agent', '-p', prompt, '--output-format', self.output_format]
+        cmd = ["agent", "-p", prompt, "--output-format", self.output_format]
 
         if mode != "agent":
-            cmd.extend(['--mode', mode])
+            cmd.extend(["--mode", mode])
 
         if resolved_model:
-            cmd.extend(['--model', resolved_model])
+            cmd.extend(["--model", resolved_model])
 
-        timeout = kwargs.get('timeout', 300)  # Default 5 minutes
-        command_str = ' '.join(cmd)
+        timeout = kwargs.get("timeout", 300)  # Default 5 minutes
+        command_str = " ".join(cmd)
 
         # Prepare streaming log if logger is provided
         log_stream = None
         if logger and agent_name:
             try:
                 log_stream = logger.start_agent_command_stream(
-                    agent_name=agent_name,
-                    command=command_str
+                    agent_name=agent_name, command=command_str
                 )
             except Exception as log_error:
                 if logger:
@@ -141,13 +140,16 @@ class CursorCLIClient(LLMClient):
         except FileNotFoundError as e:
             # Check if the error is about the working directory or the command
             error_msg = str(e)
-            if "No such file or directory" in error_msg and str(self.project_root) in error_msg:
+            if (
+                "No such file or directory" in error_msg
+                and str(self.project_root) in error_msg
+            ):
                 # The working directory doesn't exist
                 raise LLMError(
                     f"Working directory does not exist: {self.project_root}. "
                     f"Please check TARGET_PROJECT or PROJECT_ROOT configuration.",
                     retryable=False,
-                    original_error=e
+                    original_error=e,
                 )
             else:
                 # Cursor CLI command not found
@@ -155,11 +157,15 @@ class CursorCLIClient(LLMClient):
                     "Cursor CLI not found. Install with: "
                     "curl https://cursor.com/install -fsS | bash",
                     retryable=False,
-                    original_error=e
+                    original_error=e,
                 )
         except Exception as e:
             # Wrap unexpected errors from process start
-            raise LLMError(f"Unexpected error starting Cursor CLI: {e}", retryable=True, original_error=e)
+            raise LLMError(
+                f"Unexpected error starting Cursor CLI: {e}",
+                retryable=True,
+                original_error=e,
+            )
 
         collected_output = []
 
@@ -199,7 +205,7 @@ class CursorCLIClient(LLMClient):
                 except OSError as close_error:
                     logger.debug("Failed to close log stream: %s", close_error)
 
-        output_text = ''.join(collected_output)
+        output_text = "".join(collected_output)
 
         if returncode != 0:
             stderr = output_text or ""
@@ -220,14 +226,14 @@ class CursorCLIClient(LLMClient):
         mode: str = "agent",
         model: Optional[str] = None,
         model_tier: Optional[ModelTier] = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """Load prompt from file and execute."""
         prompt_path = Path(prompt_file)
         if not prompt_path.exists():
             raise FileNotFoundError(f"Prompt file not found: {prompt_file}")
 
-        with open(prompt_path, 'r', encoding='utf-8') as f:
+        with open(prompt_path, "r", encoding="utf-8") as f:
             prompt = f.read()
 
         return self.call_agent(prompt, mode, model, model_tier=model_tier, **kwargs)

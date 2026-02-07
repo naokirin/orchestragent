@@ -198,9 +198,7 @@ class TestTaskError:
     def test_retryable(self):
         """Test creating retryable TaskError."""
         error = TaskError(
-            task_id="task-002",
-            message="Temporary failure",
-            retryable=True
+            task_id="task-002", message="Temporary failure", retryable=True
         )
         assert error.retryable is True
 
@@ -208,9 +206,7 @@ class TestTaskError:
         """Test TaskError with original error."""
         original = RuntimeError("Execution failed")
         error = TaskError(
-            task_id="task-003",
-            message="Runtime error",
-            original_error=original
+            task_id="task-003", message="Runtime error", original_error=original
         )
         assert error.original_error is original
         assert error.task_id == "task-003"

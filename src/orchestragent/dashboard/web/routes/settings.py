@@ -22,7 +22,9 @@ def get_settings(state=Depends(get_state_manager)):
         "project": {
             "project_root": str(config.PROJECT_ROOT),
             "project_goal": config.AGENT_CONFIG.get("project_goal", "未設定"),
-            "target_project": str(config.TARGET_PROJECT) if config.TARGET_PROJECT else None,
+            "target_project": str(config.TARGET_PROJECT)
+            if config.TARGET_PROJECT
+            else None,
             "state_dir": config.DISPLAY_STATE_DIR,
             "log_dir": config.DISPLAY_LOG_DIR,
             "adr_dir": config.DISPLAY_ADR_DIR,
@@ -49,7 +51,9 @@ def get_settings(state=Depends(get_state_manager)):
             "max_iterations": config.MAX_ITERATIONS,
             "max_retries": config.MAX_RETRIES,
             "enable_parallel_execution": config.ENABLE_PARALLEL_EXECUTION,
-            "max_parallel_workers": config.MAX_PARALLEL_WORKERS if config.ENABLE_PARALLEL_EXECUTION else None,
+            "max_parallel_workers": config.MAX_PARALLEL_WORKERS
+            if config.ENABLE_PARALLEL_EXECUTION
+            else None,
         },
         "environment": {
             "running_in_container": is_container,

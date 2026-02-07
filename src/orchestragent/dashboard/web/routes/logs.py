@@ -21,6 +21,7 @@ _AGENT_TYPES = ["Planner", "Plan_Judge", "Worker", "Judge"]
 
 def _get_log_dir():
     from orchestragent import config
+
     return Path(config.LOG_DIR)
 
 
@@ -44,7 +45,9 @@ def _collect_all_log_paths(log_dir: Path) -> list[tuple[datetime, Path]]:
 
 @router.get("/logs")
 def get_logs(
-    date: str | None = Query(None, description="YYYY-MM-DD; single day only. Omit to get all logs."),
+    date: str | None = Query(
+        None, description="YYYY-MM-DD; single day only. Omit to get all logs."
+    ),
     state=Depends(get_state_manager),
 ):
     """Return log file content. Without date: all execution_*.log files (chronological). With date: that day only."""
@@ -79,7 +82,9 @@ def get_logs(
             else:
                 parts.append(f"=== {dt.strftime('%Y-%m-%d')} ({p.name}) ===\n(空)")
         except Exception as e:
-            parts.append(f"=== {dt.strftime('%Y-%m-%d')} ({p.name}) ===\n(読込エラー: {e})")
+            parts.append(
+                f"=== {dt.strftime('%Y-%m-%d')} ({p.name}) ===\n(読込エラー: {e})"
+            )
             paths.append(str(p))
     content = "\n\n".join(parts)
     return {"content": content, "path": "all", "paths": paths}
@@ -123,11 +128,13 @@ def get_agent_logs_summary(state=Depends(get_state_manager)):
     agents = []
     for agent_type in _AGENT_TYPES:
         logs = agent_logs.get(agent_type, [])
-        agents.append({
-            "name": agent_type,
-            "execution_count": len(logs),
-            "log_files": [{"timestamp": ts, "filename": p.name} for ts, p in logs]
-        })
+        agents.append(
+            {
+                "name": agent_type,
+                "execution_count": len(logs),
+                "log_files": [{"timestamp": ts, "filename": p.name} for ts, p in logs],
+            }
+        )
 
     return {"agents": agents}
 
@@ -139,18 +146,24 @@ def get_agent_log_files(agent_name: str, state=Depends(get_state_manager)):
     agent_logs = _collect_agent_log_paths(log_dir)
 
     if agent_name not in agent_logs:
-        return {"agent_name": agent_name, "log_files": [], "error": "Unknown agent type"}
+        return {
+            "agent_name": agent_name,
+            "log_files": [],
+            "error": "Unknown agent type",
+        }
 
     logs = agent_logs[agent_name]
     return {
         "agent_name": agent_name,
         "execution_count": len(logs),
-        "log_files": [{"timestamp": ts, "filename": p.name} for ts, p in logs]
+        "log_files": [{"timestamp": ts, "filename": p.name} for ts, p in logs],
     }
 
 
 @router.get("/agent-logs/{agent_name}/{filename}")
-def get_agent_log_content(agent_name: str, filename: str, state=Depends(get_state_manager)):
+def get_agent_log_content(
+    agent_name: str, filename: str, state=Depends(get_state_manager)
+):
     """Return content of a specific agent log file."""
     log_dir = _get_log_dir()
     log_path = log_dir / filename

@@ -166,9 +166,7 @@ class TestSetupAgents:
 class TestRunPlanPhase:
     """Tests for run_plan_phase()."""
 
-    def test_returns_true_when_plan_accepted(
-        self, loop_context, mock_agent_context
-    ):
+    def test_returns_true_when_plan_accepted(self, loop_context, mock_agent_context):
         """Returns True when Plan_Judge returns accept."""
         mock_agent_context.planner.run.return_value = None
         mock_agent_context.plan_judge.run.return_value = {"decision": "accept"}
@@ -179,9 +177,7 @@ class TestRunPlanPhase:
         mock_agent_context.planner.run.assert_called_once()
         mock_agent_context.plan_judge.run.assert_called_once()
 
-    def test_returns_false_when_planner_raises(
-        self, loop_context, mock_agent_context
-    ):
+    def test_returns_false_when_planner_raises(self, loop_context, mock_agent_context):
         """Returns False when Planner raises AgentError."""
         mock_agent_context.planner.run.side_effect = AgentError("planner error")
 
@@ -231,9 +227,7 @@ class TestRunPlanPhase:
 class TestRunWorkPhase:
     """Tests for run_work_phase()."""
 
-    def test_no_pending_tasks_sequential(
-        self, loop_context, mock_agent_context
-    ):
+    def test_no_pending_tasks_sequential(self, loop_context, mock_agent_context):
         """Worker is not run when parallel disabled and no pending tasks."""
         # loop_context.runner_config has enable_parallel_execution=False from _default_runner_config
         # state_manager is real so get_pending_tasks() returns [] (empty state)
@@ -251,9 +245,7 @@ class TestRunWorkPhase:
 class TestRunJudgePhase:
     """Tests for run_judge_phase()."""
 
-    def test_calls_judge_run(
-        self, loop_context, mock_agent_context
-    ):
+    def test_calls_judge_run(self, loop_context, mock_agent_context):
         """Judge.run is called once."""
         run_judge_phase(loop_context, mock_agent_context, iteration=1)
 
@@ -274,7 +266,9 @@ class TestRunPlanFinalizeOnJudgeCompletion:
         self, loop_context, mock_agent_context
     ):
         """Judge正常終了時に Planner が finalize=True で実行される。"""
-        run_plan_finalize_on_judge_completion(loop_context, mock_agent_context, iteration=3)
+        run_plan_finalize_on_judge_completion(
+            loop_context, mock_agent_context, iteration=3
+        )
 
         mock_agent_context.planner.run.assert_called_once()
         call_kw = mock_agent_context.planner.run.call_args[1]

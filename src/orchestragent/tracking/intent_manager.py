@@ -40,13 +40,13 @@ class IntentManager:
         # Update timestamp
         intent_data["updated_at"] = datetime.now().isoformat()
 
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             yaml.dump(
                 intent_data,
                 f,
                 allow_unicode=True,
                 default_flow_style=False,
-                sort_keys=False
+                sort_keys=False,
             )
 
         return str(filepath)
@@ -67,7 +67,7 @@ class IntentManager:
         if not filepath.exists():
             return None
 
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
 
     def get_all_intents(self) -> List[Dict[str, Any]]:
@@ -80,7 +80,7 @@ class IntentManager:
         intents = []
         for filepath in self.intents_dir.glob("intent_*.yaml"):
             try:
-                with open(filepath, 'r', encoding='utf-8') as f:
+                with open(filepath, "r", encoding="utf-8") as f:
                     intent = yaml.safe_load(f)
                     if intent:
                         intents.append(intent)
@@ -93,10 +93,7 @@ class IntentManager:
         return intents
 
     def add_commit_to_intent(
-        self,
-        task_id: str,
-        commit_hash: str,
-        commit_message: str
+        self, task_id: str, commit_hash: str, commit_message: str
     ) -> bool:
         """
         Add commit information to existing Intent.
@@ -121,11 +118,13 @@ class IntentManager:
         if commit_hash in existing_hashes:
             return True  # Already recorded
 
-        intent["commits"].append({
-            "hash": commit_hash,
-            "message": commit_message,
-            "timestamp": datetime.now().isoformat(),
-        })
+        intent["commits"].append(
+            {
+                "hash": commit_hash,
+                "message": commit_message,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
         intent["updated_at"] = datetime.now().isoformat()
 
         self.save_intent(intent)
@@ -152,12 +151,7 @@ class IntentManager:
         self.save_intent(intent)
         return True
 
-    def update_intent_field(
-        self,
-        task_id: str,
-        field: str,
-        value: Any
-    ) -> bool:
+    def update_intent_field(self, task_id: str, field: str, value: Any) -> bool:
         """
         Update a specific field in Intent.
 
@@ -213,8 +207,7 @@ class IntentManager:
         """
         all_intents = self.get_all_intents()
         return [
-            intent for intent in all_intents
-            if intent.get("related_adr") == adr_number
+            intent for intent in all_intents if intent.get("related_adr") == adr_number
         ]
 
     def search_intents(self, keyword: str) -> List[Dict[str, Any]]:

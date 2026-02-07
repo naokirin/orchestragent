@@ -92,19 +92,19 @@ class TestGetParallelizableTasks:
             id="task-001",
             title="Edit main.py",
             files=["src/main.py"],
-            priority=TaskPriority.HIGH
+            priority=TaskPriority.HIGH,
         )
         task2 = Task(
             id="task-002",
             title="Also edit main.py",
             files=["src/main.py"],
-            priority=TaskPriority.MEDIUM
+            priority=TaskPriority.MEDIUM,
         )
         task3 = Task(
             id="task-003",
             title="Edit other.py",
             files=["src/other.py"],
-            priority=TaskPriority.LOW
+            priority=TaskPriority.LOW,
         )
         scheduler.state_manager.get_pending_tasks.return_value = [task1, task2, task3]
 
@@ -136,11 +136,7 @@ class TestFilterReadyTasks:
 
     def test_all_dependencies_completed(self, scheduler):
         """Test task with all completed dependencies is ready."""
-        task = Task(
-            id="task-002",
-            title="Has deps",
-            dependencies=["task-001"]
-        )
+        task = Task(id="task-002", title="Has deps", dependencies=["task-001"])
         dep_task = Task(id="task-001", title="Dep", status=TaskStatus.COMPLETED)
         scheduler.state_manager.get_task_by_id.return_value = dep_task
 
@@ -150,11 +146,7 @@ class TestFilterReadyTasks:
 
     def test_incomplete_dependencies(self, scheduler):
         """Test task with incomplete dependencies is not ready."""
-        task = Task(
-            id="task-002",
-            title="Has deps",
-            dependencies=["task-001"]
-        )
+        task = Task(id="task-002", title="Has deps", dependencies=["task-001"])
         dep_task = Task(id="task-001", title="Dep", status=TaskStatus.PENDING)
         scheduler.state_manager.get_task_by_id.return_value = dep_task
 
@@ -164,11 +156,7 @@ class TestFilterReadyTasks:
 
     def test_missing_dependency(self, scheduler):
         """Test task with missing dependency is not ready."""
-        task = Task(
-            id="task-002",
-            title="Has deps",
-            dependencies=["task-001"]
-        )
+        task = Task(id="task-002", title="Has deps", dependencies=["task-001"])
         scheduler.state_manager.get_task_by_id.return_value = None
 
         result = scheduler._filter_ready_tasks([task])
@@ -188,9 +176,7 @@ class TestExtractTaskFiles:
     def test_extract_from_files_field(self, scheduler):
         """Test extraction from explicit files field."""
         task = Task(
-            id="task-001",
-            title="Test",
-            files=["src/main.py", "tests/test_main.py"]
+            id="task-001", title="Test", files=["src/main.py", "tests/test_main.py"]
         )
 
         result = scheduler._extract_task_files(task)
@@ -203,7 +189,7 @@ class TestExtractTaskFiles:
         task = Task(
             id="task-001",
             title="Test",
-            description="Modify file: src/utils.py and file: tests/test_utils.py"
+            description="Modify file: src/utils.py and file: tests/test_utils.py",
         )
 
         result = scheduler._extract_task_files(task)
@@ -216,7 +202,7 @@ class TestExtractTaskFiles:
         task = Task(
             id="task-001",
             title="Test",
-            description='Update "src/config.json" and `src/settings.yaml`'
+            description='Update "src/config.json" and `src/settings.yaml`',
         )
 
         result = scheduler._extract_task_files(task)
@@ -229,7 +215,7 @@ class TestExtractTaskFiles:
         task = Task(
             id="task-001",
             title="Test",
-            description="Fix bug in src/app.py causing issues"
+            description="Fix bug in src/app.py causing issues",
         )
 
         result = scheduler._extract_task_files(task)
@@ -242,7 +228,7 @@ class TestExtractTaskFiles:
             id="task-001",
             title="Test",
             files=["src/main.py"],
-            description="Update src/main.py with new features"
+            description="Update src/main.py with new features",
         )
 
         result = scheduler._extract_task_files(task)
@@ -304,5 +290,3 @@ class TestCanTasksRunParallel:
         result = scheduler.can_tasks_run_parallel(task1, task2)
 
         assert result is True
-
-

@@ -91,7 +91,9 @@ class ModelSelector:
         """
         return None
 
-    def select_model_tier(self, task: Union[Task, Dict[str, Any]]) -> Optional[ModelTier]:
+    def select_model_tier(
+        self, task: Union[Task, Dict[str, Any]]
+    ) -> Optional[ModelTier]:
         """
         Select the model tier for a task based on complexity.
 

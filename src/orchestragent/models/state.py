@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 @dataclass
 class Status:
     """System status data."""
+
     last_updated: Optional[str] = None
     version: int = 0
     current_phase: Optional[str] = None
@@ -40,6 +41,7 @@ class Status:
 @dataclass
 class CheckpointMetadata:
     """Checkpoint metadata."""
+
     checkpoint_name: str
     created_at: str
     files: List[str] = field(default_factory=list)
@@ -65,6 +67,7 @@ class CheckpointMetadata:
 @dataclass
 class ValidationResult:
     """State validation result."""
+
     valid: bool = True
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)

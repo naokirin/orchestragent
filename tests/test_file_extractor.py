@@ -1,6 +1,5 @@
 """Tests for file_extractor utility."""
 
-
 from orchestragent.utils.file_extractor import extract_file_paths_from_text
 
 

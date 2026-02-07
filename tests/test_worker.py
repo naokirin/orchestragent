@@ -10,7 +10,9 @@ from orchestragent.models.task import TaskStatus
 class TestWorkerAgentInit:
     """Tests for WorkerAgent initialization."""
 
-    def test_init_sets_mode_to_agent(self, mock_llm_client, state_manager, temp_state_dir):
+    def test_init_sets_mode_to_agent(
+        self, mock_llm_client, state_manager, temp_state_dir
+    ):
         """WorkerAgent mode is set to 'agent'."""
         logger = MagicMock()
         agent = WorkerAgent(
@@ -23,7 +25,9 @@ class TestWorkerAgentInit:
         assert agent.mode == "agent"
         assert agent.current_task_id is None
 
-    def test_init_with_model_selection_config(self, mock_llm_client, state_manager, temp_state_dir):
+    def test_init_with_model_selection_config(
+        self, mock_llm_client, state_manager, temp_state_dir
+    ):
         """Model selection config can be passed."""
         logger = MagicMock()
         agent = WorkerAgent(
@@ -115,11 +119,14 @@ class TestWorkerBuildPrompt:
 
     def test_build_prompt_uses_fallback_template(self, worker_agent, state_manager):
         """Use fallback when template file is not found."""
-        task_id = state_manager.add_task({"title": "Test Task", "description": "Task description"})
+        task_id = state_manager.add_task(
+            {"title": "Test Task", "description": "Task description"}
+        )
         worker_agent.current_task_id = task_id
 
         # Make only prompt template files raise FileNotFoundError
         original_open = open
+
         def mock_open_func(path, *args, **kwargs):
             if "prompts/" in str(path):
                 raise FileNotFoundError
@@ -147,7 +154,9 @@ class TestWorkerGetRelatedFiles:
             state_dir=str(temp_state_dir),
         )
 
-    def test_get_related_files_extracts_from_description(self, worker_agent, state_manager):
+    def test_get_related_files_extracts_from_description(
+        self, worker_agent, state_manager
+    ):
         """Extract files from task description (include_common_pattern=True)."""
         from orchestragent.models.task import Task
 
@@ -208,7 +217,9 @@ class TestWorkerParseResponse:
         assert "# タスク完了レポート" in result["report"]
         assert result["task_id"] == "task-001"
 
-    def test_parse_response_uses_full_response_when_no_report_section(self, worker_agent):
+    def test_parse_response_uses_full_response_when_no_report_section(
+        self, worker_agent
+    ):
         """Use full response when no report section."""
         response = "タスクを完了しました。変更を加えました。"
         result = worker_agent.parse_response(response)
@@ -304,7 +315,9 @@ class TestWorkerUpdateState:
         task = state_manager.get_task_by_id(task_id)
         assert task.status == TaskStatus.COMPLETED
 
-    def test_update_state_creates_adr_when_specified(self, worker_agent, state_manager, temp_state_dir):
+    def test_update_state_creates_adr_when_specified(
+        self, worker_agent, state_manager, temp_state_dir
+    ):
         """Create ADR when adr_to_create is specified."""
         task_id = state_manager.add_task({"title": "Test", "description": "Desc"})
         state_manager.assign_task(task_id, "worker")
@@ -331,7 +344,9 @@ class TestWorkerUpdateState:
         non_template_files = [f for f in adr_files if "template" not in f.name]
         assert len(non_template_files) >= 1
 
-    def test_update_state_saves_intent(self, worker_agent, state_manager, temp_state_dir):
+    def test_update_state_saves_intent(
+        self, worker_agent, state_manager, temp_state_dir
+    ):
         """Save Intent."""
         task_id = state_manager.add_task({"title": "Test", "description": "Desc"})
         state_manager.assign_task(task_id, "worker")

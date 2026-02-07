@@ -20,7 +20,7 @@ class LLMClient(ABC):
         mode: str = "agent",
         model: Optional[str] = None,
         model_tier: Optional[ModelTier] = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """
         Call agent and get response.
@@ -48,7 +48,7 @@ class LLMClient(ABC):
         mode: str = "agent",
         model: Optional[str] = None,
         model_tier: Optional[ModelTier] = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """
         Load prompt from file and execute.

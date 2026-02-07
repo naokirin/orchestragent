@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 @dataclass
 class Commit:
     """Git commit information."""
+
     hash: str
     message: str
     timestamp: Optional[str] = None
@@ -38,6 +39,7 @@ class Commit:
 @dataclass
 class IntentData:
     """Intent goal and rationale data."""
+
     goal: str = ""
     rationale: str = ""
 
@@ -60,6 +62,7 @@ class IntentData:
 @dataclass
 class Intent:
     """Full Intent data model."""
+
     task_id: str
     intent: IntentData = field(default_factory=IntentData)
     commits: List[Commit] = field(default_factory=list)
@@ -78,8 +81,12 @@ class Intent:
         """Convert to dictionary."""
         data = {
             "task_id": self.task_id,
-            "intent": self.intent.to_dict() if isinstance(self.intent, IntentData) else self.intent,
-            "commits": [c.to_dict() if isinstance(c, Commit) else c for c in self.commits],
+            "intent": self.intent.to_dict()
+            if isinstance(self.intent, IntentData)
+            else self.intent,
+            "commits": [
+                c.to_dict() if isinstance(c, Commit) else c for c in self.commits
+            ],
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
@@ -97,7 +104,9 @@ class Intent:
             intent = IntentData()
 
         commits_data = data.get("commits", [])
-        commits = [Commit.from_dict(c) if isinstance(c, dict) else c for c in commits_data]
+        commits = [
+            Commit.from_dict(c) if isinstance(c, dict) else c for c in commits_data
+        ]
 
         return cls(
             task_id=data.get("task_id", "unknown"),

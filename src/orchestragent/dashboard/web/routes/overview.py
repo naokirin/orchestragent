@@ -11,6 +11,7 @@ router = APIRouter()
 def get_overview(state=Depends(get_state_manager)):
     """Return overview data: project_goal, status (iteration, should_continue, reason), task_statistics."""
     from orchestragent import config
+
     status = state.get_status()
     stats = state.get_task_statistics()
     total = stats.total

@@ -143,7 +143,7 @@ class TestIntent:
         """Test that post_init converts dict to IntentData."""
         intent = Intent(
             task_id="task-001",
-            intent={"goal": "Test", "rationale": "Testing"}  # type: ignore
+            intent={"goal": "Test", "rationale": "Testing"},  # type: ignore
         )
         assert isinstance(intent.intent, IntentData)
         assert intent.intent.goal == "Test"
@@ -258,7 +258,9 @@ class TestIntent:
         original = Intent(
             task_id="task-001",
             intent=intent_data,
-            commits=[Commit(hash="abc", message="msg", timestamp="2024-01-01T00:00:00")],
+            commits=[
+                Commit(hash="abc", message="msg", timestamp="2024-01-01T00:00:00")
+            ],
             related_adr="adr-001",
             created_at="2024-01-01T00:00:00",
             updated_at="2024-01-02T00:00:00",

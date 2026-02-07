@@ -50,28 +50,50 @@ CLAUDE_CODE_CLI_MODEL = _env_or_none("CLAUDE_CODE_CLI_MODEL")
 GEMINI_CLI_MODEL = _env_or_none("GEMINI_CLI_MODEL")
 
 # Backend availability check (skip unavailable backends in fallback)
-CHECK_BACKEND_AVAILABILITY = os.getenv("CHECK_BACKEND_AVAILABILITY", "true").lower() == "true"
+CHECK_BACKEND_AVAILABILITY = (
+    os.getenv("CHECK_BACKEND_AVAILABILITY", "true").lower() == "true"
+)
 
 # ===========================================
 # Dynamic Model Selection (Worker only)
 # ===========================================
 # When enabled, Worker selects model tier based on task complexity
-MODEL_SELECTION_ENABLED = os.getenv("MODEL_SELECTION_ENABLED", "false").lower() == "true"
-MODEL_COMPLEXITY_THRESHOLD_LIGHT = float(os.getenv("MODEL_COMPLEXITY_THRESHOLD_LIGHT", "10.0"))
-MODEL_COMPLEXITY_THRESHOLD_POWERFUL = float(os.getenv("MODEL_COMPLEXITY_THRESHOLD_POWERFUL", "30.0"))
+MODEL_SELECTION_ENABLED = (
+    os.getenv("MODEL_SELECTION_ENABLED", "false").lower() == "true"
+)
+MODEL_COMPLEXITY_THRESHOLD_LIGHT = float(
+    os.getenv("MODEL_COMPLEXITY_THRESHOLD_LIGHT", "10.0")
+)
+MODEL_COMPLEXITY_THRESHOLD_POWERFUL = float(
+    os.getenv("MODEL_COMPLEXITY_THRESHOLD_POWERFUL", "30.0")
+)
 
 # Per-backend dynamic models (falls back to *_CLI_MODEL if not set)
 CURSOR_CLI_MODEL_LIGHT = _env_or_none("CURSOR_CLI_MODEL_LIGHT") or CURSOR_CLI_MODEL
-CURSOR_CLI_MODEL_STANDARD = _env_or_none("CURSOR_CLI_MODEL_STANDARD") or CURSOR_CLI_MODEL
-CURSOR_CLI_MODEL_POWERFUL = _env_or_none("CURSOR_CLI_MODEL_POWERFUL") or CURSOR_CLI_MODEL
+CURSOR_CLI_MODEL_STANDARD = (
+    _env_or_none("CURSOR_CLI_MODEL_STANDARD") or CURSOR_CLI_MODEL
+)
+CURSOR_CLI_MODEL_POWERFUL = (
+    _env_or_none("CURSOR_CLI_MODEL_POWERFUL") or CURSOR_CLI_MODEL
+)
 
-CLAUDE_CODE_CLI_MODEL_LIGHT = _env_or_none("CLAUDE_CODE_CLI_MODEL_LIGHT") or CLAUDE_CODE_CLI_MODEL
-CLAUDE_CODE_CLI_MODEL_STANDARD = _env_or_none("CLAUDE_CODE_CLI_MODEL_STANDARD") or CLAUDE_CODE_CLI_MODEL
-CLAUDE_CODE_CLI_MODEL_POWERFUL = _env_or_none("CLAUDE_CODE_CLI_MODEL_POWERFUL") or CLAUDE_CODE_CLI_MODEL
+CLAUDE_CODE_CLI_MODEL_LIGHT = (
+    _env_or_none("CLAUDE_CODE_CLI_MODEL_LIGHT") or CLAUDE_CODE_CLI_MODEL
+)
+CLAUDE_CODE_CLI_MODEL_STANDARD = (
+    _env_or_none("CLAUDE_CODE_CLI_MODEL_STANDARD") or CLAUDE_CODE_CLI_MODEL
+)
+CLAUDE_CODE_CLI_MODEL_POWERFUL = (
+    _env_or_none("CLAUDE_CODE_CLI_MODEL_POWERFUL") or CLAUDE_CODE_CLI_MODEL
+)
 
 GEMINI_CLI_MODEL_LIGHT = _env_or_none("GEMINI_CLI_MODEL_LIGHT") or GEMINI_CLI_MODEL
-GEMINI_CLI_MODEL_STANDARD = _env_or_none("GEMINI_CLI_MODEL_STANDARD") or GEMINI_CLI_MODEL
-GEMINI_CLI_MODEL_POWERFUL = _env_or_none("GEMINI_CLI_MODEL_POWERFUL") or GEMINI_CLI_MODEL
+GEMINI_CLI_MODEL_STANDARD = (
+    _env_or_none("GEMINI_CLI_MODEL_STANDARD") or GEMINI_CLI_MODEL
+)
+GEMINI_CLI_MODEL_POWERFUL = (
+    _env_or_none("GEMINI_CLI_MODEL_POWERFUL") or GEMINI_CLI_MODEL
+)
 
 # ===========================================
 # Agent Configuration
@@ -117,10 +139,14 @@ AGENT_CONFIG = {
     "project_goal": os.getenv("PROJECT_GOAL", "プロジェクトの目標を設定してください"),
     "mode": "plan",  # For planner
     "prompt_template": resolve_prompt_path("PROMPT_PLANNER", "planner.md"),
-    "prompt_template_finalize": resolve_prompt_path("PROMPT_PLANNER_FINALIZE", "planner_finalize.md"),
+    "prompt_template_finalize": resolve_prompt_path(
+        "PROMPT_PLANNER_FINALIZE", "planner_finalize.md"
+    ),
     "prompt_template_worker": resolve_prompt_path("PROMPT_WORKER", "worker.md"),
     "prompt_template_judge": resolve_prompt_path("PROMPT_JUDGE", "judge.md"),
-    "prompt_template_plan_judge": resolve_prompt_path("PROMPT_PLAN_JUDGE", "plan_judge.md"),
+    "prompt_template_plan_judge": resolve_prompt_path(
+        "PROMPT_PLAN_JUDGE", "plan_judge.md"
+    ),
     "system_prompts_dir": str(SYSTEM_PROMPTS_DIR),
 }
 
@@ -135,13 +161,16 @@ else:
     LOG_DIR = str(Path("logs").resolve())
 
 # Checkpoints: compress older than latest to .tar.gz to reduce disk usage
-COMPRESS_OLD_CHECKPOINTS = os.getenv("COMPRESS_OLD_CHECKPOINTS", "true").lower() == "true"
+COMPRESS_OLD_CHECKPOINTS = (
+    os.getenv("COMPRESS_OLD_CHECKPOINTS", "true").lower() == "true"
+)
 
 # ADR (Architecture Decision Records) Configuration
 if is_running_in_container():
     ADR_DIR = "/workspace/docs/adr"
 else:
     ADR_DIR = str(Path("docs/adr").resolve())
+
 
 # For dashboard display: host paths for state / logs / adr
 def _display_dir(env_key: str, fallback: str) -> str:
@@ -185,7 +214,9 @@ MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
 # Parallel Execution Configuration
 # ===========================================
 MAX_PARALLEL_WORKERS = int(os.getenv("MAX_PARALLEL_WORKERS", "3"))
-ENABLE_PARALLEL_EXECUTION = os.getenv("ENABLE_PARALLEL_EXECUTION", "true").lower() == "true"
+ENABLE_PARALLEL_EXECUTION = (
+    os.getenv("ENABLE_PARALLEL_EXECUTION", "true").lower() == "true"
+)
 
 # ===========================================
 # Planning Review Configuration

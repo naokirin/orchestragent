@@ -44,20 +44,20 @@ class OverviewWidget(ScrollableContainer):
         """Update overview content from state."""
         # Project goal
         goal_widget = self.query_one("#project-goal", Static)
-        goal = config.AGENT_CONFIG.get('project_goal', '未設定')
+        goal = config.AGENT_CONFIG.get("project_goal", "未設定")
         goal_widget.update(f"[cyan]{goal}[/cyan]")
 
         # Progress info
         progress_widget = self.query_one("#progress-info", Static)
         status = self.state_manager.get_status()
-        iteration = status.get('current_iteration', 0)
+        iteration = status.get("current_iteration", 0)
         max_iterations = config.MAX_ITERATIONS
-        should_continue = status.get('should_continue', True)
+        should_continue = status.get("should_continue", True)
 
         progress_text = f"""
 イテレーション: [bold]{iteration}[/bold] / {max_iterations}
-継続判定: [{'green' if should_continue else 'red'}]{'継続' if should_continue else '停止'}[/{'green' if should_continue else 'red'}]
-理由: {status.get('reason', 'N/A')}
+継続判定: [{"green" if should_continue else "red"}]{"継続" if should_continue else "停止"}[/{"green" if should_continue else "red"}]
+理由: {status.get("reason", "N/A")}
         """.strip()
         progress_widget.update(progress_text)
 
@@ -93,6 +93,7 @@ class LogsWidget(RichLog):
     def on_mount(self) -> None:
         """Set up log file monitoring and load existing logs."""
         from datetime import datetime
+
         log_dir = Path(config.LOG_DIR)
         log_file = log_dir / f"execution_{datetime.now().strftime('%Y%m%d')}.log"
         self.log_file_path = log_file
@@ -100,18 +101,18 @@ class LogsWidget(RichLog):
         # Load existing log content when tab is opened
         if log_file.exists():
             try:
-                with open(log_file, 'r', encoding='utf-8') as f:
+                with open(log_file, "r", encoding="utf-8") as f:
                     all_lines = f.readlines()
                     if all_lines:
                         # Process and display all existing lines
                         processed_lines = []
                         for line in all_lines:
-                            line = line.rstrip('\n\r')
+                            line = line.rstrip("\n\r")
                             if not line:
                                 continue
 
                             # Remove timestamp prefix for cleaner display
-                            parts = line.split(' - ', 2)
+                            parts = line.split(" - ", 2)
                             if len(parts) >= 3:
                                 level = parts[1]
                                 message = parts[2].strip()
@@ -119,7 +120,9 @@ class LogsWidget(RichLog):
                                 if level == "ERROR":
                                     processed_lines.append(f"[red]{message}[/red]")
                                 elif level == "WARNING":
-                                    processed_lines.append(f"[yellow]{message}[/yellow]")
+                                    processed_lines.append(
+                                        f"[yellow]{message}[/yellow]"
+                                    )
                                 elif level == "INFO":
                                     processed_lines.append(f"[cyan]{message}[/cyan]")
                                 else:
@@ -150,7 +153,7 @@ class LogsWidget(RichLog):
             return
 
         try:
-            with open(self.log_file_path, 'r', encoding='utf-8') as f:
+            with open(self.log_file_path, "r", encoding="utf-8") as f:
                 f.seek(self.last_position)
                 new_lines = f.readlines()
                 if new_lines:
@@ -158,13 +161,13 @@ class LogsWidget(RichLog):
                     processed_lines = []
                     for line in new_lines:
                         # Remove newline character and process
-                        line = line.rstrip('\n\r')
+                        line = line.rstrip("\n\r")
                         if not line:
                             continue
 
                         # Remove timestamp prefix for cleaner display
                         # Format: "2024-01-01 12:00:00 - INFO - message"
-                        parts = line.split(' - ', 2)
+                        parts = line.split(" - ", 2)
                         if len(parts) >= 3:
                             level = parts[1]
                             message = parts[2].strip()
@@ -227,10 +230,10 @@ class TasksWidget(ScrollableContainer):
     def _get_status_colored(self, status: str) -> str:
         """Get colored status text."""
         return {
-            'pending': '[yellow]保留中[/yellow]',
-            'in_progress': '[cyan]実行中[/cyan]',
-            'completed': '[green]完了[/green]',
-            'failed': '[red]失敗[/red]'
+            "pending": "[yellow]保留中[/yellow]",
+            "in_progress": "[cyan]実行中[/cyan]",
+            "completed": "[green]完了[/green]",
+            "failed": "[red]失敗[/red]",
         }.get(status, status)
 
     def update_tasks(self) -> None:
@@ -251,9 +254,9 @@ class TasksWidget(ScrollableContainer):
                 task_id = task.id
                 current_task_ids.append(task_id)
                 task_data_map[task_id] = {
-                    'title': task.title[:30],
-                    'status': task.status.value,
-                    'priority': task.priority.value
+                    "title": task.title[:30],
+                    "status": task.status.value,
+                    "priority": task.priority.value,
                 }
 
             # Get existing row keys
@@ -266,11 +269,11 @@ class TasksWidget(ScrollableContainer):
                 for task_id in current_task_ids:
                     data = task_data_map[task_id]
                     table.add_row(
-                        self._get_status_colored(data['status']),
+                        self._get_status_colored(data["status"]),
                         task_id,
-                        data['title'],
-                        data['priority'],
-                        key=task_id
+                        data["title"],
+                        data["priority"],
+                        key=task_id,
                     )
                 self._last_task_ids = current_task_ids
                 return
@@ -282,13 +285,17 @@ class TasksWidget(ScrollableContainer):
                     data = task_data_map[task_id]
                     try:
                         # Update status (column 0)
-                        table.update_cell(task_id, "ステータス", self._get_status_colored(data['status']))
+                        table.update_cell(
+                            task_id,
+                            "ステータス",
+                            self._get_status_colored(data["status"]),
+                        )
                         # Update ID (column 1) - should stay in sync with row key
                         table.update_cell(task_id, "ID", task_id)
                         # Update title (column 2)
-                        table.update_cell(task_id, "タイトル", data['title'])
+                        table.update_cell(task_id, "タイトル", data["title"])
                         # Update priority (column 3)
-                        table.update_cell(task_id, "優先度", data['priority'])
+                        table.update_cell(task_id, "優先度", data["priority"])
                     except Exception:
                         pass  # Ignore errors during update
 
@@ -298,11 +305,11 @@ class TasksWidget(ScrollableContainer):
                 if task_id in new_task_ids:
                     data = task_data_map[task_id]
                     table.add_row(
-                        self._get_status_colored(data['status']),
+                        self._get_status_colored(data["status"]),
                         task_id,
-                        data['title'],
-                        data['priority'],
-                        key=task_id
+                        data["title"],
+                        data["priority"],
+                        key=task_id,
                     )
 
             # Remove deleted rows
@@ -336,25 +343,29 @@ class TasksWidget(ScrollableContainer):
 
         detail_widget = self.query_one("#task-detail", Static)
 
-        updated_at = task.updated_at or task.completed_at or task.failed_at or 'N/A'
-        files_str = ', '.join(task.files) if task.files else 'なし'
+        updated_at = task.updated_at or task.completed_at or task.failed_at or "N/A"
+        files_str = ", ".join(task.files) if task.files else "なし"
         detail_text = f"""
 [bold]ID:[/bold] {task.id}
 [bold]タイトル:[/bold] {task.title}
 [bold]ステータス:[/bold] {task.status.value}
 [bold]優先度:[/bold] {task.priority.value}
-[bold]作成日時:[/bold] {task.created_at or 'N/A'}
+[bold]作成日時:[/bold] {task.created_at or "N/A"}
 [bold]更新日時:[/bold] {updated_at}
 
 [bold]説明:[/bold]
-{task.description or '説明なし'}
+{task.description or "説明なし"}
 
 [bold]ファイル:[/bold]
 {files_str}
         """.strip()
 
         if task.is_completed() and task.result:
-            result_report = task.result.report if hasattr(task.result, 'report') else task.result.get('report', 'N/A')
+            result_report = (
+                task.result.report
+                if hasattr(task.result, "report")
+                else task.result.get("report", "N/A")
+            )
             detail_text += f"\n\n[bold]結果:[/bold]\n{result_report}"
         elif task.is_failed() and task.error:
             detail_text += f"\n\n[bold]エラー:[/bold]\n[red]{task.error}[/red]"
@@ -391,10 +402,14 @@ class SettingsWidget(ScrollableContainer):
         """Update settings content."""
         # Project configuration
         project_widget = self.query_one("#project-config", Static)
-        target_project_info = f"\n対象プロジェクト: {config.TARGET_PROJECT}" if config.TARGET_PROJECT else ""
+        target_project_info = (
+            f"\n対象プロジェクト: {config.TARGET_PROJECT}"
+            if config.TARGET_PROJECT
+            else ""
+        )
         project_text = f"""
 プロジェクトルート: {config.PROJECT_ROOT}
-プロジェクト目標: {config.AGENT_CONFIG.get('project_goal', '未設定')}{target_project_info}
+プロジェクト目標: {config.AGENT_CONFIG.get("project_goal", "未設定")}{target_project_info}
 状態ディレクトリ: {config.DISPLAY_STATE_DIR}
 ログディレクトリ: {config.DISPLAY_LOG_DIR}
 ADRディレクトリ: {config.DISPLAY_ADR_DIR}
@@ -407,7 +422,7 @@ ADRディレクトリ: {config.DISPLAY_ADR_DIR}
         llm_text = f"""
 バックエンド: {config.LLM_BACKEND}
 出力形式: {config.LLM_OUTPUT_FORMAT}
-デフォルトモデル (LLM_MODEL): {config.LLM_MODEL or '(未設定)'}
+デフォルトモデル (LLM_MODEL): {config.LLM_MODEL or "(未設定)"}
         """.strip()
         llm_widget.update(llm_text)
 
@@ -415,15 +430,15 @@ ADRディレクトリ: {config.DISPLAY_ADR_DIR}
         model_widget = self.query_one("#model-config", Static)
         model_text = f"""
 [bold]エージェント別モデル[/bold]
-Planner モデル: {config.PLANNER_MODEL or '(デフォルト)'}
-Worker モデル: {config.WORKER_MODEL or '(デフォルト)'}
-Judge モデル: {config.JUDGE_MODEL or '(デフォルト)'}
+Planner モデル: {config.PLANNER_MODEL or "(デフォルト)"}
+Worker モデル: {config.WORKER_MODEL or "(デフォルト)"}
+Judge モデル: {config.JUDGE_MODEL or "(デフォルト)"}
 
 [bold]Worker 動的モデル選択[/bold]
-有効: {'有効' if config.MODEL_SELECTION_ENABLED else '無効'}
-軽量タスク用モデル: {config.WORKER_MODEL_LIGHT or '(デフォルト)'}
-標準タスク用モデル: {config.WORKER_MODEL_STANDARD or '(デフォルト)'}
-複雑タスク用モデル: {config.WORKER_MODEL_POWERFUL or '(デフォルト)'}
+有効: {"有効" if config.MODEL_SELECTION_ENABLED else "無効"}
+軽量タスク用モデル: {config.WORKER_MODEL_LIGHT or "(デフォルト)"}
+標準タスク用モデル: {config.WORKER_MODEL_STANDARD or "(デフォルト)"}
+複雑タスク用モデル: {config.WORKER_MODEL_POWERFUL or "(デフォルト)"}
 軽量判定閾値: {config.MODEL_COMPLEXITY_THRESHOLD_LIGHT}
 複雑判定閾値: {config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL}
         """.strip()
@@ -435,8 +450,8 @@ Judge モデル: {config.JUDGE_MODEL or '(デフォルト)'}
 待機時間: {config.WAIT_TIME_SECONDS}秒
 最大イテレーション数: {config.MAX_ITERATIONS}
 最大リトライ数: {config.MAX_RETRIES}
-並列実行: {'有効' if config.ENABLE_PARALLEL_EXECUTION else '無効'}
-最大並列Worker数: {config.MAX_PARALLEL_WORKERS if config.ENABLE_PARALLEL_EXECUTION else 'N/A'}
+並列実行: {"有効" if config.ENABLE_PARALLEL_EXECUTION else "無効"}
+最大並列Worker数: {config.MAX_PARALLEL_WORKERS if config.ENABLE_PARALLEL_EXECUTION else "N/A"}
         """.strip()
         loop_widget.update(loop_text)
 
@@ -449,8 +464,8 @@ Judge モデル: {config.JUDGE_MODEL or '(デフォルト)'}
         cursor_available = check_cursor_cli()
 
         env_text = f"""
-実行環境: {'コンテナ内' if is_container else 'ホスト環境'}
-Cursor CLI: {'利用可能' if cursor_available else '未検出'}
+実行環境: {"コンテナ内" if is_container else "ホスト環境"}
+Cursor CLI: {"利用可能" if cursor_available else "未検出"}
 Python バージョン: {sys.version.split()[0]}
         """.strip()
         env_widget.update(env_text)
@@ -499,9 +514,9 @@ class IntentsWidget(ScrollableContainer):
 
     def __init__(
         self,
-        intent_manager: 'IntentManager',
-        adr_manager: 'ADRManager',
-        git_helper: 'GitHelper'
+        intent_manager: "IntentManager",
+        adr_manager: "ADRManager",
+        git_helper: "GitHelper",
     ):
         super().__init__()
         self.intent_manager = intent_manager
@@ -573,7 +588,13 @@ class IntentsWidget(ScrollableContainer):
                         pass
                 else:
                     # Add new row
-                    table.add_row(task_id, goal_display, str(commit_count), related_adr, key=task_id)
+                    table.add_row(
+                        task_id,
+                        goal_display,
+                        str(commit_count),
+                        related_adr,
+                        key=task_id,
+                    )
 
             # Remove deleted rows
             deleted_task_ids = existing_keys - set(current_task_ids)
@@ -602,29 +623,29 @@ class IntentsWidget(ScrollableContainer):
         intent_info = self.selected_intent.get("intent", {})
 
         detail_text = f"""
-[bold]Task ID:[/bold] {self.selected_intent.get('task_id', 'N/A')}
-[bold]作成日時:[/bold] {self.selected_intent.get('created_at', 'N/A')}
-[bold]更新日時:[/bold] {self.selected_intent.get('updated_at', 'N/A')}
+[bold]Task ID:[/bold] {self.selected_intent.get("task_id", "N/A")}
+[bold]作成日時:[/bold] {self.selected_intent.get("created_at", "N/A")}
+[bold]更新日時:[/bold] {self.selected_intent.get("updated_at", "N/A")}
 
 [bold cyan]目標 (Goal):[/bold cyan]
-{intent_info.get('goal') or 'N/A'}
+{intent_info.get("goal") or "N/A"}
 
 [bold cyan]理由 (Rationale):[/bold cyan]
-{intent_info.get('rationale') or 'N/A'}
+{intent_info.get("rationale") or "N/A"}
 
 [bold cyan]期待される変更:[/bold cyan]
-{self._format_list(intent_info.get('expected_change', []))}
+{self._format_list(intent_info.get("expected_change", []))}
 
 [bold cyan]非目標:[/bold cyan]
-{self._format_list(intent_info.get('non_goals', []))}
+{self._format_list(intent_info.get("non_goals", []))}
 
 [bold yellow]リスク:[/bold yellow]
-{self._format_list(intent_info.get('risk', []))}
+{self._format_list(intent_info.get("risk", []))}
 
 [bold]コミット:[/bold]
-{self._format_commits(self.selected_intent.get('commits', []))}
+{self._format_commits(self.selected_intent.get("commits", []))}
 
-[bold]関連ADR:[/bold] {self.selected_intent.get('related_adr') or 'なし'}
+[bold]関連ADR:[/bold] {self.selected_intent.get("related_adr") or "なし"}
         """.strip()
 
         detail_widget.update(detail_text)
@@ -651,12 +672,22 @@ class IntentsWidget(ScrollableContainer):
             # Get commit info
             commit_info = self.git_helper.get_commit_info(commit_hash)
             if commit_info:
-                diff_viewer.write(f"[bold magenta]Commit: {commit_info.get('hash', commit_hash)[:7]}[/bold magenta]")
-                diff_viewer.write(f"[bold]{commit_info.get('message', 'No message')}[/bold]")
-                diff_viewer.write(f"[dim]Author: {commit_info.get('author', 'Unknown')}[/dim]")
-                diff_viewer.write(f"[dim]Date: {commit_info.get('timestamp', 'Unknown')}[/dim]")
+                diff_viewer.write(
+                    f"[bold magenta]Commit: {commit_info.get('hash', commit_hash)[:7]}[/bold magenta]"
+                )
+                diff_viewer.write(
+                    f"[bold]{commit_info.get('message', 'No message')}[/bold]"
+                )
+                diff_viewer.write(
+                    f"[dim]Author: {commit_info.get('author', 'Unknown')}[/dim]"
+                )
+                diff_viewer.write(
+                    f"[dim]Date: {commit_info.get('timestamp', 'Unknown')}[/dim]"
+                )
             else:
-                diff_viewer.write(f"[bold magenta]Commit: {commit_hash[:7]}[/bold magenta]")
+                diff_viewer.write(
+                    f"[bold magenta]Commit: {commit_hash[:7]}[/bold magenta]"
+                )
                 diff_viewer.write(f"[dim]{commit.get('message', '')}[/dim]")
 
             diff_viewer.write("")
@@ -664,12 +695,14 @@ class IntentsWidget(ScrollableContainer):
             # Get diff
             diff_text = self.git_helper.get_commit_diff(commit_hash)
             if not diff_text:
-                diff_viewer.write(f"[dim]Diff not available for {commit_hash[:7]}[/dim]")
+                diff_viewer.write(
+                    f"[dim]Diff not available for {commit_hash[:7]}[/dim]"
+                )
                 diff_viewer.write("")
                 continue
 
             # Colorize diff output
-            for line in diff_text.split('\n'):
+            for line in diff_text.split("\n"):
                 colored_line = self._colorize_diff_line(line)
                 diff_viewer.write(colored_line)
 
@@ -682,19 +715,19 @@ class IntentsWidget(ScrollableContainer):
         # Escape Rich markup characters first
         escaped = self._escape_markup(line)
 
-        if line.startswith('+') and not line.startswith('+++'):
+        if line.startswith("+") and not line.startswith("+++"):
             # Added line - green background
             return f"[green on #1a3d1a]{escaped}[/green on #1a3d1a]"
-        elif line.startswith('-') and not line.startswith('---'):
+        elif line.startswith("-") and not line.startswith("---"):
             # Removed line - red background
             return f"[red on #3d1a1a]{escaped}[/red on #3d1a1a]"
-        elif line.startswith('@@'):
+        elif line.startswith("@@"):
             # Hunk header - cyan
             return f"[bold cyan]{escaped}[/bold cyan]"
-        elif line.startswith('diff ') or line.startswith('index '):
+        elif line.startswith("diff ") or line.startswith("index "):
             # Diff header - dim
             return f"[dim]{escaped}[/dim]"
-        elif line.startswith('+++') or line.startswith('---'):
+        elif line.startswith("+++") or line.startswith("---"):
             # File names - bold
             return f"[bold]{escaped}[/bold]"
         else:
@@ -719,25 +752,25 @@ class IntentsWidget(ScrollableContainer):
             return
 
         adr_text = f"""
-[bold]ADR-{adr.get('number')}: {adr.get('title')}[/bold]
+[bold]ADR-{adr.get("number")}: {adr.get("title")}[/bold]
 
-[bold]ステータス:[/bold] {adr.get('status')}
-[bold]ファイル:[/bold] {adr.get('filepath')}
+[bold]ステータス:[/bold] {adr.get("status")}
+[bold]ファイル:[/bold] {adr.get("filepath")}
 
 [bold cyan]コンテキスト:[/bold cyan]
-{adr.get('context', 'N/A')}
+{adr.get("context", "N/A")}
 
 [bold cyan]決定:[/bold cyan]
-{adr.get('decision', 'N/A')}
+{adr.get("decision", "N/A")}
 
 [bold cyan]理由:[/bold cyan]
-{adr.get('rationale', 'N/A')}
+{adr.get("rationale", "N/A")}
 
 [bold cyan]結果:[/bold cyan]
-{adr.get('consequences', 'N/A')}
+{adr.get("consequences", "N/A")}
 
 [bold]関連Intent:[/bold]
-{self._format_list(adr.get('related_intents', []))}
+{self._format_list(adr.get("related_intents", []))}
         """.strip()
 
         adr_widget.update(adr_text)
@@ -754,8 +787,8 @@ class IntentsWidget(ScrollableContainer):
             return "  [dim]なし[/dim]"
         formatted = []
         for c in commits:
-            hash_short = (c.get('hash') or 'N/A')[:7]
-            message = c.get('message', 'No message')
+            hash_short = (c.get("hash") or "N/A")[:7]
+            message = c.get("message", "No message")
             formatted.append(f"  - [cyan]{hash_short}[/cyan]: {message}")
         return "\n".join(formatted)
 

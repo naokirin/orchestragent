@@ -43,9 +43,7 @@ class CheckpointManager:
             Checkpoint directory path as string.
         """
         if checkpoint_name is None:
-            checkpoint_name = (
-                f"checkpoint_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            )
+            checkpoint_name = f"checkpoint_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
         checkpoint_dir = self.state_dir / "checkpoints" / checkpoint_name
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -75,9 +73,7 @@ class CheckpointManager:
             created_at=datetime.now().isoformat(),
             files=state_files,
         )
-        with open(
-            checkpoint_dir / "metadata.json", "w", encoding="utf-8"
-        ) as f:
+        with open(checkpoint_dir / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(metadata.to_dict(), f, indent=2, ensure_ascii=False)
 
         return str(checkpoint_dir)
@@ -124,9 +120,7 @@ class CheckpointManager:
                     raise StateError(
                         f"Checkpoint metadata not found: {checkpoint_name}"
                     )
-                backup_name = (
-                    f"pre_restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                )
+                backup_name = f"pre_restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 self.create_backup(backup_name)
                 self._restore_from_dir(source_dir)
             return
@@ -135,14 +129,10 @@ class CheckpointManager:
 
         metadata_file = source_dir / "metadata.json"
         if not metadata_file.exists():
-            raise StateError(
-                f"Checkpoint metadata not found: {checkpoint_name}"
-            )
+            raise StateError(f"Checkpoint metadata not found: {checkpoint_name}")
 
         try:
-            backup_name = (
-                f"pre_restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            )
+            backup_name = f"pre_restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             self.create_backup(backup_name)
             self._restore_from_dir(source_dir)
         except Exception as e:
@@ -184,9 +174,7 @@ class CheckpointManager:
             Backup directory path as string.
         """
         if backup_name is None:
-            backup_name = (
-                f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            )
+            backup_name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
         backup_path = self.backup_dir / backup_name
         backup_path.mkdir(parents=True, exist_ok=True)
@@ -226,9 +214,7 @@ class CheckpointManager:
                 metadata_file = path / "metadata.json"
                 if metadata_file.exists():
                     try:
-                        with open(
-                            metadata_file, "r", encoding="utf-8"
-                        ) as f:
+                        with open(metadata_file, "r", encoding="utf-8") as f:
                             metadata_dict = json.load(f)
                             checkpoints.append(
                                 CheckpointMetadata.from_dict(metadata_dict)
@@ -247,17 +233,13 @@ class CheckpointManager:
                         try:
                             member = tar.getmember(meta_member)
                         except KeyError:
-                            logger.debug(
-                                "Metadata not found in archive %s", path.name
-                            )
+                            logger.debug("Metadata not found in archive %s", path.name)
                             continue
                         f = tar.extractfile(member)
                         if f is None:
                             continue
                         metadata_dict = json.load(f)
-                        checkpoints.append(
-                            CheckpointMetadata.from_dict(metadata_dict)
-                        )
+                        checkpoints.append(CheckpointMetadata.from_dict(metadata_dict))
                 except (tarfile.TarError, json.JSONDecodeError, KeyError, OSError) as e:
                     logger.debug(
                         "Failed to read compressed checkpoint %s: %s", path.name, e
@@ -300,7 +282,9 @@ class CheckpointManager:
                 with tarfile.open(archive_path, "w:gz") as tar:
                     for item in checkpoint_dir.rglob("*"):
                         if item.is_file():
-                            arcname = name + "/" + item.relative_to(checkpoint_dir).as_posix()
+                            arcname = (
+                                name + "/" + item.relative_to(checkpoint_dir).as_posix()
+                            )
                             tar.add(item, arcname=arcname)
                 shutil.rmtree(checkpoint_dir)
                 compressed_count += 1

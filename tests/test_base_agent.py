@@ -53,7 +53,7 @@ class TestBaseAgent:
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
             logger=mock_logger,
-            config={"mode": "agent", "model": "test-model"}
+            config={"mode": "agent", "model": "test-model"},
         )
 
     def test_init(self, mock_llm_client, mock_state_manager, mock_logger):
@@ -62,7 +62,7 @@ class TestBaseAgent:
             name="test_agent",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
         assert agent.name == "test_agent"
         assert agent.llm_client is mock_llm_client
@@ -78,7 +78,7 @@ class TestBaseAgent:
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
             logger=mock_logger,
-            config={"mode": "chat", "model": "gpt-4"}
+            config={"mode": "chat", "model": "gpt-4"},
         )
         assert agent.mode == "chat"
         assert agent.config["model"] == "gpt-4"
@@ -99,7 +99,7 @@ class TestLoadState:
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
     def test_load_state(self, agent):
@@ -125,7 +125,7 @@ class TestParseResponse:
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
     def test_parse_response_default(self, agent):
@@ -161,7 +161,7 @@ class TestRun:
             name="test_agent",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
     def test_run_success(self, agent):
@@ -213,14 +213,14 @@ class TestRunRetry:
         # First call raises retryable error, second succeeds
         mock_llm_client.call_agent.side_effect = [
             LLMError("Temporary error", retryable=True),
-            "Success response"
+            "Success response",
         ]
 
         agent = ConcreteAgent(
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
         with patch("time.sleep"):  # Skip actual sleep
@@ -232,13 +232,15 @@ class TestRunRetry:
     def test_run_fails_on_non_retryable_error(self, mock_state_manager, mock_logger):
         """Test that run fails immediately on non-retryable LLMError."""
         mock_llm_client = MagicMock()
-        mock_llm_client.call_agent.side_effect = LLMError("Fatal error", retryable=False)
+        mock_llm_client.call_agent.side_effect = LLMError(
+            "Fatal error", retryable=False
+        )
 
         agent = ConcreteAgent(
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
         with pytest.raises(LLMError) as exc_info:
@@ -251,13 +253,15 @@ class TestRunRetry:
     def test_run_fails_after_max_retries(self, mock_state_manager, mock_logger):
         """Test that run fails after max retries exhausted."""
         mock_llm_client = MagicMock()
-        mock_llm_client.call_agent.side_effect = LLMError("Persistent error", retryable=True)
+        mock_llm_client.call_agent.side_effect = LLMError(
+            "Persistent error", retryable=True
+        )
 
         agent = ConcreteAgent(
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
         with patch("time.sleep"):  # Skip actual sleep
@@ -266,7 +270,9 @@ class TestRunRetry:
 
         assert mock_llm_client.call_agent.call_count == 3
 
-    def test_run_max_retries_zero_raises_exhausted(self, mock_state_manager, mock_logger):
+    def test_run_max_retries_zero_raises_exhausted(
+        self, mock_state_manager, mock_logger
+    ):
         """When max_retries=0, do not enter loop and raise AgentError(exhausted)."""
         mock_llm_client = MagicMock()
         mock_llm_client.call_agent.side_effect = LLMError("Retryable", retryable=True)
@@ -275,7 +281,7 @@ class TestRunRetry:
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
         with pytest.raises(AgentError) as exc_info:
@@ -294,7 +300,7 @@ class TestRunRetry:
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
         with pytest.raises(AgentError) as exc_info:
@@ -325,8 +331,11 @@ class TestRunInternal:
     def mock_logger(self):
         return MagicMock()
 
-    def test_run_internal_handles_parse_error(self, mock_llm_client, mock_state_manager, mock_logger):
+    def test_run_internal_handles_parse_error(
+        self, mock_llm_client, mock_state_manager, mock_logger
+    ):
         """Test _run_internal handles parse_response errors."""
+
         class FailingParseAgent(BaseAgent):
             def build_prompt(self, state):
                 return "prompt"
@@ -341,7 +350,7 @@ class TestRunInternal:
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
         result = agent._run_internal(iteration=0, start_time=time.time())
@@ -351,8 +360,11 @@ class TestRunInternal:
         assert "error" in result
         mock_logger.error.assert_called()
 
-    def test_run_internal_handles_update_state_error(self, mock_llm_client, mock_state_manager, mock_logger):
+    def test_run_internal_handles_update_state_error(
+        self, mock_llm_client, mock_state_manager, mock_logger
+    ):
         """Test _run_internal raises on update_state errors."""
+
         class FailingUpdateAgent(BaseAgent):
             def build_prompt(self, state):
                 return "prompt"
@@ -367,7 +379,7 @@ class TestRunInternal:
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
         with pytest.raises(RuntimeError):
@@ -375,8 +387,11 @@ class TestRunInternal:
 
         mock_logger.error.assert_called()
 
-    def test_run_internal_parse_response_returns_non_dict_uses_fallback(self, mock_llm_client, mock_state_manager, mock_logger):
+    def test_run_internal_parse_response_returns_non_dict_uses_fallback(
+        self, mock_llm_client, mock_state_manager, mock_logger
+    ):
         """When parse_response returns non-dict, ValueError and fallback result is used."""
+
         class BadParseAgent(BaseAgent):
             def build_prompt(self, state):
                 return "prompt"
@@ -393,7 +408,7 @@ class TestRunInternal:
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
         result = agent._run_internal(iteration=0, start_time=time.time())
         assert "response" in result
@@ -415,7 +430,7 @@ class TestBuildPromptNotImplemented:
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
         with pytest.raises(NotImplementedError):
@@ -435,7 +450,7 @@ class TestUpdateStateNotImplemented:
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
         with pytest.raises(NotImplementedError):
@@ -455,7 +470,7 @@ class TestDefaultParseResponse:
             name="test",
             llm_client=mock_llm_client,
             state_manager=mock_state_manager,
-            logger=mock_logger
+            logger=mock_logger,
         )
 
         result = agent.parse_response("test response")

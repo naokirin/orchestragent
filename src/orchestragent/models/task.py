@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 
 class TaskStatus(str, Enum):
     """Task status enumeration."""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -17,7 +18,11 @@ class TaskStatus(str, Enum):
 # Allowed status transitions (state machine). No transition after COMPLETED; after FAILED only PENDING (retry) is allowed.
 VALID_TRANSITIONS: Dict[TaskStatus, List[TaskStatus]] = {
     TaskStatus.PENDING: [TaskStatus.IN_PROGRESS],
-    TaskStatus.IN_PROGRESS: [TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.PENDING],
+    TaskStatus.IN_PROGRESS: [
+        TaskStatus.COMPLETED,
+        TaskStatus.FAILED,
+        TaskStatus.PENDING,
+    ],
     TaskStatus.COMPLETED: [],
     TaskStatus.FAILED: [TaskStatus.PENDING],
 }
@@ -31,7 +36,9 @@ def can_transition(from_status: TaskStatus, to_status: TaskStatus) -> bool:
     return to_status in allowed
 
 
-def validate_task_status_transition(from_status: TaskStatus, to_status: TaskStatus) -> None:
+def validate_task_status_transition(
+    from_status: TaskStatus, to_status: TaskStatus
+) -> None:
     """Raise ValueError if the transition is invalid. Same status (no-op) is allowed."""
     if from_status == to_status:
         return
@@ -44,6 +51,7 @@ def validate_task_status_transition(from_status: TaskStatus, to_status: TaskStat
 
 class TaskPriority(str, Enum):
     """Task priority enumeration."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -69,6 +77,7 @@ class TaskPriority(str, Enum):
 @dataclass
 class TaskResult:
     """Task execution result."""
+
     report: str = ""
     success: bool = True
     error_message: Optional[str] = None
@@ -95,6 +104,7 @@ class TaskResult:
 @dataclass
 class Task:
     """Full task data model."""
+
     id: str
     title: str
     description: str = ""
@@ -133,8 +143,12 @@ class Task:
             "id": self.id,
             "title": self.title,
             "description": self.description,
-            "priority": self.priority.value if isinstance(self.priority, TaskPriority) else self.priority,
-            "status": self.status.value if isinstance(self.status, TaskStatus) else self.status,
+            "priority": self.priority.value
+            if isinstance(self.priority, TaskPriority)
+            else self.priority,
+            "status": self.status.value
+            if isinstance(self.status, TaskStatus)
+            else self.status,
             "created_at": self.created_at,
         }
 
@@ -150,7 +164,11 @@ class Task:
         if self.assigned_to:
             data["assigned_to"] = self.assigned_to
         if self.result:
-            data["result"] = self.result.to_dict() if isinstance(self.result, TaskResult) else self.result
+            data["result"] = (
+                self.result.to_dict()
+                if isinstance(self.result, TaskResult)
+                else self.result
+            )
         if self.result_file:
             data["result_file"] = self.result_file
         if self.error:
@@ -221,6 +239,7 @@ class Task:
 @dataclass
 class TaskIndex:
     """Lightweight task index entry for tasks.json."""
+
     id: str
     title: str
     priority: TaskPriority = TaskPriority.MEDIUM
@@ -238,7 +257,9 @@ class TaskIndex:
         return {
             "id": self.id,
             "title": self.title,
-            "priority": self.priority.value if isinstance(self.priority, TaskPriority) else self.priority,
+            "priority": self.priority.value
+            if isinstance(self.priority, TaskPriority)
+            else self.priority,
             "created_at": self.created_at,
         }
 
@@ -256,6 +277,7 @@ class TaskIndex:
 @dataclass
 class TasksFile:
     """Structure for tasks.json file."""
+
     tasks: List[TaskIndex] = field(default_factory=list)
     next_task_id: int = 1
     version: int = 0
@@ -294,6 +316,7 @@ class TasksFile:
 @dataclass
 class TaskStatistics:
     """Task execution statistics."""
+
     total: int = 0
     completed: int = 0
     failed: int = 0

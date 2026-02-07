@@ -12,10 +12,7 @@ def check_cursor_cli() -> bool:
     """Check if Cursor CLI is available."""
     try:
         result = subprocess.run(
-            ['agent', '--version'],
-            capture_output=True,
-            text=True,
-            timeout=5
+            ["agent", "--version"], capture_output=True, text=True, timeout=5
         )
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -26,10 +23,7 @@ def check_claude_code_cli() -> bool:
     """Check if Claude Code CLI is available."""
     try:
         result = subprocess.run(
-            ['claude', '--version'],
-            capture_output=True,
-            text=True,
-            timeout=5
+            ["claude", "--version"], capture_output=True, text=True, timeout=5
         )
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -40,10 +34,7 @@ def check_gemini_cli() -> bool:
     """Check if Gemini CLI is available."""
     try:
         result = subprocess.run(
-            ['gemini', '--version'],
-            capture_output=True,
-            text=True,
-            timeout=5
+            ["gemini", "--version"], capture_output=True, text=True, timeout=5
         )
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -66,8 +57,8 @@ def check_cursor_auth() -> bool:
         # Cursor CLI stores auth in two locations:
         # 1. ~/.cursor
         # 2. ~/.config/cursor/auth.json
-        cursor_config_dir = Path.home() / '.cursor'
-        cursor_config_auth = Path.home() / '.config' / 'cursor' / 'auth.json'
+        cursor_config_dir = Path.home() / ".cursor"
+        cursor_config_auth = Path.home() / ".config" / "cursor" / "auth.json"
 
         # Check both locations
         has_auth = False
@@ -76,18 +67,18 @@ def check_cursor_auth() -> bool:
         elif cursor_config_dir.exists():
             config_files = list(cursor_config_dir.iterdir())
             # Check for common auth file patterns
-            auth_indicators = ['auth', 'token', 'session', 'config']
-            if any(any(indicator in f.name.lower() for indicator in auth_indicators) for f in config_files):
+            auth_indicators = ["auth", "token", "session", "config"]
+            if any(
+                any(indicator in f.name.lower() for indicator in auth_indicators)
+                for f in config_files
+            ):
                 has_auth = True
 
         if has_auth:
             # Try a lightweight command to verify auth is working
             try:
                 result = subprocess.run(
-                    ['agent', '--version'],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
+                    ["agent", "--version"], capture_output=True, text=True, timeout=5
                 )
                 if result.returncode == 0:
                     return True
@@ -97,13 +88,12 @@ def check_cursor_auth() -> bool:
         # Fallback: Try a simple command (not 'ls' which might be slow)
         try:
             result = subprocess.run(
-                ['agent', '--version'],
-                capture_output=True,
-                text=True,
-                timeout=5
+                ["agent", "--version"], capture_output=True, text=True, timeout=5
             )
             # If version command works and config exists, assume authenticated
-            if (cursor_config_dir.exists() or cursor_config_auth.exists()) and result.returncode == 0:
+            if (
+                cursor_config_dir.exists() or cursor_config_auth.exists()
+            ) and result.returncode == 0:
                 return True
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
@@ -112,8 +102,8 @@ def check_cursor_auth() -> bool:
     except Exception as e:
         print(f"Warning: Could not check auth status: {e}")
         # If config directory exists, assume authenticated (optimistic)
-        cursor_config_dir = Path.home() / '.cursor'
-        cursor_config_auth = Path.home() / '.config' / 'cursor' / 'auth.json'
+        cursor_config_dir = Path.home() / ".cursor"
+        cursor_config_auth = Path.home() / ".config" / "cursor" / "auth.json"
         if cursor_config_dir.exists() or cursor_config_auth.exists():
             print("Note: Cursor config directory exists, assuming authenticated")
             return True
@@ -165,7 +155,9 @@ def print_configuration() -> None:
     print("\n[動的モデル選択]")
     print(f"  有効: {'有効' if config.MODEL_SELECTION_ENABLED else '無効'}")
     if config.MODEL_SELECTION_ENABLED:
-        print(f"  閾値 (軽量 < {config.MODEL_COMPLEXITY_THRESHOLD_LIGHT} < 標準 < {config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL} < 複雑)")
+        print(
+            f"  閾値 (軽量 < {config.MODEL_COMPLEXITY_THRESHOLD_LIGHT} < 標準 < {config.MODEL_COMPLEXITY_THRESHOLD_POWERFUL} < 複雑)"
+        )
         print("  [Cursor CLI]")
         print(f"    軽量: {config.CURSOR_CLI_MODEL_LIGHT or '(デフォルト)'}")
         print(f"    標準: {config.CURSOR_CLI_MODEL_STANDARD or '(デフォルト)'}")

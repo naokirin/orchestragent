@@ -4,6 +4,7 @@ import os
 
 if __name__ == "__main__":
     import uvicorn
+
     port = int(os.getenv("WEB_DASHBOARD_PORT", "8765"))
     host = os.getenv("WEB_DASHBOARD_HOST", "127.0.0.1")
     uvicorn.run(

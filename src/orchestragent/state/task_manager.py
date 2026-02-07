@@ -41,6 +41,7 @@ class TaskManager:
 
     def update_status(self, **kwargs: Any) -> None:
         """Update status with given fields."""
+
         def update(data: Dict[str, Any]) -> Dict[str, Any]:
             data.update(kwargs)
             data["last_updated"] = datetime.now().isoformat()
@@ -88,9 +89,7 @@ class TaskManager:
                 TaskIndex(
                     id=task_id,
                     title=data.get("title", "No title"),
-                    priority=TaskPriority.from_string(
-                        data.get("priority", "medium")
-                    ),
+                    priority=TaskPriority.from_string(data.get("priority", "medium")),
                     created_at=data.get("created_at"),
                 ).to_dict()
             )
@@ -249,14 +248,10 @@ class TaskManager:
     ) -> None:
         """Mark task as completed with result (validates transition before writing)."""
         task_state = self._load_task_state(task_id)
-        current_status = TaskStatus(
-            task_state.get("status", TaskStatus.PENDING.value)
-        )
+        current_status = TaskStatus(task_state.get("status", TaskStatus.PENDING.value))
         validate_task_status_transition(current_status, TaskStatus.COMPLETED)
 
-        result_dict = (
-            result.to_dict() if isinstance(result, TaskResult) else result
-        )
+        result_dict = result.to_dict() if isinstance(result, TaskResult) else result
         result_file = f"results/{task_id}.md"
         self._file.save_text(result_file, result_dict.get("report", ""))
 

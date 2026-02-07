@@ -32,6 +32,7 @@ class PlannerAgent(BaseAgent):
         if self._run_finalize:
             return self._build_finalize_prompt(state)
         from orchestragent import config as _config
+
         user_part = self.load_user_prompt(
             "prompt_template",
             _config.AGENT_CONFIG["prompt_template"],
@@ -44,6 +45,7 @@ class PlannerAgent(BaseAgent):
     def _build_finalize_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for finalize mode: update plan.md to reflect Judge completion."""
         from orchestragent import config as _config
+
         user_part = self.load_user_prompt(
             "prompt_template_finalize",
             _config.AGENT_CONFIG["prompt_template_finalize"],
@@ -139,7 +141,9 @@ class PlannerAgent(BaseAgent):
         if len(python_files) > 20:
             return f"The codebase has {len(python_files)}+ Python files."
         else:
-            file_list = "\n".join([f"- {f.relative_to(project_root)}" for f in python_files[:20]])
+            file_list = "\n".join(
+                [f"- {f.relative_to(project_root)}" for f in python_files[:20]]
+            )
             return f"Key files:\n{file_list}"
 
     def parse_response(self, response: str) -> Dict[str, Any]:
@@ -153,7 +157,7 @@ class PlannerAgent(BaseAgent):
         return {
             "plan_update": response,
             "new_tasks": [],
-            "reasoning": "JSON形式で出力されませんでした"
+            "reasoning": "JSON形式で出力されませんでした",
         }
 
     def load_state(self) -> Dict[str, Any]:
@@ -169,7 +173,9 @@ class PlannerAgent(BaseAgent):
             plan_update = result.get("plan_update", "")
             if plan_update:
                 self.state_manager.save_plan(plan_update)
-                self.logger.info(f"[{self.name}] Plan finalized (Judge完了に合わせて plan.md を更新)")
+                self.logger.info(
+                    f"[{self.name}] Plan finalized (Judge完了に合わせて plan.md を更新)"
+                )
             return
 
         # Update plan
@@ -183,7 +189,9 @@ class PlannerAgent(BaseAgent):
         for updated in updated_tasks:
             task_id = updated.get("id")
             if not task_id:
-                self.logger.warning(f"[{self.name}] updated_tasks entry without id: {updated}")
+                self.logger.warning(
+                    f"[{self.name}] updated_tasks entry without id: {updated}"
+                )
                 continue
 
             # Only fields other than id are updated
@@ -197,7 +205,9 @@ class PlannerAgent(BaseAgent):
                     f"[{self.name}] Updated task {task_id}: {', '.join(updates.keys())}"
                 )
             except Exception as e:
-                self.logger.warning(f"[{self.name}] Failed to update task {task_id}: {e}")
+                self.logger.warning(
+                    f"[{self.name}] Failed to update task {task_id}: {e}"
+                )
 
         # Add new tasks
         new_tasks = result.get("new_tasks", [])
@@ -211,9 +221,13 @@ class PlannerAgent(BaseAgent):
                     task["files"] = files
 
             task_id = self.state_manager.add_task(task)
-            self.logger.info(f"[{self.name}] Added task: {task_id} - {task.get('title', 'No title')}")
+            self.logger.info(
+                f"[{self.name}] Added task: {task_id} - {task.get('title', 'No title')}"
+            )
             if task.get("files"):
-                self.logger.info(f"[{self.name}] Task {task_id} files: {', '.join(task['files'])}")
+                self.logger.info(
+                    f"[{self.name}] Task {task_id} files: {', '.join(task['files'])}"
+                )
 
         # Always sync tasks.json from current task files so PlanJudge and others see the latest index
         self.state_manager.sync_tasks_index()
@@ -222,4 +236,5 @@ class PlannerAgent(BaseAgent):
     def _get_timestamp(self) -> str:
         """Get current timestamp."""
         from datetime import datetime
+
         return datetime.now().isoformat()

@@ -17,6 +17,7 @@ class JudgeAgent(BaseAgent):
     def build_prompt(self, state: Dict[str, Any]) -> str:
         """Build prompt for judge. Role/instructions come from prompt file; context and output format are injected by the system."""
         from orchestragent import config as _config
+
         user_part = self.load_user_prompt(
             "prompt_template",
             _config.AGENT_CONFIG["prompt_template_judge"],
@@ -41,7 +42,9 @@ class JudgeAgent(BaseAgent):
                 except Exception:
                     pass
         completed_results_str = (
-            "\n\n".join(completed_results) if completed_results else "No completed tasks."
+            "\n\n".join(completed_results)
+            if completed_results
+            else "No completed tasks."
         )
         return self._load_system_template(
             "judge_context.md",
@@ -67,14 +70,18 @@ class JudgeAgent(BaseAgent):
 
         # Fallback: extract key information from text
         self.logger.warning("[Judge] Failed to parse JSON from response")
-        should_continue = "continue" in response.lower() or "true" in response.lower() or "継続" in response
+        should_continue = (
+            "continue" in response.lower()
+            or "true" in response.lower()
+            or "継続" in response
+        )
         return {
             "should_continue": should_continue,
             "reason": response[:500],
             "progress_score": 0.5,
             "drift_detected": False,
             "recommendations": [],
-            "next_iteration_focus": "JSON形式で出力されませんでした"
+            "next_iteration_focus": "JSON形式で出力されませんでした",
         }
 
     def update_state(self, result: Dict[str, Any]) -> None:
@@ -91,15 +98,20 @@ class JudgeAgent(BaseAgent):
             reason=reason,
             progress_score=progress_score,
             drift_detected=drift_detected,
-            last_execution_feedback=result
+            last_execution_feedback=result,
         )
 
-        self.logger.info(f"[Judge] Should continue: {should_continue}, Reason: {reason[:100]}")
+        self.logger.info(
+            f"[Judge] Should continue: {should_continue}, Reason: {reason[:100]}"
+        )
 
         if drift_detected:
-            self.logger.warning(f"[Judge] Drift detected: {result.get('drift_description', 'N/A')}")
+            self.logger.warning(
+                f"[Judge] Drift detected: {result.get('drift_description', 'N/A')}"
+            )
 
     def _get_timestamp(self) -> str:
         """Get current timestamp."""
         from datetime import datetime
+
         return datetime.now().isoformat()

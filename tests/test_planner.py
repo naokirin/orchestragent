@@ -35,7 +35,9 @@ class TestPlannerBuildPrompt:
             config={"project_goal": "テスト目標", "project_root": "."},
         )
 
-    def test_build_prompt_uses_fallback_template_when_file_not_found(self, planner_agent):
+    def test_build_prompt_uses_fallback_template_when_file_not_found(
+        self, planner_agent
+    ):
         """Use fallback template when template file is not found."""
         state = {"plan": "", "tasks": {"tasks": []}, "status": {}}
 
@@ -46,7 +48,9 @@ class TestPlannerBuildPrompt:
         # Fallback is English; real file may be Japanese
         assert "Planner Agent" in prompt or "プランナー" in prompt
 
-    def test_build_prompt_formats_existing_tasks(self, planner_agent, state_manager, temp_state_dir):
+    def test_build_prompt_formats_existing_tasks(
+        self, planner_agent, state_manager, temp_state_dir
+    ):
         """Existing tasks are formatted when present."""
         # Add a task
         task_id = state_manager.add_task({"title": "Task 1", "description": "Desc 1"})
@@ -59,6 +63,7 @@ class TestPlannerBuildPrompt:
 
         # Make only prompt template files raise FileNotFoundError
         original_open = open
+
         def mock_open_func(path, *args, **kwargs):
             if "prompts/" in str(path):
                 raise FileNotFoundError
@@ -97,11 +102,14 @@ class TestPlannerBuildPrompt:
         state = {
             "plan": "",
             "tasks": {"tasks": []},
-            "status": {"last_plan_judge_feedback": {"score": 0.8, "feedback": "良い計画"}},
+            "status": {
+                "last_plan_judge_feedback": {"score": 0.8, "feedback": "良い計画"}
+            },
         }
 
         # Make only prompt template files raise FileNotFoundError
         original_open = open
+
         def mock_open_func(path, *args, **kwargs):
             if "prompts/" in str(path):
                 raise FileNotFoundError
@@ -128,6 +136,7 @@ class TestPlannerBuildPrompt:
 
         # Make only prompt template files raise FileNotFoundError
         original_open = open
+
         def mock_open_func(path, *args, **kwargs):
             if "prompts/" in str(path):
                 raise FileNotFoundError
@@ -198,9 +207,9 @@ class TestPlannerParseResponse:
 
     def test_parse_response_json_in_code_block(self, planner_agent):
         """JSON inside code block is also parsed."""
-        response = '''```json
+        response = """```json
 {"plan_update": "計画更新", "new_tasks": [{"title": "新タスク"}]}
-```'''
+```"""
         result = planner_agent.parse_response(response)
 
         assert result["plan_update"] == "計画更新"
@@ -252,14 +261,16 @@ class TestPlannerUpdateState:
         stats = state_manager.get_task_statistics()
         assert stats.total == 2
 
-    def test_update_state_extracts_files_from_description_quoted(self, planner_agent, state_manager):
+    def test_update_state_extracts_files_from_description_quoted(
+        self, planner_agent, state_manager
+    ):
         """Extract quoted file paths from task description."""
         result = {
             "plan_update": "",
             "new_tasks": [
                 {
                     "title": "ファイル修正",
-                    "description": '`src/main.py` を修正してください',
+                    "description": "`src/main.py` を修正してください",
                 },
             ],
         }
@@ -269,7 +280,9 @@ class TestPlannerUpdateState:
         assert len(tasks) == 1
         assert "src/main.py" in tasks[0].files
 
-    def test_update_state_extracts_files_with_file_prefix(self, planner_agent, state_manager):
+    def test_update_state_extracts_files_with_file_prefix(
+        self, planner_agent, state_manager
+    ):
         """Extract file: prefix paths from task description."""
         result = {
             "plan_update": "",
@@ -286,14 +299,16 @@ class TestPlannerUpdateState:
         assert len(tasks) == 1
         assert "config/settings.yml" in tasks[0].files
 
-    def test_update_state_does_not_extract_if_files_provided(self, planner_agent, state_manager):
+    def test_update_state_does_not_extract_if_files_provided(
+        self, planner_agent, state_manager
+    ):
         """Do not extract when files are already specified."""
         result = {
             "plan_update": "",
             "new_tasks": [
                 {
                     "title": "ファイル修正",
-                    "description": '`src/main.py` を修正',
+                    "description": "`src/main.py` を修正",
                     "files": ["other/file.py"],
                 },
             ],
@@ -308,7 +323,9 @@ class TestPlannerUpdateState:
     def test_update_state_updates_existing_tasks(self, planner_agent, state_manager):
         """Existing tasks can be updated via updated_tasks."""
         # Add a task first
-        task_id = state_manager.add_task({"title": "元タイトル", "description": "元説明"})
+        task_id = state_manager.add_task(
+            {"title": "元タイトル", "description": "元説明"}
+        )
 
         result = {
             "plan_update": "",
@@ -320,7 +337,9 @@ class TestPlannerUpdateState:
         updated_task = state_manager.get_task_by_id(task_id)
         assert updated_task.title == "更新後タイトル"
 
-    def test_update_state_logs_warning_for_invalid_update(self, planner_agent, state_manager):
+    def test_update_state_logs_warning_for_invalid_update(
+        self, planner_agent, state_manager
+    ):
         """Log warning when updated_tasks entry has no id."""
         result = {
             "plan_update": "",
@@ -331,9 +350,13 @@ class TestPlannerUpdateState:
 
         planner_agent.logger.warning.assert_called()
 
-    def test_update_state_skips_update_with_empty_updates(self, planner_agent, state_manager):
+    def test_update_state_skips_update_with_empty_updates(
+        self, planner_agent, state_manager
+    ):
         """Skip when updated_tasks entry has no fields other than id."""
-        task_id = state_manager.add_task({"title": "元タイトル", "description": "元説明"})
+        task_id = state_manager.add_task(
+            {"title": "元タイトル", "description": "元説明"}
+        )
 
         result = {
             "plan_update": "",
@@ -346,7 +369,9 @@ class TestPlannerUpdateState:
         task = state_manager.get_task_by_id(task_id)
         assert task.title == "元タイトル"
 
-    def test_update_state_finalize_mode_only_saves_plan(self, planner_agent, state_manager):
+    def test_update_state_finalize_mode_only_saves_plan(
+        self, planner_agent, state_manager
+    ):
         """When _run_finalize is True, only plan_update is saved; no tasks added or updated."""
         state_manager.save_plan("# 元の計画")
         task_id = state_manager.add_task({"title": "既存タスク", "description": "説明"})

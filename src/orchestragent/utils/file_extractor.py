@@ -5,7 +5,7 @@ from typing import List
 
 # Patterns shared by planner, task_scheduler, and worker
 _EXPLICIT_PATTERN = re.compile(
-    r'file:\s*([^\s\n]+\.(?:py|ts|js|md|json|yml|yaml|txt|html|css))',
+    r"file:\s*([^\s\n]+\.(?:py|ts|js|md|json|yml|yaml|txt|html|css))",
     re.IGNORECASE,
 )
 _QUOTED_PATTERN = re.compile(
@@ -13,7 +13,7 @@ _QUOTED_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _COMMON_PATTERN = re.compile(
-    r'([\w\-_/]+\.(?:py|ts|js|md|json|yml|yaml|txt|html|css))',
+    r"([\w\-_/]+\.(?:py|ts|js|md|json|yml|yaml|txt|html|css))",
 )
 
 
@@ -56,7 +56,7 @@ def extract_file_paths_from_text(
     normalized: List[str] = []
     seen = set()
     for filepath in files:
-        normalized_path = filepath.strip().strip('"\'`')
+        normalized_path = filepath.strip().strip("\"'`")
         if normalized_path and normalized_path not in seen:
             normalized.append(normalized_path)
             seen.add(normalized_path)

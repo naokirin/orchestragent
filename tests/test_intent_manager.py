@@ -57,7 +57,9 @@ class TestIntentManagerSaveIntent:
         saved = intent_manager.get_intent("task-004")
         assert saved["goal"] == "New goal"
 
-    def test_save_intent_uses_unknown_for_missing_task_id(self, intent_manager, temp_dir):
+    def test_save_intent_uses_unknown_for_missing_task_id(
+        self, intent_manager, temp_dir
+    ):
         """Use 'unknown' when task_id is missing."""
         filepath = intent_manager.save_intent({"goal": "Some goal"})
 
@@ -73,11 +75,13 @@ class TestIntentManagerGetIntent:
 
     def test_get_intent_returns_saved_data(self, intent_manager):
         """Retrieve saved Intent."""
-        intent_manager.save_intent({
-            "task_id": "task-001",
-            "goal": "Test goal",
-            "rationale": "Test rationale",
-        })
+        intent_manager.save_intent(
+            {
+                "task_id": "task-001",
+                "goal": "Test goal",
+                "rationale": "Test rationale",
+            }
+        )
 
         intent = intent_manager.get_intent("task-001")
 
@@ -172,7 +176,9 @@ class TestIntentManagerAddCommitToIntent:
         intent_manager.save_intent({"task_id": "task-001"})
 
         intent_manager.add_commit_to_intent("task-001", "abc1234", "First")
-        result = intent_manager.add_commit_to_intent("task-001", "abc1234", "First again")
+        result = intent_manager.add_commit_to_intent(
+            "task-001", "abc1234", "First again"
+        )
 
         assert result is True  # treated as success
         intent = intent_manager.get_intent("task-001")
@@ -304,14 +310,18 @@ class TestIntentManagerSearchIntents:
 
     def test_search_intents_matches_goal(self, intent_manager):
         """Return Intents matching goal."""
-        intent_manager.save_intent({
-            "task_id": "task-001",
-            "intent": {"goal": "Add authentication feature"},
-        })
-        intent_manager.save_intent({
-            "task_id": "task-002",
-            "intent": {"goal": "Fix bug"},
-        })
+        intent_manager.save_intent(
+            {
+                "task_id": "task-001",
+                "intent": {"goal": "Add authentication feature"},
+            }
+        )
+        intent_manager.save_intent(
+            {
+                "task_id": "task-002",
+                "intent": {"goal": "Fix bug"},
+            }
+        )
 
         intents = intent_manager.search_intents("authentication")
 
@@ -320,10 +330,12 @@ class TestIntentManagerSearchIntents:
 
     def test_search_intents_matches_rationale(self, intent_manager):
         """Return Intents matching rationale."""
-        intent_manager.save_intent({
-            "task_id": "task-001",
-            "intent": {"rationale": "Improve security"},
-        })
+        intent_manager.save_intent(
+            {
+                "task_id": "task-001",
+                "intent": {"rationale": "Improve security"},
+            }
+        )
 
         intents = intent_manager.search_intents("security")
 
@@ -331,10 +343,12 @@ class TestIntentManagerSearchIntents:
 
     def test_search_intents_case_insensitive(self, intent_manager):
         """Search is case-insensitive."""
-        intent_manager.save_intent({
-            "task_id": "task-001",
-            "intent": {"goal": "Add AUTHENTICATION"},
-        })
+        intent_manager.save_intent(
+            {
+                "task_id": "task-001",
+                "intent": {"goal": "Add AUTHENTICATION"},
+            }
+        )
 
         intents = intent_manager.search_intents("authentication")
 
@@ -342,10 +356,12 @@ class TestIntentManagerSearchIntents:
 
     def test_search_intents_no_match(self, intent_manager):
         """Return empty list when no match."""
-        intent_manager.save_intent({
-            "task_id": "task-001",
-            "intent": {"goal": "Something else"},
-        })
+        intent_manager.save_intent(
+            {
+                "task_id": "task-001",
+                "intent": {"goal": "Something else"},
+            }
+        )
 
         intents = intent_manager.search_intents("nonexistent")
 

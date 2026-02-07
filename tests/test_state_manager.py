@@ -175,7 +175,9 @@ class TestStateManagerTaskOperations:
         # Change status of some tasks
         state_manager.assign_task(task_ids[1])  # Task 2 -> IN_PROGRESS
         state_manager.assign_task(task_ids[2])
-        state_manager.complete_task(task_ids[2], TaskResult(report="Done"))  # Task 3 -> COMPLETED
+        state_manager.complete_task(
+            task_ids[2], TaskResult(report="Done")
+        )  # Task 3 -> COMPLETED
 
         pending = state_manager.get_pending_tasks()
 
@@ -307,10 +309,13 @@ class TestStateManagerTaskLifecycle:
         """Test updating task fields."""
         task_id = state_manager.add_task(sample_task)
 
-        state_manager.update_task(task_id, {
-            "description": "Updated description",
-            "priority": "high",
-        })
+        state_manager.update_task(
+            task_id,
+            {
+                "description": "Updated description",
+                "priority": "high",
+            },
+        )
 
         task = state_manager.get_task_by_id(task_id)
         assert task is not None
@@ -331,7 +336,9 @@ class TestStateManagerTaskLifecycle:
 class TestStateManagerTaskStatusTransition:
     """Tests for task status transition validation in StateManager."""
 
-    def test_update_task_invalid_status_transition_raises(self, state_manager, sample_task):
+    def test_update_task_invalid_status_transition_raises(
+        self, state_manager, sample_task
+    ):
         """Invalid status transition via update_task raises ValueError."""
         task_id = state_manager.add_task(sample_task)
         state_manager.assign_task(task_id)
@@ -352,13 +359,17 @@ class TestStateManagerTaskStatusTransition:
         task_id = state_manager.add_task(sample_task)
         state_manager.assign_task(task_id)
         # IN_PROGRESS -> IN_PROGRESS (e.g. only updating other fields) is allowed
-        state_manager.update_task(task_id, {"status": TaskStatus.IN_PROGRESS.value, "description": "Updated"})
+        state_manager.update_task(
+            task_id, {"status": TaskStatus.IN_PROGRESS.value, "description": "Updated"}
+        )
         task = state_manager.get_task_by_id(task_id)
         assert task is not None
         assert task.status == TaskStatus.IN_PROGRESS
         assert task.description == "Updated"
 
-    def test_recover_in_progress_tasks_valid_transition(self, state_manager, sample_task):
+    def test_recover_in_progress_tasks_valid_transition(
+        self, state_manager, sample_task
+    ):
         """IN_PROGRESS -> PENDING (recovery) is valid and works."""
         task_id = state_manager.add_task(sample_task)
         state_manager.assign_task(task_id)
@@ -369,14 +380,18 @@ class TestStateManagerTaskStatusTransition:
         assert task is not None
         assert task.status == TaskStatus.PENDING
 
-    def test_complete_task_invalid_transition_no_file_written(self, state_manager, sample_task):
+    def test_complete_task_invalid_transition_no_file_written(
+        self, state_manager, sample_task
+    ):
         """complete_task validates transition BEFORE writing result file."""
         task_id = state_manager.add_task(sample_task)
         # Task is PENDING, cannot directly transition to COMPLETED
         result_file_path = state_manager.state_dir / "results" / f"{task_id}.md"
 
         with pytest.raises(ValueError) as exc_info:
-            state_manager.complete_task(task_id, TaskResult(report="Should not be written"))
+            state_manager.complete_task(
+                task_id, TaskResult(report="Should not be written")
+            )
 
         assert "Invalid task status transition" in str(exc_info.value)
         # Result file should NOT exist since validation failed before file write
@@ -437,7 +452,9 @@ class TestStateManagerCheckpointCompression:
         state_manager.create_checkpoint("latest")
         state_manager.compress_old_checkpoints(keep_latest_n=1)
 
-        assert (state_manager.state_dir / "checkpoints" / "to_restore").exists() is False
+        assert (
+            state_manager.state_dir / "checkpoints" / "to_restore"
+        ).exists() is False
         assert (state_manager.state_dir / "checkpoints" / "to_restore.tar.gz").exists()
 
         state_manager.restore_checkpoint("to_restore")

@@ -165,7 +165,9 @@ class LLMBackendSettings:
         }
         return models.get(backend_name)
 
-    def get_backend_dynamic_models(self, backend_name: str) -> Optional[BackendDynamicModels]:
+    def get_backend_dynamic_models(
+        self, backend_name: str
+    ) -> Optional[BackendDynamicModels]:
         """Get the dynamic model settings for a specific backend."""
         dynamic_models = {
             "cursor_cli": self.cursor_cli_dynamic_models,

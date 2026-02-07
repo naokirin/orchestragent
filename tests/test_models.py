@@ -60,7 +60,9 @@ class TestTaskStatusTransition:
         assert can_transition(TaskStatus.COMPLETED, TaskStatus.PENDING) is False
         assert can_transition(TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS) is False
         assert can_transition(TaskStatus.COMPLETED, TaskStatus.FAILED) is False
-        assert can_transition(TaskStatus.COMPLETED, TaskStatus.COMPLETED) is True  # no-op
+        assert (
+            can_transition(TaskStatus.COMPLETED, TaskStatus.COMPLETED) is True
+        )  # no-op
 
     def test_cannot_transition_pending_to_completed(self):
         """PENDING -> COMPLETED is invalid (skip IN_PROGRESS)."""
@@ -78,7 +80,9 @@ class TestTaskStatusTransition:
     def test_validate_invalid_transition_raises(self):
         """Invalid transition raises ValueError with clear message."""
         with pytest.raises(ValueError) as exc_info:
-            validate_task_status_transition(TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS)
+            validate_task_status_transition(
+                TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS
+            )
         assert "Invalid task status transition" in str(exc_info.value)
         assert "completed" in str(exc_info.value)
         assert "in_progress" in str(exc_info.value)
@@ -347,7 +351,9 @@ class TestTaskStatistics:
 
     def test_to_dict(self):
         """Test converting to dict."""
-        stats = TaskStatistics(total=10, completed=5, failed=1, pending=3, in_progress=1)
+        stats = TaskStatistics(
+            total=10, completed=5, failed=1, pending=3, in_progress=1
+        )
         d = stats.to_dict()
         assert d["total"] == 10
         assert d["completed"] == 5
@@ -389,7 +395,9 @@ class TestStatus:
 
     def test_to_dict_includes_current_phase_when_set(self):
         """When current_phase is set, it is included in to_dict."""
-        s = Status(last_updated="2025-01-01T00:00:00", version=1, current_phase="planning")
+        s = Status(
+            last_updated="2025-01-01T00:00:00", version=1, current_phase="planning"
+        )
         d = s.to_dict()
         assert d["current_phase"] == "planning"
         assert d["last_updated"] == "2025-01-01T00:00:00"
@@ -403,7 +411,11 @@ class TestStatus:
 
     def test_from_dict_with_all_keys(self):
         """When all keys given in from_dict, restore correctly."""
-        data = {"last_updated": "2025-01-01T12:00:00", "version": 2, "current_phase": "running"}
+        data = {
+            "last_updated": "2025-01-01T12:00:00",
+            "version": 2,
+            "current_phase": "running",
+        }
         s = Status.from_dict(data)
         assert s.last_updated == "2025-01-01T12:00:00"
         assert s.version == 2
@@ -423,7 +435,9 @@ class TestCheckpointMetadata:
 
     def test_to_dict(self):
         """to_dict includes checkpoint_name, created_at, files."""
-        m = CheckpointMetadata(checkpoint_name="cp1", created_at="2025-01-01", files=["a.json", "b.json"])
+        m = CheckpointMetadata(
+            checkpoint_name="cp1", created_at="2025-01-01", files=["a.json", "b.json"]
+        )
         d = m.to_dict()
         assert d["checkpoint_name"] == "cp1"
         assert d["created_at"] == "2025-01-01"
