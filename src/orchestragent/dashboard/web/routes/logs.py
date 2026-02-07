@@ -20,7 +20,7 @@ _AGENT_TYPES = ["Planner", "Plan_Judge", "Worker", "Judge"]
 
 
 def _get_log_dir():
-    import config
+    from orchestragent import config
     return Path(config.LOG_DIR)
 
 

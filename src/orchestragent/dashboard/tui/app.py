@@ -237,7 +237,7 @@ class DashboardApp(App):
         """Show overview tab content."""
         from orchestragent.dashboard.tui.widgets import OverviewWidget
         from orchestragent.state.manager import StateManager
-        import config
+        from orchestragent import config
 
         content = self.query_one("#content", Container)
         state_manager = StateManager(state_dir=config.STATE_DIR)
@@ -257,7 +257,7 @@ class DashboardApp(App):
         """Show tasks tab content."""
         from orchestragent.dashboard.tui.widgets import TasksWidget
         from orchestragent.state.manager import StateManager
-        import config
+        from orchestragent import config
 
         content = self.query_one("#content", Container)
         state_manager = StateManager(state_dir=config.STATE_DIR)
@@ -271,7 +271,7 @@ class DashboardApp(App):
         from orchestragent.tracking.intent_manager import IntentManager
         from orchestragent.tracking.adr_manager import ADRManager
         from orchestragent.tracking.git_helper import GitHelper
-        import config
+        from orchestragent import config
 
         content = self.query_one("#content", Container)
         intent_manager = IntentManager(state_dir=config.STATE_DIR)

@@ -50,7 +50,7 @@ class WorkerAgent(BaseAgent):
         if not task:
             raise ValueError(f"Task {self.current_task_id} not found")
 
-        import config as _config
+        from orchestragent import config as _config
         user_part = self.load_user_prompt(
             "prompt_template",
             _config.AGENT_CONFIG["prompt_template_worker"],

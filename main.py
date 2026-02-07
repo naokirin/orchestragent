@@ -1,11 +1,7 @@
 """Main entry point for the agent system."""
 
-import sys
 import argparse
-from pathlib import Path
-
-# Add src to path for package imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+import sys
 
 
 def main():

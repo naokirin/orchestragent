@@ -1,18 +1,15 @@
 """Configuration for the agent system."""
 
 import os
-import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
-# Add src to path for package imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+from orchestragent.core.environment import is_running_in_container
 
-# Load environment variables
-load_dotenv()
-
-# Import from new package structure (after sys.path)
-from orchestragent.core.environment import is_running_in_container  # noqa: E402
+# Repo root: src/orchestragent/config.py -> parent.parent.parent
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+load_dotenv(_REPO_ROOT / ".env")
 
 
 # Project root
@@ -87,8 +84,8 @@ if is_running_in_container():
 else:
     WORKING_DIR = TARGET_PROJECT if TARGET_PROJECT else PROJECT_ROOT
 
-# Default prompts directory (orchestragent repo root when config.py lives there)
-_DEFAULT_PROMPTS_DIR = Path(__file__).parent / "prompts"
+# Default prompts directory (orchestragent repo root)
+_DEFAULT_PROMPTS_DIR = _REPO_ROOT / "prompts"
 # System-only templates (context / output format); not user-overridable by path
 SYSTEM_PROMPTS_DIR = _DEFAULT_PROMPTS_DIR / "system"
 

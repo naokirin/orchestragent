@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orchestragent"
+version = "0.1.0"
+description = "Planner-worker style autonomous agent system"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+    "textual>=0.40.0",
+    "pyyaml>=6.0",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.22.0",
+    "jinja2>=3.1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

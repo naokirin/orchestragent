@@ -26,6 +26,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Install package so orchestragent and config are importable without sys.path
+RUN pip install --no-cache-dir -e .
+
 # Allow all operations for Cursor CLI (inside container)
 ENV CURSOR_CONFIG_DIR="/root/.orchestragent"
 RUN mkdir -p /root/.orchestragent

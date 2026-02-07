@@ -8,19 +8,19 @@ router = APIRouter()
 
 
 def _get_intent_manager():
-    import config
+    from orchestragent import config
     from orchestragent.tracking.intent_manager import IntentManager
     return IntentManager(state_dir=config.STATE_DIR)
 
 
 def _get_adr_manager():
-    import config
+    from orchestragent import config
     from orchestragent.tracking.adr_manager import ADRManager
     return ADRManager(adr_dir=getattr(config, "ADR_DIR", "docs/adr"))
 
 
 def _get_git_helper():
-    import config
+    from orchestragent import config
     from orchestragent.tracking.git_helper import GitHelper
     return GitHelper(repo_path=str(config.WORKING_DIR) if config.WORKING_DIR else ".")
 

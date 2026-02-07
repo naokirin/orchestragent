@@ -11,7 +11,7 @@ router = APIRouter()
 @router.get("/settings")
 def get_settings(state=Depends(get_state_manager)):
     """Return settings and environment info (no secrets)."""
-    import config
+    from orchestragent import config
     from orchestragent.core.environment import is_running_in_container
     from orchestragent.runner.startup import check_cursor_cli
 

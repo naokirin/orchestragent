@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import config
+from orchestragent import config
 from orchestragent.core.environment import is_running_in_container
 
 

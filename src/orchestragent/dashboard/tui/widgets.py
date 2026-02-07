@@ -6,7 +6,7 @@ from textual.containers import Vertical, Horizontal, ScrollableContainer
 from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from pathlib import Path
 
-import config
+from orchestragent import config
 from orchestragent.state.manager import StateManager
 
 if TYPE_CHECKING:

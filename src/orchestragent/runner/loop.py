@@ -79,7 +79,7 @@ class RunnerConfig:
     @classmethod
     def from_global_config(cls) -> "RunnerConfig":
         """Build RunnerConfig from the global config module."""
-        import config as global_config
+        from orchestragent import config as global_config
         return cls(
             llm_backend=global_config.LLM_BACKEND,
             working_dir=str(global_config.WORKING_DIR),
@@ -337,7 +337,7 @@ def setup_agents(ctx: LoopContext) -> AgentContext:
         config=planner_config
     )
 
-    import config as _cfg
+    from orchestragent import config as _cfg
     worker_config = cfg.agent_config.copy()
     worker_config["mode"] = "agent"
     worker_config["prompt_template"] = cfg.agent_config.get(
